@@ -2,10 +2,10 @@ import { AuthProvider } from '@refinedev/core'
 import { supabase } from './supabase'
 
 export const authProvider: AuthProvider = {
-  login: async ({ email, password, providerName }) => {
+  login: async ({ email, otp, providerName }) => {
     try {
       if (providerName === 'google') {
-        const { data, error } = await supabase.auth.signInWithOAuth({
+        const { error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
             redirectTo: `${window.location.origin}/dashboard`,
@@ -26,7 +26,7 @@ export const authProvider: AuthProvider = {
       }
 
       if (providerName === 'github') {
-        const { data, error } = await supabase.auth.signInWithOAuth({
+        const { error } = await supabase.auth.signInWithOAuth({
           provider: 'github',
           options: {
             redirectTo: `${window.location.origin}/dashboard`,
@@ -46,10 +46,32 @@ export const authProvider: AuthProvider = {
         }
       }
 
-      // Email/Password login
-      const { data, error } = await supabase.auth.signInWithPassword({
+      if (!otp) {
+        const { error } = await supabase.auth.signInWithOtp({
+          email,
+          options: {
+            emailRedirectTo: `${window.location.origin}/dashboard`,
+          },
+        })
+
+        if (error) {
+          return {
+            success: false,
+            error: {
+              name: 'LoginError',
+              message: error.message,
+            },
+          }
+        }
+        return {
+          success: true,
+        }
+      }
+
+      const { error } = await supabase.auth.verifyOtp({
         email,
-        password,
+        token: otp,
+        type: 'email',
       })
 
       if (error) {
@@ -131,94 +153,31 @@ export const authProvider: AuthProvider = {
     console.error(error)
     return { error }
   },
-  register: async ({ email, password }) => {
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-      })
-
-      if (error) {
-        return {
-          success: false,
-          error: {
-            name: 'RegisterError',
-            message: error.message,
-          },
-        }
-      }
-
-      return {
-        success: true,
-        redirectTo: '/dashboard',
-      }
-    } catch (e: any) {
-      return {
-        success: false,
-        error: {
-          name: 'RegisterError',
-          message: e.message || 'Registration failed',
-        },
-      }
+  register: async () => {
+    return {
+      success: false,
+      error: {
+        name: 'RegisterError',
+        message: 'Please use the login form to sign up.',
+      },
     }
   },
-  forgotPassword: async ({ email }) => {
-    try {
-      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/update-password`,
-      })
-
-      if (error) {
-        return {
-          success: false,
-          error: {
-            name: 'ForgotPasswordError',
-            message: error.message,
-          },
-        }
-      }
-
-      return {
-        success: true,
-      }
-    } catch (e: any) {
-      return {
-        success: false,
-        error: {
-          name: 'ForgotPasswordError',
-          message: e.message || 'Failed to send reset email',
-        },
-      }
+  forgotPassword: async () => {
+    return {
+      success: false,
+      error: {
+        name: 'ForgotPasswordError',
+        message: 'Please use the login form to sign up.',
+      },
     }
   },
-  updatePassword: async ({ password }) => {
-    try {
-      const { data, error } = await supabase.auth.updateUser({
-        password,
-      })
-
-      if (error) {
-        return {
-          success: false,
-          error: {
-            name: 'UpdatePasswordError',
-            message: error.message,
-          },
-        }
-      }
-
-      return {
-        success: true,
-        redirectTo: '/',
-      }
-    } catch (e: any) {
-      return {
-        success: false,
-        error: {
-          name: 'UpdatePasswordError',
-          message: e.message || 'Failed to update password',
-        },
-      }
+  updatePassword: async () => {
+    return {
+      success: false,
+      error: {
+        name: 'UpdatePasswordError',
+        message: 'Please use the login form to sign up.',
+      },
     }
   },
 }
