@@ -6,7 +6,10 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { X } from 'lucide-react'
 
-import { EditView, EditViewHeader } from '@/components/refine-ui/views/edit-view'
+import {
+  EditView,
+  EditViewHeader,
+} from '@/components/refine-ui/views/edit-view'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -91,235 +94,242 @@ export function AiModelsEdit() {
   return (
     <EditView>
       <EditViewHeader title="Edit AI Model" />
+      <Form {...form}>
+        <form
+          onSubmit={form.handleSubmit(onFinish)}
+          className="space-y-6 max-w-2xl"
+        >
+          <LoadingOverlay loading={query?.isLoading || formLoading}>
+            {!query?.isLoading && (
+              <>
+                <Card>
+              <CardHeader>
+                <CardTitle>Model Information</CardTitle>
+                <CardDescription>
+                  Update the basic information for the AI model
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Model Name *</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g. GPT-4, Claude 3.5"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-      <LoadingOverlay loading={query?.isLoading || formLoading}>
-        {!query?.isLoading && (
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onFinish)} className="space-y-6 max-w-2xl">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Model Information</CardTitle>
-                  <CardDescription>
-                    Update the basic information for the AI model
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Model Name *</FormLabel>
+                <FormField
+                  control={form.control}
+                  name="id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Model ID</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g. gpt-4, claude-3-5"
+                          className="font-mono text-sm"
+                          {...field}
+                          disabled
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        The ID cannot be changed after creation
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="provider_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Provider *</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        value={field.value}
+                      >
                         <FormControl>
-                          <Input placeholder="e.g. GPT-4, Claude 3.5" {...field} />
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a provider" />
+                          </SelectTrigger>
                         </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                        <SelectContent>
+                          {providerOptions?.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                  <FormField
-                    control={form.control}
-                    name="id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Model ID</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="e.g. gpt-4, claude-3-5"
-                            className="font-mono text-sm"
-                            {...field}
-                            disabled
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          The ID cannot be changed after creation
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="provider_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Provider *</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          value={field.value}
-                        >
-                          <FormControl>
+                <FormField
+                  control={form.control}
+                  name="capabilities"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Capabilities</FormLabel>
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <Select
+                            value={capabilityInput}
+                            onValueChange={(value) => {
+                              addCapability(value)
+                              setCapabilityInput('')
+                            }}
+                          >
                             <SelectTrigger>
-                              <SelectValue placeholder="Select a provider" />
+                              <SelectValue placeholder="Add capability" />
                             </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {providerOptions?.map((option) => (
-                              <SelectItem key={option.value} value={option.value}>
-                                {option.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="capabilities"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Capabilities</FormLabel>
-                        <div className="space-y-2">
-                          <div className="flex gap-2">
-                            <Select
-                              value={capabilityInput}
-                              onValueChange={(value) => {
-                                addCapability(value)
-                                setCapabilityInput('')
-                              }}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Add capability" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {CAPABILITY_OPTIONS.map((cap) => (
-                                  <SelectItem key={cap} value={cap}>
-                                    {cap}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          {field.value.length > 0 && (
-                            <div className="flex flex-wrap gap-2">
-                              {field.value.map((cap: string) => (
-                                <Badge key={cap} variant="secondary">
+                            <SelectContent>
+                              {CAPABILITY_OPTIONS.map((cap) => (
+                                <SelectItem key={cap} value={cap}>
                                   {cap}
-                                  <button
-                                    type="button"
-                                    onClick={() => removeCapability(cap)}
-                                    className="ml-1 hover:text-destructive"
-                                  >
-                                    <X className="size-3" />
-                                  </button>
-                                </Badge>
+                                </SelectItem>
                               ))}
-                            </div>
-                          )}
+                            </SelectContent>
+                          </Select>
                         </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </CardContent>
-              </Card>
+                        {field.value?.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {field.value?.map((cap: string) => (
+                              <Badge key={cap} variant="secondary">
+                                {cap}
+                                <button
+                                  type="button"
+                                  onClick={() => removeCapability(cap)}
+                                  className="ml-1 hover:text-destructive"
+                                >
+                                  <X className="size-3" />
+                                </button>
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Technical Specifications</CardTitle>
-                  <CardDescription>Optional model parameters</CardDescription>
-                </CardHeader>
-                <CardContent className="grid gap-4 md:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="context_window"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Context Window</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            placeholder="e.g. 128000"
-                            {...field}
-                            value={field.value ?? ''}
-                          />
-                        </FormControl>
-                        <FormDescription className="text-xs">
-                          Number of tokens
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+            <Card>
+              <CardHeader>
+                <CardTitle>Technical Specifications</CardTitle>
+                <CardDescription>Optional model parameters</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-4 md:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="context_window"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Context Window</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="e.g. 128000"
+                          {...field}
+                          value={field.value ?? ''}
+                        />
+                      </FormControl>
+                      <FormDescription className="text-xs">
+                        Number of tokens
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                  <FormField
-                    control={form.control}
-                    name="max_output_tokens"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Max Output Tokens</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            placeholder="e.g. 4096"
-                            {...field}
-                            value={field.value ?? ''}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                <FormField
+                  control={form.control}
+                  name="max_output_tokens"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Max Output Tokens</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="e.g. 4096"
+                          {...field}
+                          value={field.value ?? ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                  <FormField
-                    control={form.control}
-                    name="cost_input_per_million"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Input Cost (per 1M tokens)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            placeholder="e.g. 3.00"
-                            {...field}
-                            value={field.value ?? ''}
-                          />
-                        </FormControl>
-                        <FormDescription className="text-xs">USD</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                <FormField
+                  control={form.control}
+                  name="cost_input_per_million"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Input Cost (per 1M tokens)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder="e.g. 3.00"
+                          {...field}
+                          value={field.value ?? ''}
+                        />
+                      </FormControl>
+                      <FormDescription className="text-xs">USD</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                  <FormField
-                    control={form.control}
-                    name="cost_output_per_million"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Output Cost (per 1M tokens)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            placeholder="e.g. 15.00"
-                            {...field}
-                            value={field.value ?? ''}
-                          />
-                        </FormControl>
-                        <FormDescription className="text-xs">USD</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </CardContent>
-              </Card>
+                <FormField
+                  control={form.control}
+                  name="cost_output_per_million"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Output Cost (per 1M tokens)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder="e.g. 15.00"
+                          {...field}
+                          value={field.value ?? ''}
+                        />
+                      </FormControl>
+                      <FormDescription className="text-xs">USD</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
 
-              <div className="flex items-center gap-2">
-                <Button type="submit" disabled={formLoading}>
-                  Save Changes
-                </Button>
-              </div>
-            </form>
-          </Form>
-        )}
-      </LoadingOverlay>
+                <div className="flex items-center gap-2">
+                  <Button type="submit" disabled={formLoading}>
+                    Save Changes
+                  </Button>
+                </div>
+              </>
+            )}
+          </LoadingOverlay>
+        </form>
+      </Form>
     </EditView>
   )
 }

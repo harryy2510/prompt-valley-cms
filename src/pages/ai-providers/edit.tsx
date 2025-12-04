@@ -56,11 +56,12 @@ export function AiProvidersEdit() {
     <EditView>
       <EditViewHeader title="Edit AI Provider" />
 
-      <LoadingOverlay loading={query?.isLoading || formLoading}>
-        {!query?.isLoading && (
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onFinish)} className="space-y-6 max-w-2xl">
-              <Card>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onFinish)} className="space-y-6 max-w-2xl">
+          <LoadingOverlay loading={query?.isLoading || formLoading}>
+            {!query?.isLoading && (
+              <>
+                <Card>
                 <CardHeader>
                   <CardTitle>Provider Information</CardTitle>
                   <CardDescription>
@@ -154,15 +155,16 @@ export function AiProvidersEdit() {
                 </CardContent>
               </Card>
 
-              <div className="flex items-center gap-2">
-                <Button type="submit" disabled={formLoading}>
-                  Save Changes
-                </Button>
-              </div>
-            </form>
-          </Form>
-        )}
-      </LoadingOverlay>
+                <div className="flex items-center gap-2">
+                  <Button type="submit" disabled={formLoading}>
+                    Save Changes
+                  </Button>
+                </div>
+              </>
+            )}
+          </LoadingOverlay>
+        </form>
+      </Form>
     </EditView>
   )
 }

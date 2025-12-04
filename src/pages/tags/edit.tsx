@@ -51,11 +51,12 @@ export function TagsEdit() {
     <EditView>
       <EditViewHeader title="Edit Tag" />
 
-      <LoadingOverlay loading={query?.isLoading || formLoading}>
-        {!query?.isLoading && (
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onFinish)} className="space-y-6 max-w-2xl">
-              <Card>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onFinish)} className="space-y-6 max-w-2xl">
+          <LoadingOverlay loading={query?.isLoading || formLoading}>
+            {!query?.isLoading && (
+              <>
+                <Card>
                 <CardHeader>
                   <CardTitle>Tag Information</CardTitle>
                   <CardDescription>
@@ -101,15 +102,16 @@ export function TagsEdit() {
                 </CardContent>
               </Card>
 
-              <div className="flex items-center gap-2">
-                <Button type="submit" disabled={formLoading}>
-                  Save Changes
-                </Button>
-              </div>
-            </form>
-          </Form>
-        )}
-      </LoadingOverlay>
+                <div className="flex items-center gap-2">
+                  <Button type="submit" disabled={formLoading}>
+                    Save Changes
+                  </Button>
+                </div>
+              </>
+            )}
+          </LoadingOverlay>
+        </form>
+      </Form>
     </EditView>
   )
 }

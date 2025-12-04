@@ -193,7 +193,9 @@ export function PromptsEdit() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onFinish)} className="space-y-6">
           <LoadingOverlay loading={isLoading || formLoading}>
-            <Card>
+            {!isLoading && (
+              <>
+                <Card>
               <CardHeader>
                 <CardTitle>Prompt Details</CardTitle>
                 <CardDescription>
@@ -518,16 +520,18 @@ export function PromptsEdit() {
               </CardContent>
             </Card>
 
-            <div className="flex items-center gap-2">
-              <Button type="submit">Update Prompt</Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => list('prompts')}
-              >
-                Cancel
-              </Button>
-            </div>
+                <div className="flex items-center gap-2">
+                  <Button type="submit">Update Prompt</Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => list('prompts')}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </>
+            )}
           </LoadingOverlay>
         </form>
       </Form>
