@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router'
-import { useNavigation, useOne, useList } from '@refinedev/core'
+import { useForm } from '@refinedev/react-hook-form'
+import { useSelect, useNavigation } from '@refinedev/core'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as z from 'zod'
 import { Plus, X } from 'lucide-react'
 
 import {
@@ -10,11 +13,8 @@ import {
 import { LoadingOverlay } from '@/components/refine-ui/layout/loading-overlay'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
+import { Switch } from '@/components/ui/switch'
 import {
   Card,
   CardContent,
@@ -23,66 +23,115 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
 import { supabase } from '@/libs/supabase'
+
+const promptSchema = z.object({
+  id: z.string().min(1, 'ID is required'),
+  title: z.string().min(1, 'Title is required'),
+  description: z.string().optional(),
+  content: z.string().min(1, 'Content is required'),
+  category_id: z.string().min(1, 'Category is required'),
+  tier: z.enum(['free', 'pro']).default('free'),
+  is_published: z.boolean().default(false),
+  is_featured: z.boolean().default(false),
+  images: z.array(z.string()).default([]),
+  tags: z.array(z.string()).default([]),
+  models: z.array(z.string()).default([]),
+})
+
+type PromptFormData = z.infer<typeof promptSchema>
 
 export function PromptsEdit() {
   const { id } = useParams()
-  const { result, query } = useOne({
-    resource: 'prompts',
-    id: id || '',
-    meta: {
-      select: '*, categories(id, name)',
+  const [imageInput, setImageInput] = useState('')
+  const [isLoadingRelations, setIsLoadingRelations] = useState(true)
+  const { list } = useNavigation()
+
+  const { options: categoryOptions } = useSelect({
+    resource: 'categories',
+    optionLabel: 'name',
+    optionValue: 'id',
+    pagination: { pageSize: 1000 },
+  })
+
+  const { options: tagOptions } = useSelect({
+    resource: 'tags',
+    optionLabel: 'name',
+    optionValue: 'id',
+    pagination: { pageSize: 1000 },
+  })
+
+  const { options: modelOptions } = useSelect({
+    resource: 'ai_models',
+    optionLabel: 'name',
+    optionValue: 'id',
+    pagination: { pageSize: 1000 },
+  })
+
+  const {
+    refineCore: { onFinish, formLoading, query },
+    ...form
+  } = useForm<PromptFormData>({
+    resolver: zodResolver(promptSchema) as any,
+    refineCoreProps: {
+      resource: 'prompts',
+      action: 'edit',
+      id: id || '',
+      redirect: 'list',
+      meta: {
+        select: '*, categories(id, name)',
+      },
+      onMutationSuccess: async (data) => {
+        // Handle junction table updates after main record is updated
+        const promptId = id || ''
+        const tags = form.getValues('tags')
+        const models = form.getValues('models')
+
+        // Update tags: delete old ones and insert new ones
+        await supabase.from('prompt_tags').delete().eq('prompt_id', promptId)
+        if (tags.length > 0) {
+          const tagRelations = tags.map((tagId: string) => ({
+            prompt_id: promptId,
+            tag_id: tagId,
+          }))
+          await supabase.from('prompt_tags').insert(tagRelations)
+        }
+
+        // Update models: delete old ones and insert new ones
+        await supabase.from('prompt_models').delete().eq('prompt_id', promptId)
+        if (models.length > 0) {
+          const modelRelations = models.map((modelId: string) => ({
+            prompt_id: promptId,
+            model_id: modelId,
+          }))
+          await supabase.from('prompt_models').insert(modelRelations)
+        }
+      },
     },
   })
-  const { isLoading } = query
-  const { list } = useNavigation()
-  const { result: categoriesResult } = useList({
-    resource: 'categories',
-    pagination: { pageSize: 1000 },
-  })
-  const { result: tagsResult } = useList({
-    resource: 'tags',
-    pagination: { pageSize: 1000 },
-  })
-  const { result: modelsResult } = useList({
-    resource: 'ai_models',
-    pagination: { pageSize: 1000 },
-  })
 
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    content: '',
-    category_id: '',
-    tier: 'free' as 'free' | 'pro',
-    is_published: false,
-    is_featured: false,
-    images: [] as string[],
-  })
-  const [selectedTags, setSelectedTags] = useState<string[]>([])
-  const [selectedModels, setSelectedModels] = useState<string[]>([])
-  const [imageInput, setImageInput] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
-
+  // Load existing junction table relations
   useEffect(() => {
-    const loadData = async () => {
-      if (result && id) {
-        setFormData({
-          title: result.title || '',
-          description: result.description || '',
-          content: result.content || '',
-          category_id: result.category_id || '',
-          tier: result.tier || 'free',
-          is_published: result.is_published ?? false,
-          is_featured: result.is_featured ?? false,
-          images: result.images || [],
-        })
+    const loadRelations = async () => {
+      if (id && query?.data) {
+        setIsLoadingRelations(true)
 
         // Load existing tags
         const { data: tagsData } = await supabase
@@ -91,91 +140,59 @@ export function PromptsEdit() {
           .eq('prompt_id', id)
 
         if (tagsData) {
-          setSelectedTags(tagsData.map((t: any) => t.tag_id))
+          form.setValue(
+            'tags',
+            tagsData.map((t: any) => t.tag_id),
+          )
         }
 
         // Load existing models
-        const { data: modelsDataResult } = await supabase
+        const { data: modelsData } = await supabase
           .from('prompt_models')
           .select('model_id')
           .eq('prompt_id', id)
 
-        if (modelsDataResult) {
-          setSelectedModels(modelsDataResult.map((m: any) => m.model_id))
+        if (modelsData) {
+          form.setValue(
+            'models',
+            modelsData.map((m: any) => m.model_id),
+          )
         }
+
+        setIsLoadingRelations(false)
       }
     }
 
-    loadData()
-  }, [result, id])
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
-
-    try {
-      // Update prompt
-      await supabase
-        .from('prompts')
-        .update(formData)
-        .eq('id', id || '')
-
-      // Update tags: delete old ones and insert new ones
-      await supabase
-        .from('prompt_tags')
-        .delete()
-        .eq('prompt_id', id || '')
-      if (selectedTags.length > 0) {
-        const tagRelations = selectedTags.map((tagId) => ({
-          prompt_id: id || '',
-          tag_id: tagId,
-        }))
-        await supabase.from('prompt_tags').insert(tagRelations)
-      }
-
-      // Update models: delete old ones and insert new ones
-      await supabase
-        .from('prompt_models')
-        .delete()
-        .eq('prompt_id', id || '')
-      if (selectedModels.length > 0) {
-        const modelRelations = selectedModels.map((modelId) => ({
-          prompt_id: id || '',
-          model_id: modelId,
-        }))
-        await supabase.from('prompt_models').insert(modelRelations)
-      }
-
-      list('prompts')
-    } catch (error) {
-      console.error('Error:', error)
-      setIsSubmitting(false)
-    }
-  }
+    loadRelations()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, query?.data])
 
   const addImage = () => {
-    if (imageInput.trim() && !formData.images.includes(imageInput.trim())) {
-      setFormData({
-        ...formData,
-        images: [...formData.images, imageInput.trim()],
-      })
-      setImageInput('')
+    if (imageInput.trim()) {
+      const current = form.getValues('images')
+      if (!current.includes(imageInput.trim())) {
+        form.setValue('images', [...current, imageInput.trim()])
+        setImageInput('')
+      }
     }
   }
 
   const removeImage = (image: string) => {
-    setFormData({
-      ...formData,
-      images: formData.images.filter((img) => img !== image),
-    })
+    const current = form.getValues('images')
+    form.setValue(
+      'images',
+      current.filter((img: string) => img !== image),
+    )
   }
+
+  const isLoading = query?.isLoading || isLoadingRelations
 
   return (
     <EditView>
       <EditViewHeader title="Edit Prompt" />
-      <LoadingOverlay loading={isLoading || isSubmitting}>
-        {!isLoading && (
-          <form onSubmit={handleSubmit} className="space-y-6">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onFinish)} className="space-y-6">
+          <LoadingOverlay loading={isLoading || formLoading}>
             <Card>
               <CardHeader>
                 <CardTitle>Prompt Details</CardTitle>
@@ -183,46 +200,59 @@ export function PromptsEdit() {
                   Update the information for this prompt
                 </CardDescription>
               </CardHeader>
-              <CardContent className="grid gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="title">Title *</Label>
-                  <Input
-                    id="title"
-                    value={formData.title}
-                    onChange={(e) =>
-                      setFormData({ ...formData, title: e.target.value })
-                    }
-                    placeholder="Write a compelling product description"
-                    required
-                  />
-                </div>
+              <CardContent className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Title *</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Write a compelling product description"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
-                    }
-                    placeholder="Brief description of what this prompt does"
-                    rows={2}
-                  />
-                </div>
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Brief description of what this prompt does"
+                          rows={2}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                <div className="space-y-2">
-                  <Label htmlFor="content">Prompt Content *</Label>
-                  <Textarea
-                    id="content"
-                    value={formData.content}
-                    onChange={(e) =>
-                      setFormData({ ...formData, content: e.target.value })
-                    }
-                    placeholder="Enter the full prompt content here..."
-                    rows={8}
-                    required
-                  />
-                </div>
+                <FormField
+                  control={form.control}
+                  name="content"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Prompt Content *</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Enter the full prompt content here..."
+                          rows={8}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </CardContent>
             </Card>
 
@@ -235,69 +265,95 @@ export function PromptsEdit() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="category_id">Category *</Label>
-                    <Select
-                      value={formData.category_id || undefined}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, category_id: value })
-                      }
-                      required
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categoriesResult?.data?.map((category: any) => (
-                          <SelectItem key={category.id} value={category.id}>
-                            {category.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <FormField
+                    control={form.control}
+                    name="category_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Category *</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a category" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {categoryOptions?.map((option) => (
+                              <SelectItem
+                                key={option.value}
+                                value={String(option.value)}
+                              >
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                  <div className="space-y-2">
-                    <Label htmlFor="tier">Tier *</Label>
-                    <Select
-                      value={formData.tier}
-                      onValueChange={(value: 'free' | 'pro') =>
-                        setFormData({ ...formData, tier: value })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="free">Free</SelectItem>
-                        <SelectItem value="pro">Pro</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <FormField
+                    control={form.control}
+                    name="tier"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Tier *</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="free">Free</SelectItem>
+                            <SelectItem value="pro">Pro</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
 
                 <div className="flex items-center space-x-4 pt-2 border-t">
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="is_published"
-                      checked={formData.is_published}
-                      onCheckedChange={(checked) =>
-                        setFormData({ ...formData, is_published: checked })
-                      }
-                    />
-                    <Label htmlFor="is_published">Published</Label>
-                  </div>
+                  <FormField
+                    control={form.control}
+                    name="is_published"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center space-x-2">
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <FormLabel className="!mt-0">Published</FormLabel>
+                      </FormItem>
+                    )}
+                  />
 
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="is_featured"
-                      checked={formData.is_featured}
-                      onCheckedChange={(checked) =>
-                        setFormData({ ...formData, is_featured: checked })
-                      }
-                    />
-                    <Label htmlFor="is_featured">Featured</Label>
-                  </div>
+                  <FormField
+                    control={form.control}
+                    name="is_featured"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center space-x-2">
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <FormLabel className="!mt-0">Featured</FormLabel>
+                      </FormItem>
+                    )}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -314,7 +370,6 @@ export function PromptsEdit() {
                 <div className="space-y-2">
                   <div className="flex gap-2">
                     <Input
-                      id="images"
                       value={imageInput}
                       onChange={(e) => setImageInput(e.target.value)}
                       onKeyDown={(e) => {
@@ -329,9 +384,9 @@ export function PromptsEdit() {
                       <Plus className="size-4" />
                     </Button>
                   </div>
-                  {formData.images.length > 0 && (
+                  {form.watch('images')?.length > 0 && (
                     <div className="flex flex-wrap gap-2">
-                      {formData.images.map((image) => (
+                      {form.watch('images').map((image: string) => (
                         <Badge
                           key={image}
                           variant="secondary"
@@ -362,84 +417,109 @@ export function PromptsEdit() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Tags</Label>
-                    <div className="rounded-md border p-4 space-y-2 max-h-48 overflow-y-auto">
-                      {tagsResult?.data?.map((tag: any) => (
-                        <div
-                          key={tag.id}
-                          className="flex items-center space-x-2"
-                        >
-                          <Checkbox
-                            id={`tag-${tag.id}`}
-                            checked={selectedTags.includes(tag.id)}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setSelectedTags([...selectedTags, tag.id])
-                              } else {
-                                setSelectedTags(
-                                  selectedTags.filter(
-                                    (tagId) => tagId !== tag.id,
-                                  ),
-                                )
-                              }
-                            }}
-                          />
-                          <Label
-                            htmlFor={`tag-${tag.id}`}
-                            className="font-normal cursor-pointer"
-                          >
-                            {tag.name}
-                          </Label>
+                  <FormField
+                    control={form.control}
+                    name="tags"
+                    render={() => (
+                      <FormItem>
+                        <FormLabel>Tags</FormLabel>
+                        <div className="rounded-md border p-4 space-y-2 max-h-48 overflow-y-auto">
+                          {tagOptions?.map((tag) => (
+                            <FormField
+                              key={tag.value}
+                              control={form.control}
+                              name="tags"
+                              render={({ field }) => (
+                                <FormItem
+                                  key={tag.value}
+                                  className="flex items-center space-x-2"
+                                >
+                                  <FormControl>
+                                    <Checkbox
+                                      checked={field.value?.includes(
+                                        String(tag.value),
+                                      )}
+                                      onCheckedChange={(checked) => {
+                                        const value = String(tag.value)
+                                        return checked
+                                          ? field.onChange([
+                                              ...field.value,
+                                              value,
+                                            ])
+                                          : field.onChange(
+                                              field.value?.filter(
+                                                (v: string) => v !== value,
+                                              ),
+                                            )
+                                      }}
+                                    />
+                                  </FormControl>
+                                  <FormLabel className="font-normal cursor-pointer !mt-0">
+                                    {tag.label}
+                                  </FormLabel>
+                                </FormItem>
+                              )}
+                            />
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                  </div>
+                      </FormItem>
+                    )}
+                  />
 
-                  <div className="space-y-2">
-                    <Label>Compatible Models</Label>
-                    <div className="rounded-md border p-4 space-y-2 max-h-48 overflow-y-auto">
-                      {modelsResult?.data?.map((model: any) => (
-                        <div
-                          key={model.id}
-                          className="flex items-center space-x-2"
-                        >
-                          <Checkbox
-                            id={`model-${model.id}`}
-                            checked={selectedModels.includes(model.id)}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setSelectedModels([...selectedModels, model.id])
-                              } else {
-                                setSelectedModels(
-                                  selectedModels.filter(
-                                    (modelId) => modelId !== model.id,
-                                  ),
-                                )
-                              }
-                            }}
-                          />
-                          <Label
-                            htmlFor={`model-${model.id}`}
-                            className="font-normal cursor-pointer"
-                          >
-                            {model.name}{' '}
-                            <span className="text-muted-foreground">
-                              ({model.provider_id})
-                            </span>
-                          </Label>
+                  <FormField
+                    control={form.control}
+                    name="models"
+                    render={() => (
+                      <FormItem>
+                        <FormLabel>Compatible Models</FormLabel>
+                        <div className="rounded-md border p-4 space-y-2 max-h-48 overflow-y-auto">
+                          {modelOptions?.map((model) => (
+                            <FormField
+                              key={model.value}
+                              control={form.control}
+                              name="models"
+                              render={({ field }) => (
+                                <FormItem
+                                  key={model.value}
+                                  className="flex items-center space-x-2"
+                                >
+                                  <FormControl>
+                                    <Checkbox
+                                      checked={field.value?.includes(
+                                        String(model.value),
+                                      )}
+                                      onCheckedChange={(checked) => {
+                                        const value = String(model.value)
+                                        return checked
+                                          ? field.onChange([
+                                              ...field.value,
+                                              value,
+                                            ])
+                                          : field.onChange(
+                                              field.value?.filter(
+                                                (v: string) => v !== value,
+                                              ),
+                                            )
+                                      }}
+                                    />
+                                  </FormControl>
+                                  <FormLabel className="font-normal cursor-pointer !mt-0">
+                                    {model.label}
+                                  </FormLabel>
+                                </FormItem>
+                              )}
+                            />
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                  </div>
+                      </FormItem>
+                    )}
+                  />
                 </div>
               </CardContent>
             </Card>
 
             <div className="flex items-center gap-2">
-              <Button type="submit" disabled={isSubmitting}>
-                Update Prompt
-              </Button>
+              <Button type="submit">Update Prompt</Button>
               <Button
                 type="button"
                 variant="outline"
@@ -448,9 +528,9 @@ export function PromptsEdit() {
                 Cancel
               </Button>
             </div>
-          </form>
-        )}
-      </LoadingOverlay>
+          </LoadingOverlay>
+        </form>
+      </Form>
     </EditView>
   )
 }

@@ -1,5 +1,8 @@
 import { useState } from 'react'
-import { useNavigation, useList } from '@refinedev/core'
+import { useForm } from '@refinedev/react-hook-form'
+import { useSelect, useNavigation } from '@refinedev/core'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as z from 'zod'
 import { Plus, X } from 'lucide-react'
 
 import {
@@ -9,11 +12,8 @@ import {
 import { LoadingOverlay } from '@/components/refine-ui/layout/loading-overlay'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
+import { Switch } from '@/components/ui/switch'
 import {
   Card,
   CardContent,
@@ -22,45 +22,113 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { supabase } from '@/libs/supabase'
+import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
+
+const promptSchema = z.object({
+  id: z.string().min(1, 'ID is required'),
+  title: z.string().min(1, 'Title is required'),
+  description: z.string().optional(),
+  content: z.string().min(1, 'Content is required'),
+  category_id: z.string().min(1, 'Category is required'),
+  tier: z.enum(['free', 'pro']).default('free'),
+  is_published: z.boolean().default(false),
+  is_featured: z.boolean().default(false),
+  images: z.array(z.string()).default([]),
+  tags: z.array(z.string()).default([]),
+  models: z.array(z.string()).default([]),
+})
+
+type PromptFormData = z.infer<typeof promptSchema>
 
 export function PromptsCreate() {
+  const [autoSlug, setAutoSlug] = useState(true)
+  const [imageInput, setImageInput] = useState('')
   const { list } = useNavigation()
-  const { result: categoriesResult, query: categoriesQuery } = useList({
+
+  const { options: categoryOptions } = useSelect({
     resource: 'categories',
-    pagination: { pageSize: 1000 },
-  })
-  const { result: tagsResult, query: tagsQuery } = useList({
-    resource: 'tags',
-    pagination: { pageSize: 1000 },
-  })
-  const { result: modelsResult, query: modelsQuery } = useList({
-    resource: 'ai_models',
+    optionLabel: 'name',
+    optionValue: 'id',
     pagination: { pageSize: 1000 },
   })
 
-  const [formData, setFormData] = useState({
-    id: '',
-    title: '',
-    description: '',
-    content: '',
-    category_id: '',
-    tier: 'free' as 'free' | 'pro',
-    is_published: false,
-    is_featured: false,
-    images: [] as string[],
+  const { options: tagOptions } = useSelect({
+    resource: 'tags',
+    optionLabel: 'name',
+    optionValue: 'id',
+    pagination: { pageSize: 1000 },
   })
-  const [selectedTags, setSelectedTags] = useState<string[]>([])
-  const [selectedModels, setSelectedModels] = useState<string[]>([])
-  const [imageInput, setImageInput] = useState('')
-  const [autoSlug, setAutoSlug] = useState(true)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const { options: modelOptions } = useSelect({
+    resource: 'ai_models',
+    optionLabel: 'name',
+    optionValue: 'id',
+    pagination: { pageSize: 1000 },
+  })
+
+  const {
+    refineCore: { onFinish, formLoading },
+    ...form
+  } = useForm<PromptFormData>({
+    resolver: zodResolver(promptSchema) as any,
+    defaultValues: {
+      id: '',
+      title: '',
+      description: '',
+      content: '',
+      category_id: '',
+      tier: 'free',
+      is_published: false,
+      is_featured: false,
+      images: [],
+      tags: [],
+      models: [],
+    },
+    refineCoreProps: {
+      resource: 'prompts',
+      action: 'create',
+      redirect: 'list',
+      onMutationSuccess: async (data) => {
+        // Handle junction table inserts after main record is created
+        const { supabase } = await import('@/libs/supabase')
+        const promptId = form.getValues('id')
+        const tags = form.getValues('tags')
+        const models = form.getValues('models')
+
+        if (tags.length > 0) {
+          const tagRelations = tags.map((tagId: string) => ({
+            prompt_id: promptId,
+            tag_id: tagId,
+          }))
+          await supabase.from('prompt_tags').insert(tagRelations)
+        }
+
+        if (models.length > 0) {
+          const modelRelations = models.map((modelId: string) => ({
+            prompt_id: promptId,
+            model_id: modelId,
+          }))
+          await supabase.from('prompt_models').insert(modelRelations)
+        }
+      },
+    },
+  })
 
   const generateSlug = (title: string) => {
     return title
@@ -70,369 +138,388 @@ export function PromptsCreate() {
   }
 
   const handleTitleChange = (title: string) => {
+    form.setValue('title', title)
     if (autoSlug) {
-      setFormData({ ...formData, title, id: generateSlug(title) })
-    } else {
-      setFormData({ ...formData, title })
-    }
-  }
-
-  const handleIdChange = (id: string) => {
-    setFormData({ ...formData, id })
-    setAutoSlug(false)
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
-
-    try {
-      // Create prompt first
-      const { data: promptData, error: promptError } = await supabase
-        .from('prompts')
-        .insert(formData)
-        .select()
-        .single()
-
-      if (promptError) {
-        console.error('Error creating prompt:', promptError)
-        setIsSubmitting(false)
-        return
-      }
-
-      // Insert tag relations
-      if (selectedTags.length > 0) {
-        const tagRelations = selectedTags.map((tagId) => ({
-          prompt_id: formData.id,
-          tag_id: tagId,
-        }))
-        await supabase.from('prompt_tags').insert(tagRelations)
-      }
-
-      // Insert model relations
-      if (selectedModels.length > 0) {
-        const modelRelations = selectedModels.map((modelId) => ({
-          prompt_id: formData.id,
-          model_id: modelId,
-        }))
-        await supabase.from('prompt_models').insert(modelRelations)
-      }
-
-      list('prompts')
-    } catch (error) {
-      console.error('Error:', error)
-      setIsSubmitting(false)
+      form.setValue('id', generateSlug(title))
     }
   }
 
   const addImage = () => {
-    if (imageInput.trim() && !formData.images.includes(imageInput.trim())) {
-      setFormData({
-        ...formData,
-        images: [...formData.images, imageInput.trim()],
-      })
-      setImageInput('')
+    if (imageInput.trim()) {
+      const current = form.getValues('images')
+      if (!current.includes(imageInput.trim())) {
+        form.setValue('images', [...current, imageInput.trim()])
+        setImageInput('')
+      }
     }
   }
 
   const removeImage = (image: string) => {
-    setFormData({
-      ...formData,
-      images: formData.images.filter((img) => img !== image),
-    })
+    const current = form.getValues('images')
+    form.setValue(
+      'images',
+      current.filter((img: string) => img !== image),
+    )
   }
-
-  const isDataLoading = categoriesQuery.isLoading || tagsQuery.isLoading || modelsQuery.isLoading
 
   return (
     <CreateView>
       <CreateViewHeader title="Create Prompt" />
-      <LoadingOverlay loading={isDataLoading || isSubmitting}>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Prompt Details</CardTitle>
-              <CardDescription>
-                Enter the information for the new prompt
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="title">Title *</Label>
-                <Input
-                  id="title"
-                  value={formData.title}
-                  onChange={(e) => handleTitleChange(e.target.value)}
-                  placeholder="Write a compelling product description"
-                  required
-                />
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="id">
-                  ID (slug) *
-                  <span className="ml-2 text-xs font-normal text-muted-foreground">
-                    (auto-generated)
-                  </span>
-                </Label>
-                <Input
-                  id="id"
-                  value={formData.id}
-                  onChange={(e) => handleIdChange(e.target.value)}
-                  placeholder="write-compelling-product-description"
-                  required
-                  className="font-mono text-sm"
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onFinish)} className="space-y-6">
+          <LoadingOverlay loading={formLoading}>
+            <Card>
+              <CardHeader>
+                <CardTitle>Prompt Details</CardTitle>
+                <CardDescription>
+                  Enter the information for the new prompt
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Title *</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Write a compelling product description"
+                          {...field}
+                          onChange={(e) => handleTitleChange(e.target.value)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-                <p className="text-xs text-muted-foreground">
-                  Auto-generated from title. You can edit it manually.
-                </p>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                  placeholder="Brief description of what this prompt does"
-                  rows={2}
+                <FormField
+                  control={form.control}
+                  name="id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        ID (slug) *
+                        <span className="ml-2 text-xs font-normal text-muted-foreground">
+                          (auto-generated)
+                        </span>
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="write-compelling-product-description"
+                          className="font-mono text-sm"
+                          {...field}
+                          onChange={(e) => {
+                            field.onChange(e)
+                            setAutoSlug(false)
+                          }}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Auto-generated from title. You can edit it manually.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="content">Prompt Content *</Label>
-                <Textarea
-                  id="content"
-                  value={formData.content}
-                  onChange={(e) =>
-                    setFormData({ ...formData, content: e.target.value })
-                  }
-                  placeholder="Enter the full prompt content here..."
-                  rows={8}
-                  required
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Brief description of what this prompt does"
+                          rows={2}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-            </CardContent>
-          </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Content Settings</CardTitle>
-              <CardDescription>
-                Configure category, tier, and publishing settings
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="content"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Prompt Content *</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Enter the full prompt content here..."
+                          rows={8}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Content Settings</CardTitle>
+                <CardDescription>
+                  Configure category, tier, and publishing settings
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="category_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Category *</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a category" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {categoryOptions?.map((option) => (
+                              <SelectItem key={option.value} value={String(option.value)}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="tier"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Tier *</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="free">Free</SelectItem>
+                            <SelectItem value="pro">Pro</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="flex items-center space-x-4 pt-2 border-t">
+                  <FormField
+                    control={form.control}
+                    name="is_published"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center space-x-2">
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <FormLabel className="!mt-0">Published</FormLabel>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="is_featured"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center space-x-2">
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <FormLabel className="!mt-0">Featured</FormLabel>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Images</CardTitle>
+                <CardDescription>
+                  Add images to illustrate the prompt (paths in content-bucket)
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
                 <div className="space-y-2">
-                  <Label htmlFor="category_id">Category *</Label>
-                  <Select
-                    value={formData.category_id || undefined}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, category_id: value })
-                    }
-                    required
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categoriesResult?.data?.map((category: any) => (
-                        <SelectItem key={category.id} value={category.id}>
-                          {category.name}
-                        </SelectItem>
+                  <div className="flex gap-2">
+                    <Input
+                      value={imageInput}
+                      onChange={(e) => setImageInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          addImage()
+                        }
+                      }}
+                      placeholder="images/example.png"
+                    />
+                    <Button type="button" onClick={addImage} variant="outline">
+                      <Plus className="size-4" />
+                    </Button>
+                  </div>
+                  {form.watch('images').length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {form.watch('images').map((image: string) => (
+                        <Badge
+                          key={image}
+                          variant="secondary"
+                          className="max-w-xs truncate"
+                        >
+                          {image}
+                          <button
+                            type="button"
+                            onClick={() => removeImage(image)}
+                            className="ml-1 hover:text-destructive"
+                          >
+                            <X className="size-3" />
+                          </button>
+                        </Badge>
                       ))}
-                    </SelectContent>
-                  </Select>
+                    </div>
+                  )}
                 </div>
+              </CardContent>
+            </Card>
 
-                <div className="space-y-2">
-                  <Label htmlFor="tier">Tier *</Label>
-                  <Select
-                    value={formData.tier}
-                    onValueChange={(value: 'free' | 'pro') =>
-                      setFormData({ ...formData, tier: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="free">Free</SelectItem>
-                      <SelectItem value="pro">Pro</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-4 pt-2 border-t">
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="is_published"
-                    checked={formData.is_published}
-                    onCheckedChange={(checked) =>
-                      setFormData({ ...formData, is_published: checked })
-                    }
+            <Card>
+              <CardHeader>
+                <CardTitle>Relationships</CardTitle>
+                <CardDescription>
+                  Associate tags and compatible models with this prompt
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="tags"
+                    render={() => (
+                      <FormItem>
+                        <FormLabel>Tags</FormLabel>
+                        <div className="rounded-md border p-4 space-y-2 max-h-48 overflow-y-auto">
+                          {tagOptions?.map((tag) => (
+                            <FormField
+                              key={tag.value}
+                              control={form.control}
+                              name="tags"
+                              render={({ field }) => (
+                                <FormItem
+                                  key={tag.value}
+                                  className="flex items-center space-x-2"
+                                >
+                                  <FormControl>
+                                    <Checkbox
+                                      checked={field.value?.includes(String(tag.value))}
+                                      onCheckedChange={(checked) => {
+                                        const value = String(tag.value)
+                                        return checked
+                                          ? field.onChange([...field.value, value])
+                                          : field.onChange(
+                                              field.value?.filter((v: string) => v !== value),
+                                            )
+                                      }}
+                                    />
+                                  </FormControl>
+                                  <FormLabel className="font-normal cursor-pointer !mt-0">
+                                    {tag.label}
+                                  </FormLabel>
+                                </FormItem>
+                              )}
+                            />
+                          ))}
+                        </div>
+                      </FormItem>
+                    )}
                   />
-                  <Label htmlFor="is_published">Published</Label>
-                </div>
 
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="is_featured"
-                    checked={formData.is_featured}
-                    onCheckedChange={(checked) =>
-                      setFormData({ ...formData, is_featured: checked })
-                    }
+                  <FormField
+                    control={form.control}
+                    name="models"
+                    render={() => (
+                      <FormItem>
+                        <FormLabel>Compatible Models</FormLabel>
+                        <div className="rounded-md border p-4 space-y-2 max-h-48 overflow-y-auto">
+                          {modelOptions?.map((model) => (
+                            <FormField
+                              key={model.value}
+                              control={form.control}
+                              name="models"
+                              render={({ field }) => (
+                                <FormItem
+                                  key={model.value}
+                                  className="flex items-center space-x-2"
+                                >
+                                  <FormControl>
+                                    <Checkbox
+                                      checked={field.value?.includes(String(model.value))}
+                                      onCheckedChange={(checked) => {
+                                        const value = String(model.value)
+                                        return checked
+                                          ? field.onChange([...field.value, value])
+                                          : field.onChange(
+                                              field.value?.filter((v: string) => v !== value),
+                                            )
+                                      }}
+                                    />
+                                  </FormControl>
+                                  <FormLabel className="font-normal cursor-pointer !mt-0">
+                                    {model.label}
+                                  </FormLabel>
+                                </FormItem>
+                              )}
+                            />
+                          ))}
+                        </div>
+                      </FormItem>
+                    )}
                   />
-                  <Label htmlFor="is_featured">Featured</Label>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Images</CardTitle>
-              <CardDescription>
-                Add images to illustrate the prompt (paths in content-bucket)
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex gap-2">
-                  <Input
-                    id="images"
-                    value={imageInput}
-                    onChange={(e) => setImageInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault()
-                        addImage()
-                      }
-                    }}
-                    placeholder="images/example.png"
-                  />
-                  <Button type="button" onClick={addImage} variant="outline">
-                    <Plus className="size-4" />
-                  </Button>
-                </div>
-                {formData.images.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {formData.images.map((image) => (
-                      <Badge
-                        key={image}
-                        variant="secondary"
-                        className="max-w-xs truncate"
-                      >
-                        {image}
-                        <button
-                          type="button"
-                          onClick={() => removeImage(image)}
-                          className="ml-1 hover:text-destructive"
-                        >
-                          <X className="size-3" />
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Relationships</CardTitle>
-              <CardDescription>
-                Associate tags and compatible models with this prompt
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Tags</Label>
-                  <div className="rounded-md border p-4 space-y-2 max-h-48 overflow-y-auto">
-                    {tagsResult?.data?.map((tag: any) => (
-                      <div key={tag.id} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`tag-${tag.id}`}
-                          checked={selectedTags.includes(tag.id)}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedTags([...selectedTags, tag.id])
-                            } else {
-                              setSelectedTags(
-                                selectedTags.filter((id) => id !== tag.id),
-                              )
-                            }
-                          }}
-                        />
-                        <Label
-                          htmlFor={`tag-${tag.id}`}
-                          className="font-normal cursor-pointer"
-                        >
-                          {tag.name}
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Compatible Models</Label>
-                  <div className="rounded-md border p-4 space-y-2 max-h-48 overflow-y-auto">
-                    {modelsResult?.data?.map((model: any) => (
-                      <div
-                        key={model.id}
-                        className="flex items-center space-x-2"
-                      >
-                        <Checkbox
-                          id={`model-${model.id}`}
-                          checked={selectedModels.includes(model.id)}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedModels([...selectedModels, model.id])
-                            } else {
-                              setSelectedModels(
-                                selectedModels.filter((id) => id !== model.id),
-                              )
-                            }
-                          }}
-                        />
-                        <Label
-                          htmlFor={`model-${model.id}`}
-                          className="font-normal cursor-pointer"
-                        >
-                          {model.name}{' '}
-                          <span className="text-muted-foreground">
-                            ({model.provider_id})
-                          </span>
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <div className="flex items-center gap-2">
-            <Button type="submit" disabled={isSubmitting}>
-              Create Prompt
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => list('prompts')}
-            >
-              Cancel
-            </Button>
-          </div>
+            <div className="flex items-center gap-2">
+              <Button type="submit">Create Prompt</Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => list('prompts')}
+              >
+                Cancel
+              </Button>
+            </div>
+          </LoadingOverlay>
         </form>
-      </LoadingOverlay>
+      </Form>
     </CreateView>
   )
 }
