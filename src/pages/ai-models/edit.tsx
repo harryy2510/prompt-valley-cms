@@ -101,9 +101,7 @@ export function AiModelsEdit() {
           className="space-y-6 max-w-2xl"
         >
           <LoadingOverlay loading={query?.isLoading || formLoading}>
-            {!query?.isLoading && (
-              <>
-                <Card>
+            <Card>
               <CardHeader>
                 <CardTitle>Model Information</CardTitle>
                 <CardDescription>
@@ -320,13 +318,11 @@ export function AiModelsEdit() {
               </CardContent>
             </Card>
 
-                <div className="flex items-center gap-2">
-                  <Button type="submit" disabled={formLoading}>
-                    Save Changes
-                  </Button>
-                </div>
-              </>
-            )}
+            <div className="flex items-center gap-2">
+              <Button type="submit" disabled={formLoading}>
+                Save Changes
+              </Button>
+            </div>
           </LoadingOverlay>
         </form>
       </Form>

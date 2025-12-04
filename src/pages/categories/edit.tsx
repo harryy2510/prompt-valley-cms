@@ -3,7 +3,10 @@ import { useForm } from '@refinedev/react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 
-import { EditView, EditViewHeader } from '@/components/refine-ui/views/edit-view'
+import {
+  EditView,
+  EditViewHeader,
+} from '@/components/refine-ui/views/edit-view'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -52,63 +55,65 @@ export function CategoriesEdit() {
       <EditViewHeader title="Edit Category" />
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onFinish)} className="space-y-6 max-w-2xl">
+        <form
+          onSubmit={form.handleSubmit(onFinish)}
+          className="space-y-6 max-w-2xl"
+        >
           <LoadingOverlay loading={query?.isLoading || formLoading}>
-            {!query?.isLoading && (
-              <>
-                <Card>
-                <CardHeader>
-                  <CardTitle>Category Information</CardTitle>
-                  <CardDescription>
-                    Update the category information
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Category Name *</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g. Marketing, Development" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+            <Card>
+              <CardHeader>
+                <CardTitle>Category Information</CardTitle>
+                <CardDescription>
+                  Update the category information
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Category Name *</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g. Marketing, Development"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                  <FormField
-                    control={form.control}
-                    name="id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Category ID *</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="e.g. marketing, development"
-                            className="font-mono text-sm"
-                            {...field}
-                            disabled
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Unique identifier cannot be changed after creation
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </CardContent>
-              </Card>
+                <FormField
+                  control={form.control}
+                  name="id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Category ID *</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g. marketing, development"
+                          className="font-mono text-sm"
+                          {...field}
+                          disabled
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Unique identifier cannot be changed after creation
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
 
-                <div className="flex items-center gap-2">
-                  <Button type="submit" disabled={formLoading}>
-                    Save Changes
-                  </Button>
-                </div>
-              </>
-            )}
+            <div className="flex items-center gap-2">
+              <Button type="submit" disabled={formLoading}>
+                Save Changes
+              </Button>
+            </div>
           </LoadingOverlay>
         </form>
       </Form>
