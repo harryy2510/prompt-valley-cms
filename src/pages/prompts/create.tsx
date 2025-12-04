@@ -32,9 +32,18 @@ import { supabase } from '@/libs/supabase'
 
 export function PromptsCreate() {
   const { list } = useNavigation()
-  const { result: categoriesResult } = useList({ resource: 'categories' })
-  const { result: tagsResult } = useList({ resource: 'tags' })
-  const { result: modelsResult } = useList({ resource: 'ai_models' })
+  const { result: categoriesResult, query: categoriesQuery } = useList({
+    resource: 'categories',
+    pagination: { pageSize: 1000 },
+  })
+  const { result: tagsResult, query: tagsQuery } = useList({
+    resource: 'tags',
+    pagination: { pageSize: 1000 },
+  })
+  const { result: modelsResult, query: modelsQuery } = useList({
+    resource: 'ai_models',
+    pagination: { pageSize: 1000 },
+  })
 
   const [formData, setFormData] = useState({
     id: '',
@@ -133,10 +142,12 @@ export function PromptsCreate() {
     })
   }
 
+  const isDataLoading = categoriesQuery.isLoading || tagsQuery.isLoading || modelsQuery.isLoading
+
   return (
     <CreateView>
       <CreateViewHeader title="Create Prompt" />
-      <LoadingOverlay loading={isSubmitting}>
+      <LoadingOverlay loading={isDataLoading || isSubmitting}>
         <form onSubmit={handleSubmit} className="space-y-6">
           <Card>
             <CardHeader>
@@ -218,10 +229,11 @@ export function PromptsCreate() {
                 <div className="space-y-2">
                   <Label htmlFor="category_id">Category *</Label>
                   <Select
-                    value={formData.category_id}
+                    value={formData.category_id || undefined}
                     onValueChange={(value) =>
                       setFormData({ ...formData, category_id: value })
                     }
+                    required
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select a category" />

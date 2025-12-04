@@ -1,5 +1,3 @@
-'use client'
-
 import type { PropsWithChildren } from 'react'
 
 import { ArrowLeftIcon } from 'lucide-react'

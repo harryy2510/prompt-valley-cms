@@ -6,12 +6,10 @@ import { ErrorComponent } from '@/components/refine-ui/layout/error-component'
 
 import { supabase } from '@/libs/supabase'
 import { authProvider } from '@/libs/auth-provider'
-import { AppLayout } from './components/layout'
-import { Logo } from './components/logo'
-import { ThemeProvider } from '@/components/refine-ui/theme/theme-provider'
+import { LogoWithText } from './components/logo-with-text'
 import { AuthGuard } from './components/auth-guard'
 import { useNotificationProvider } from '@/components/refine-ui/notification/use-notification-provider'
-import { Toaster as RefineToaster } from '@/components/refine-ui/notification/toaster'
+import { Toaster } from '@/components/refine-ui/notification/toaster'
 
 import { LoginPage } from './pages/login'
 import {
@@ -32,11 +30,14 @@ import {
   PromptsEdit,
   PromptsShow,
 } from './pages/prompts'
+import { Layout } from '@/components/refine-ui/layout/layout'
+import { ThemeProvider } from '@/components/refine-ui/theme/theme-provider'
+import { Bot, FileText, FolderTree, Package, Tags } from 'lucide-react'
 
 export function App() {
   return (
-    <BrowserRouter>
-      <ThemeProvider defaultTheme="system" storageKey="promptvalley-theme">
+    <ThemeProvider>
+      <BrowserRouter>
         <Refine
           dataProvider={dataProvider(supabase)}
           liveProvider={liveProvider(supabase)}
@@ -51,6 +52,7 @@ export function App() {
               edit: '/ai-providers/edit/:id',
               meta: {
                 label: 'AI Providers',
+                icon: <Bot />,
               },
             },
             {
@@ -60,6 +62,7 @@ export function App() {
               edit: '/ai-models/edit/:id',
               meta: {
                 label: 'AI Models',
+                icon: <Package />,
               },
             },
             {
@@ -69,6 +72,7 @@ export function App() {
               edit: '/categories/edit/:id',
               meta: {
                 label: 'Categories',
+                icon: <FolderTree />,
               },
             },
             {
@@ -78,6 +82,7 @@ export function App() {
               edit: '/tags/edit/:id',
               meta: {
                 label: 'Tags',
+                icon: <Tags />,
               },
             },
             {
@@ -88,6 +93,7 @@ export function App() {
               show: '/prompts/show/:id',
               meta: {
                 label: 'Prompts',
+                icon: <FileText />,
               },
             },
           ]}
@@ -97,8 +103,8 @@ export function App() {
             mutationMode: 'optimistic',
             disableTelemetry: true,
             title: {
-              icon: <Logo className="h-12 w-auto" />,
-              text: 'Prompt Valley',
+              icon: <LogoWithText className="h-8 w-auto" />,
+              text: '',
             },
           }}
         >
@@ -116,9 +122,9 @@ export function App() {
             <Route
               element={
                 <AuthGuard requireAuth>
-                  <AppLayout>
+                  <Layout>
                     <Outlet />
-                  </AppLayout>
+                  </Layout>
                 </AuthGuard>
               }
             >
@@ -167,8 +173,8 @@ export function App() {
             <Route path="*" element={<ErrorComponent />} />
           </Routes>
         </Refine>
-        <RefineToaster />
-      </ThemeProvider>
-    </BrowserRouter>
+        <Toaster />
+      </BrowserRouter>
+    </ThemeProvider>
   )
 }

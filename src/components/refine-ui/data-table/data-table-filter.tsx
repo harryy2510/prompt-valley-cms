@@ -1,5 +1,3 @@
-'use client'
-
 import { useState, useEffect, useMemo } from 'react'
 import { useTranslate, type CrudOperators } from '@refinedev/core'
 import type { Column, Table as ReactTable } from '@tanstack/react-table'

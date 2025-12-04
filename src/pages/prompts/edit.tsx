@@ -3,7 +3,10 @@ import { useParams } from 'react-router'
 import { useNavigation, useOne, useList } from '@refinedev/core'
 import { Plus, X } from 'lucide-react'
 
-import { EditView, EditViewHeader } from '@/components/refine-ui/views/edit-view'
+import {
+  EditView,
+  EditViewHeader,
+} from '@/components/refine-ui/views/edit-view'
 import { LoadingOverlay } from '@/components/refine-ui/layout/loading-overlay'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,7 +15,13 @@ import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import {
   Select,
   SelectContent,
@@ -24,12 +33,27 @@ import { supabase } from '@/libs/supabase'
 
 export function PromptsEdit() {
   const { id } = useParams()
-  const { result, query } = useOne({ resource: 'prompts', id: id || '' })
-  const { data, isLoading } = query
+  const { result, query } = useOne({
+    resource: 'prompts',
+    id: id || '',
+    meta: {
+      select: '*, categories(id, name)',
+    },
+  })
+  const { isLoading } = query
   const { list } = useNavigation()
-  const { result: categoriesResult } = useList({ resource: 'categories' })
-  const { result: tagsResult } = useList({ resource: 'tags' })
-  const { result: modelsResult } = useList({ resource: 'ai_models' })
+  const { result: categoriesResult } = useList({
+    resource: 'categories',
+    pagination: { pageSize: 1000 },
+  })
+  const { result: tagsResult } = useList({
+    resource: 'tags',
+    pagination: { pageSize: 1000 },
+  })
+  const { result: modelsResult } = useList({
+    resource: 'ai_models',
+    pagination: { pageSize: 1000 },
+  })
 
   const [formData, setFormData] = useState({
     title: '',
@@ -48,16 +72,16 @@ export function PromptsEdit() {
 
   useEffect(() => {
     const loadData = async () => {
-      if (result?.data && id) {
+      if (result && id) {
         setFormData({
-          title: result.data.title || '',
-          description: result.data.description || '',
-          content: result.data.content || '',
-          category_id: result.data.category_id || '',
-          tier: result.data.tier || 'free',
-          is_published: result.data.is_published ?? false,
-          is_featured: result.data.is_featured ?? false,
-          images: result.data.images || [],
+          title: result.title || '',
+          description: result.description || '',
+          content: result.content || '',
+          category_id: result.category_id || '',
+          tier: result.tier || 'free',
+          is_published: result.is_published ?? false,
+          is_featured: result.is_featured ?? false,
+          images: result.images || [],
         })
 
         // Load existing tags
@@ -214,10 +238,11 @@ export function PromptsEdit() {
                   <div className="space-y-2">
                     <Label htmlFor="category_id">Category *</Label>
                     <Select
-                      value={formData.category_id}
+                      value={formData.category_id || undefined}
                       onValueChange={(value) =>
                         setFormData({ ...formData, category_id: value })
                       }
+                      required
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select a category" />
@@ -281,7 +306,8 @@ export function PromptsEdit() {
               <CardHeader>
                 <CardTitle>Images</CardTitle>
                 <CardDescription>
-                  Update images to illustrate the prompt (paths in content-bucket)
+                  Update images to illustrate the prompt (paths in
+                  content-bucket)
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -340,7 +366,10 @@ export function PromptsEdit() {
                     <Label>Tags</Label>
                     <div className="rounded-md border p-4 space-y-2 max-h-48 overflow-y-auto">
                       {tagsResult?.data?.map((tag: any) => (
-                        <div key={tag.id} className="flex items-center space-x-2">
+                        <div
+                          key={tag.id}
+                          className="flex items-center space-x-2"
+                        >
                           <Checkbox
                             id={`tag-${tag.id}`}
                             checked={selectedTags.includes(tag.id)}
@@ -349,7 +378,9 @@ export function PromptsEdit() {
                                 setSelectedTags([...selectedTags, tag.id])
                               } else {
                                 setSelectedTags(
-                                  selectedTags.filter((tagId) => tagId !== tag.id),
+                                  selectedTags.filter(
+                                    (tagId) => tagId !== tag.id,
+                                  ),
                                 )
                               }
                             }}
@@ -369,7 +400,10 @@ export function PromptsEdit() {
                     <Label>Compatible Models</Label>
                     <div className="rounded-md border p-4 space-y-2 max-h-48 overflow-y-auto">
                       {modelsResult?.data?.map((model: any) => (
-                        <div key={model.id} className="flex items-center space-x-2">
+                        <div
+                          key={model.id}
+                          className="flex items-center space-x-2"
+                        >
                           <Checkbox
                             id={`model-${model.id}`}
                             checked={selectedModels.includes(model.id)}

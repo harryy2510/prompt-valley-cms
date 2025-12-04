@@ -25,6 +25,10 @@ type Prompt = {
   description: string | null
   content: string
   category_id: string | null
+  categories?: {
+    id: string
+    name: string
+  }
   tier: 'free' | 'pro'
   is_published: boolean
   is_featured: boolean
@@ -63,10 +67,10 @@ export function PromptsList() {
       {
         id: 'category',
         header: 'Category',
-        accessorKey: 'category_id',
-        cell: ({ getValue }) => {
-          const value = getValue() as string | null
-          return <span className="text-sm">{value || '—'}</span>
+        accessorKey: 'categories.name',
+        cell: ({ row }) => {
+          const category = row.original.categories
+          return <span className="text-sm">{category?.name || '—'}</span>
         },
       },
       {
@@ -164,6 +168,9 @@ export function PromptsList() {
     columns,
     refineCoreProps: {
       resource: 'prompts',
+      meta: {
+        select: '*, categories(id, name)',
+      },
     },
   })
 

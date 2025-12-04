@@ -1,5 +1,3 @@
-'use client'
-
 import React from 'react'
 import { type BaseKey, useRefreshButton } from '@refinedev/core'
 import { RefreshCcw } from 'lucide-react'

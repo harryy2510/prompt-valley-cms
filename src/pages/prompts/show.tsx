@@ -2,17 +2,32 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'react-router'
 import { useOne } from '@refinedev/core'
 
-import { ShowView, ShowViewHeader } from '@/components/refine-ui/views/show-view'
+import {
+  ShowView,
+  ShowViewHeader,
+} from '@/components/refine-ui/views/show-view'
 import { LoadingOverlay } from '@/components/refine-ui/layout/loading-overlay'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { getImageUrl } from '@/libs/storage'
 import { supabase } from '@/libs/supabase'
 
 export function PromptsShow() {
   const { id } = useParams()
-  const { result, query } = useOne({ resource: 'prompts', id: id || '' })
+  const { result, query } = useOne({
+    resource: 'prompts',
+    id: id || '',
+    meta: {
+      select: '*, categories(id, name)',
+    },
+  })
   const { isLoading } = query
   const [tags, setTags] = useState<any[]>([])
   const [models, setModels] = useState<any[]>([])
@@ -45,7 +60,7 @@ export function PromptsShow() {
     loadRelations()
   }, [id])
 
-  const prompt = result?.data
+  const prompt = result
 
   return (
     <ShowView>
@@ -100,7 +115,9 @@ export function PromptsShow() {
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">Status:</span>
-                    <Badge variant={prompt?.is_published ? 'default' : 'outline'}>
+                    <Badge
+                      variant={prompt?.is_published ? 'default' : 'outline'}
+                    >
                       {prompt?.is_published ? 'Published' : 'Draft'}
                     </Badge>
                     {prompt?.is_featured && <Badge>Featured</Badge>}
@@ -124,7 +141,9 @@ export function PromptsShow() {
 
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">Category:</span>
-                    <span className="text-sm">{prompt?.category_id || '—'}</span>
+                    <span className="text-sm">
+                      {(prompt as any)?.categories?.name || '—'}
+                    </span>
                   </div>
                 </div>
               </CardContent>
@@ -165,7 +184,9 @@ export function PromptsShow() {
                         key={model.id}
                         className="flex items-center justify-between rounded-md border p-2"
                       >
-                        <span className="text-sm font-medium">{model.name}</span>
+                        <span className="text-sm font-medium">
+                          {model.name}
+                        </span>
                         <span className="text-xs text-muted-foreground">
                           {model.provider_id}
                         </span>

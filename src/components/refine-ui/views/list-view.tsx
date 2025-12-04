@@ -1,5 +1,3 @@
-'use client'
-
 import type { PropsWithChildren } from 'react'
 
 import { useResourceParams, useUserFriendlyName } from '@refinedev/core'
@@ -44,10 +42,8 @@ export const ListViewHeader = ({
 
   const title =
     titleFromProps ??
-    getUserFriendlyName(
-      resource?.meta?.label ?? identifier ?? resource?.name,
-      'plural',
-    )
+    resource?.meta?.label ??
+    getUserFriendlyName(identifier ?? resource?.name, 'plural')
 
   return (
     <div className={cn('flex flex-col', 'gap-4', wrapperClassName)}>

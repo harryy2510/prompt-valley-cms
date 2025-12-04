@@ -15,7 +15,7 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar'
 import { Separator } from '@/components/ui/separator'
-import { Logo } from '@/components/logo'
+import { LogoWithText } from '@/components/logo-with-text'
 import { ThemeSelect } from '@/components/refine-ui/theme/theme-select'
 
 const menuItems = [
@@ -54,7 +54,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <Sidebar>
         <SidebarHeader>
           <div className="flex items-center gap-2 px-2 py-4">
-            <Logo className="h-8 w-auto" />
+            <LogoWithText className="h-8 w-auto" />
           </div>
         </SidebarHeader>
         <SidebarContent>
