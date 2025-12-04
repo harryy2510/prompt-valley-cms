@@ -61,6 +61,7 @@ export function AiModelsEdit() {
     resource: 'ai_providers',
     optionLabel: 'name',
     optionValue: 'id',
+    pagination: { pageSize: 1000 },
   })
 
   const {
@@ -157,7 +158,6 @@ export function AiModelsEdit() {
                       <FormLabel>Provider *</FormLabel>
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
                         value={field.value}
                       >
                         <FormControl>
