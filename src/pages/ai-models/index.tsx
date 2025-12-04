@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Select,
   SelectContent,
@@ -26,18 +25,25 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { PageHeader, DataTableWrapper, FormPageLayout, FormCard } from "@/components/page-layout"
 
 export function AiModelsList() {
   const { query } = useList({
     resource: "ai_models",
+    queryOptions: {
+      retry: 1,
+    },
   })
+
   const { data, isLoading, refetch } = query
   const { create, edit } = useNavigation()
   const { mutate: deleteModel } = useDelete()
@@ -59,102 +65,99 @@ export function AiModelsList() {
     )
   }
 
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        <div className="h-8 w-48 animate-pulse rounded bg-muted" />
-        <div className="h-64 animate-pulse rounded bg-muted" />
-      </div>
-    )
-  }
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">AI Models</h2>
-          <p className="text-muted-foreground">Manage AI model configurations</p>
-        </div>
-        <Button onClick={() => create("ai_models")}>
-          <Plus className="mr-2 size-4" />
-          Create New
-        </Button>
-      </div>
+    <div className="mx-auto w-full">
+      <PageHeader
+        title="AI Models"
+        description="Manage AI model configurations"
+        action={{
+          label: "Add Model",
+          onClick: () => create("ai_models")
+        }}
+      />
 
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Provider</TableHead>
-                <TableHead>Context Window</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead>
+      <DataTableWrapper isLoading={isLoading}>
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead>Name</TableHead>
+              <TableHead>Provider</TableHead>
+              <TableHead>Context Window</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="w-[80px] text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data?.data?.length === 0 ? (
+              <TableRow className="hover:bg-transparent">
+                <TableCell colSpan={5} className="h-32 text-center">
+                  <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                    <div className="flex size-12 items-center justify-center rounded-full bg-muted">
+                      <Plus className="size-6" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">No models yet</p>
+                      <p className="text-xs">Get started by adding your first AI model</p>
+                    </div>
+                  </div>
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data?.data?.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground">
-                    No models found. Create one to get started.
+            ) : (
+              data?.data?.map((model: any) => (
+                <TableRow key={model.id}>
+                  <TableCell className="font-medium">{model.name}</TableCell>
+                  <TableCell>{model.provider_id}</TableCell>
+                  <TableCell>{model.context_window?.toLocaleString()}</TableCell>
+                  <TableCell>
+                    <Badge variant={model.is_active ? "default" : "secondary"}>
+                      {model.is_active ? "Active" : "Inactive"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8"
+                        onClick={() => edit("ai_models", model.id)}
+                      >
+                        <Pencil className="size-4" />
+                        <span className="sr-only">Edit</span>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 text-destructive"
+                        onClick={() => setDeleteDialog({ open: true, id: model.id, name: model.name })}
+                      >
+                        <Trash2 className="size-4" />
+                        <span className="sr-only">Delete</span>
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
-              ) : (
-                data?.data?.map((model: any) => (
-                  <TableRow key={model.id}>
-                    <TableCell className="font-medium">{model.name}</TableCell>
-                    <TableCell>{model.provider_id}</TableCell>
-                    <TableCell>{model.context_window?.toLocaleString()}</TableCell>
-                    <TableCell>
-                      <Badge variant={model.is_active ? "default" : "secondary"}>
-                        {model.is_active ? "Active" : "Inactive"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => edit("ai_models", model.id)}
-                        >
-                          <Pencil className="size-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setDeleteDialog({ open: true, id: model.id, name: model.name })}
-                        >
-                          <Trash2 className="size-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </DataTableWrapper>
 
-      <Dialog open={deleteDialog?.open} onOpenChange={(open) => !open && setDeleteDialog(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Model</DialogTitle>
-            <DialogDescription>
+      <AlertDialog open={deleteDialog?.open} onOpenChange={(open) => !open && setDeleteDialog(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Model</AlertDialogTitle>
+            <AlertDialogDescription>
               Are you sure you want to delete &quot;{deleteDialog?.name}&quot;? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialog(null)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDelete}>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
@@ -226,41 +229,42 @@ export function AiModelsCreate() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Create AI Model</h2>
-        <p className="text-muted-foreground">Add a new AI model configuration</p>
-      </div>
-
-      <Card className="max-w-2xl">
-        <CardHeader>
-          <CardTitle>Model Details</CardTitle>
-          <CardDescription>Enter the information for the new AI model</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+    <FormPageLayout
+      title="Create AI Model"
+      description="Add a new AI model configuration"
+    >
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <FormCard
+          title="Model Information"
+          description="Enter the basic information for the AI model"
+        >
+          <div className="grid gap-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Name *</Label>
+              <Label htmlFor="name">Model Name *</Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => handleNameChange(e.target.value)}
-                placeholder="GPT-4 Turbo"
+                placeholder="e.g. GPT-4 Turbo, Claude 3"
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="id">ID (slug) *</Label>
+              <Label htmlFor="id">
+                Model ID *
+                <span className="ml-2 text-xs font-normal text-muted-foreground">(auto-generated)</span>
+              </Label>
               <Input
                 id="id"
                 value={formData.id}
                 onChange={(e) => handleIdChange(e.target.value)}
-                placeholder="gpt-4-turbo"
+                placeholder="e.g. gpt-4-turbo, claude-3"
                 required
+                className="font-mono text-sm"
               />
               <p className="text-xs text-muted-foreground">
-                Auto-generated from name. You can edit it manually.
+                Unique identifier used in the system. Auto-generated from name but can be customized.
               </p>
             </div>
 
@@ -282,7 +286,14 @@ export function AiModelsCreate() {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+        </FormCard>
 
+        <FormCard
+          title="Model Details"
+          description="Configure the model specifications and capabilities"
+        >
+          <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
               <Textarea
@@ -350,17 +361,17 @@ export function AiModelsCreate() {
               />
               <Label htmlFor="is_active">Active</Label>
             </div>
+          </div>
+        </FormCard>
 
-            <div className="flex gap-2 pt-4">
-              <Button type="submit">Create Model</Button>
-              <Button type="button" variant="outline" onClick={() => list("ai_models")}>
-                Cancel
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+        <div className="flex items-center gap-2">
+          <Button type="submit">Create Model</Button>
+          <Button type="button" variant="outline" onClick={() => list("ai_models")}>
+            Cancel
+          </Button>
+        </div>
+      </form>
+    </FormPageLayout>
   )
 }
 
@@ -428,36 +439,25 @@ export function AiModelsEdit() {
     })
   }
 
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        <div className="h-8 w-48 animate-pulse rounded bg-muted" />
-        <div className="h-96 max-w-2xl animate-pulse rounded bg-muted" />
-      </div>
-    )
-  }
-
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Edit AI Model</h2>
-        <p className="text-muted-foreground">Update model configuration</p>
-      </div>
-
-      <Card className="max-w-2xl">
-        <CardHeader>
-          <CardTitle>Model Details</CardTitle>
-          <CardDescription>Update the information for this AI model</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+    <FormPageLayout
+      title="Edit AI Model"
+      description="Update model configuration"
+      isLoading={isLoading}
+    >
+      {!isLoading && (
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <FormCard
+            title="Model Information"
+            description="Update the basic information for the AI model"
+          >
             <div className="space-y-2">
-              <Label htmlFor="name">Name *</Label>
+              <Label htmlFor="name">Model Name *</Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="GPT-4 Turbo"
+                placeholder="e.g. GPT-4 Turbo, Claude 3"
                 required
               />
             </div>
@@ -480,84 +480,91 @@ export function AiModelsEdit() {
                 </SelectContent>
               </Select>
             </div>
+          </FormCard>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Description of the model"
-                rows={3}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="context_window">Context Window</Label>
-              <Input
-                id="context_window"
-                type="number"
-                value={formData.context_window || ""}
-                onChange={(e) => setFormData({ ...formData, context_window: parseInt(e.target.value) || 0 })}
-                placeholder="128000"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="capabilities">Capabilities</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="capabilities"
-                  value={capabilityInput}
-                  onChange={(e) => setCapabilityInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault()
-                      addCapability()
-                    }
-                  }}
-                  placeholder="Add capability (e.g., text, image, code)"
+          <FormCard
+            title="Model Details"
+            description="Update the model specifications and capabilities"
+          >
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Description of the model"
+                  rows={3}
                 />
-                <Button type="button" onClick={addCapability} variant="outline">
-                  <Plus className="size-4" />
-                </Button>
               </div>
-              {formData.capabilities.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {formData.capabilities.map((capability) => (
-                    <Badge key={capability} variant="secondary">
-                      {capability}
-                      <button
-                        type="button"
-                        onClick={() => removeCapability(capability)}
-                        className="ml-1 hover:text-destructive"
-                      >
-                        <X className="size-3" />
-                      </button>
-                    </Badge>
-                  ))}
+
+              <div className="space-y-2">
+                <Label htmlFor="context_window">Context Window</Label>
+                <Input
+                  id="context_window"
+                  type="number"
+                  value={formData.context_window || ""}
+                  onChange={(e) => setFormData({ ...formData, context_window: parseInt(e.target.value) || 0 })}
+                  placeholder="128000"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="capabilities">Capabilities</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="capabilities"
+                    value={capabilityInput}
+                    onChange={(e) => setCapabilityInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault()
+                        addCapability()
+                      }
+                    }}
+                    placeholder="Add capability (e.g., text, image, code)"
+                  />
+                  <Button type="button" onClick={addCapability} variant="outline">
+                    <Plus className="size-4" />
+                  </Button>
                 </div>
-              )}
-            </div>
+                {formData.capabilities.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {formData.capabilities.map((capability) => (
+                      <Badge key={capability} variant="secondary">
+                        {capability}
+                        <button
+                          type="button"
+                          onClick={() => removeCapability(capability)}
+                          className="ml-1 hover:text-destructive"
+                        >
+                          <X className="size-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
 
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="is_active"
-                checked={formData.is_active}
-                onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
-              />
-              <Label htmlFor="is_active">Active</Label>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="is_active"
+                  checked={formData.is_active}
+                  onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
+                />
+                <Label htmlFor="is_active">Active</Label>
+              </div>
             </div>
+          </FormCard>
 
-            <div className="flex gap-2 pt-4">
-              <Button type="submit">Update Model</Button>
-              <Button type="button" variant="outline" onClick={() => list("ai_models")}>
-                Cancel
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+          <div className="flex items-center gap-2">
+            <Button type="submit">Save Changes</Button>
+            <Button type="button" variant="outline" onClick={() => list("ai_models")}>
+              Cancel
+            </Button>
+          </div>
+        </form>
+      )}
+    </FormPageLayout>
   )
 }

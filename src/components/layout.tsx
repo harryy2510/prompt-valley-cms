@@ -1,11 +1,9 @@
 import { Link, useLocation } from "react-router"
 import {
-  LayoutDashboard,
-  Brain,
-  Cpu,
-  FolderTree,
-  Tags,
-  FileText,
+    LayoutDashboard,
+    FolderTree,
+    Tags,
+    FileText, Bot, Package,
 } from "lucide-react"
 
 import {
@@ -24,7 +22,7 @@ import {
 } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
 import { ThemeToggle } from "@/components/theme-toggle"
-import logoWithText from "@/assets/icon-with-text.svg"
+import { Logo } from "@/components/logo"
 
 const menuItems = [
   {
@@ -35,12 +33,12 @@ const menuItems = [
   {
     title: "AI Providers",
     url: "/ai-providers",
-    icon: Brain,
+    icon: Bot,
   },
   {
     title: "AI Models",
     url: "/ai-models",
-    icon: Cpu,
+    icon: Package,
   },
   {
     title: "Categories",
@@ -67,7 +65,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <Sidebar>
         <SidebarHeader>
           <div className="flex items-center gap-2 px-2 py-4">
-            <img src={logoWithText} alt="PromptValley" className="h-8" />
+            <Logo className="h-8 w-auto" />
           </div>
         </SidebarHeader>
         <SidebarContent>
@@ -94,15 +92,15 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </SidebarContent>
       </Sidebar>
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-          <SidebarTrigger />
+        <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6">
+          <SidebarTrigger className="-ml-2" />
           <Separator orientation="vertical" className="mr-2 h-4" />
           <div className="flex flex-1 items-center justify-between gap-2">
-            <h1 className="text-lg font-semibold">PromptValley CMS</h1>
+            <h1 className="text-sm font-semibold">PromptValley CMS</h1>
             <ThemeToggle />
           </div>
         </header>
-        <main className="flex flex-1 flex-col gap-4 p-4">{children}</main>
+        <main className="flex flex-1 flex-col p-6">{children}</main>
       </SidebarInset>
     </SidebarProvider>
   )

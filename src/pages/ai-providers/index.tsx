@@ -1,12 +1,18 @@
-import { useList, useNavigation, useCreate, useUpdate, useOne, useDelete } from "@refinedev/core"
-import { useParams } from "react-router"
-import { useState, useEffect } from "react"
-import { ExternalLink, Pencil, Trash2, Plus } from "lucide-react"
+import {
+  useList,
+  useNavigation,
+  useCreate,
+  useUpdate,
+  useOne,
+  useDelete,
+} from '@refinedev/core'
+import { useParams } from 'react-router'
+import { useState, useEffect } from 'react'
+import { ExternalLink, Pencil, Trash2, Plus } from 'lucide-react'
 
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Table,
   TableBody,
@@ -14,19 +20,28 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from '@/components/ui/table'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
+  PageHeader,
+  DataTableWrapper,
+  FormPageLayout,
+  FormCard,
+} from '@/components/page-layout'
+import { getImageUrl } from '@/libs/storage'
 
 export function AiProvidersList() {
   const { query } = useList({
-    resource: "ai_providers",
+    resource: 'ai_providers',
     queryOptions: {
       retry: 1,
     },
@@ -35,13 +50,17 @@ export function AiProvidersList() {
   const { data, isLoading, refetch } = query
   const { create, edit } = useNavigation()
   const { mutate: deleteProvider } = useDelete()
-  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; id: string; name: string } | null>(null)
+  const [deleteDialog, setDeleteDialog] = useState<{
+    open: boolean
+    id: string
+    name: string
+  } | null>(null)
 
   const handleDelete = () => {
     if (!deleteDialog) return
     deleteProvider(
       {
-        resource: "ai_providers",
+        resource: 'ai_providers',
         id: deleteDialog.id,
       },
       {
@@ -49,122 +68,143 @@ export function AiProvidersList() {
           refetch()
           setDeleteDialog(null)
         },
-      }
+      },
     )
   }
-
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        <div className="h-8 w-48 animate-pulse rounded bg-muted" />
-        <div className="h-64 animate-pulse rounded bg-muted" />
-      </div>
-    )
-  }
-
-  console.log("AI Providers data:", data)
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">AI Providers</h2>
-          <p className="text-muted-foreground">Manage AI service providers</p>
-        </div>
-        <Button onClick={() => create("ai_providers")}>
-          <Plus className="mr-2 size-4" />
-          Create New
-        </Button>
-      </div>
+    <div className="mx-auto w-full">
+      <PageHeader
+        title="AI Providers"
+        description="Manage AI service providers and their configurations"
+        action={{
+          label: 'Add Provider',
+          onClick: () => create('ai_providers'),
+        }}
+      />
 
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Logo</TableHead>
-                <TableHead>Website</TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead>
+      <DataTableWrapper isLoading={isLoading}>
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="w-[40px]"></TableHead>
+              <TableHead>Provider</TableHead>
+              <TableHead>Website</TableHead>
+              <TableHead className="w-[80px] text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data?.data?.length === 0 ? (
+              <TableRow className="hover:bg-transparent">
+                <TableCell colSpan={4} className="h-32 text-center">
+                  <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                    <div className="flex size-12 items-center justify-center rounded-full bg-muted">
+                      <Plus className="size-6" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">No providers yet</p>
+                      <p className="text-xs">
+                        Get started by adding your first AI provider
+                      </p>
+                    </div>
+                  </div>
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data?.data?.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground">
-                    No providers found. Create one to get started.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                data?.data?.map((provider: any) => (
+            ) : (
+              data?.data?.map((provider: any) => {
+                const logoUrl = getImageUrl(provider.logo_url)
+                return (
                   <TableRow key={provider.id}>
-                    <TableCell className="font-medium">{provider.name}</TableCell>
                     <TableCell>
-                      {provider.logo_url && (
+                      {logoUrl ? (
                         <img
-                          src={provider.logo_url}
+                          src={logoUrl}
                           alt={provider.name}
-                          className="size-8 rounded object-contain"
+                          className="size-8 rounded border object-contain p-1"
                         />
+                      ) : (
+                        <div className="flex size-8 items-center justify-center rounded border bg-muted text-xs font-medium">
+                          {provider.name.charAt(0)}
+                        </div>
                       )}
                     </TableCell>
                     <TableCell>
-                      {provider.website_url && (
+                      <div className="font-medium">{provider.name}</div>
+                    </TableCell>
+                    <TableCell>
+                      {provider.website_url ? (
                         <a
                           href={provider.website_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center text-primary hover:underline"
+                          className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
                         >
-                          <ExternalLink className="mr-1 size-3" />
-                          Visit
+                          <ExternalLink className="size-3" />
+                          <span>Visit site</span>
                         </a>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">—</span>
                       )}
                     </TableCell>
                     <TableCell>
-                      <div className="flex gap-2">
+                      <div className="flex items-center justify-end gap-1">
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => edit("ai_providers", provider.id)}
+                          className="size-8"
+                          onClick={() => edit('ai_providers', provider.id)}
                         >
                           <Pencil className="size-4" />
+                          <span className="sr-only">Edit</span>
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => setDeleteDialog({ open: true, id: provider.id, name: provider.name })}
+                          className="size-8 text-destructive"
+                          onClick={() =>
+                            setDeleteDialog({
+                              open: true,
+                              id: provider.id,
+                              name: provider.name,
+                            })
+                          }
                         >
-                          <Trash2 className="size-4 text-destructive" />
+                          <Trash2 className="size-4" />
+                          <span className="sr-only">Delete</span>
                         </Button>
                       </div>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                )
+              })
+            )}
+          </TableBody>
+        </Table>
+      </DataTableWrapper>
 
-      <Dialog open={deleteDialog?.open} onOpenChange={(open) => !open && setDeleteDialog(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Provider</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete &quot;{deleteDialog?.name}&quot;? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialog(null)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDelete}>
+      <AlertDialog
+        open={deleteDialog?.open}
+        onOpenChange={(open) => !open && setDeleteDialog(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Provider</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete &quot;{deleteDialog?.name}&quot;?
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
@@ -173,15 +213,18 @@ export function AiProvidersCreate() {
   const { mutate: create } = useCreate()
   const { list } = useNavigation()
   const [formData, setFormData] = useState({
-    id: "",
-    name: "",
-    logo_url: "",
-    website_url: "",
+    id: '',
+    name: '',
+    logo_url: '',
+    website_url: '',
   })
   const [autoSlug, setAutoSlug] = useState(true)
 
   const generateSlug = (name: string) => {
-    return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
   }
 
   const handleNameChange = (name: string) => {
@@ -201,113 +244,136 @@ export function AiProvidersCreate() {
 
     create(
       {
-        resource: "ai_providers",
+        resource: 'ai_providers',
         values: formData,
       },
       {
         onSuccess: () => {
-          list("ai_providers")
+          list('ai_providers')
         },
-      }
+      },
     )
   }
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Create AI Provider</h2>
-        <p className="text-muted-foreground">Add a new AI service provider</p>
-      </div>
+  const previewUrl = getImageUrl(formData.logo_url)
 
-      <Card className="max-w-2xl">
-        <CardHeader>
-          <CardTitle>Provider Details</CardTitle>
-          <CardDescription>Enter the information for the new AI provider</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+  return (
+    <FormPageLayout
+      title="Create AI Provider"
+      description="Add a new AI service provider to the system"
+    >
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <FormCard
+          title="Provider Information"
+          description="Enter the basic information for the AI provider"
+        >
+          <div className="grid gap-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Name *</Label>
+              <Label htmlFor="name">Provider Name *</Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => handleNameChange(e.target.value)}
-                placeholder="OpenAI"
+                placeholder="e.g. OpenAI, Anthropic, Google"
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="id">ID (slug) *</Label>
+              <Label htmlFor="id">
+                Provider ID *
+                <span className="ml-2 text-xs font-normal text-muted-foreground">
+                  (auto-generated)
+                </span>
+              </Label>
               <Input
                 id="id"
                 value={formData.id}
                 onChange={(e) => handleIdChange(e.target.value)}
-                placeholder="openai"
+                placeholder="e.g. openai, anthropic"
                 required
+                className="font-mono text-sm"
               />
               <p className="text-xs text-muted-foreground">
-                Auto-generated from name. You can edit it manually.
+                Unique identifier used in the system. Auto-generated from name
+                but can be customized.
               </p>
             </div>
+          </div>
+        </FormCard>
 
-            <div className="space-y-2">
-              <Label htmlFor="logo_url">Logo URL</Label>
-              <Input
-                id="logo_url"
-                type="url"
-                value={formData.logo_url}
-                onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
-                placeholder="https://example.com/logo.png"
-              />
-              {formData.logo_url && (
-                <div className="mt-2">
-                  <img src={formData.logo_url} alt="Logo preview" className="h-12 w-12 rounded object-contain border" />
-                </div>
-              )}
-            </div>
+        <FormCard
+          title="Branding & Links"
+          description="Optional logo and website information"
+        >
+          <div className="space-y-2">
+            <Label htmlFor="logo_url">Logo Path (in content-bucket)</Label>
+            <Input
+              id="logo_url"
+              value={formData.logo_url}
+              onChange={(e) =>
+                setFormData({ ...formData, logo_url: e.target.value })
+              }
+              placeholder="logos/openai.png"
+            />
+            {previewUrl && (
+              <div className="flex items-center gap-3 rounded-md border p-3">
+                <img
+                  src={previewUrl}
+                  alt="Logo preview"
+                  className="size-12 rounded border object-contain p-1"
+                />
+                <p className="text-xs text-muted-foreground">Logo preview</p>
+              </div>
+            )}
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="website_url">Website URL</Label>
-              <Input
-                id="website_url"
-                type="url"
-                value={formData.website_url}
-                onChange={(e) => setFormData({ ...formData, website_url: e.target.value })}
-                placeholder="https://example.com"
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="website_url">Website URL</Label>
+            <Input
+              id="website_url"
+              type="url"
+              value={formData.website_url}
+              onChange={(e) =>
+                setFormData({ ...formData, website_url: e.target.value })
+              }
+              placeholder="https://example.com"
+            />
+          </div>
+        </FormCard>
 
-            <div className="flex gap-2 pt-4">
-              <Button type="submit">Create Provider</Button>
-              <Button type="button" variant="outline" onClick={() => list("ai_providers")}>
-                Cancel
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+        <div className="flex items-center gap-2">
+          <Button type="submit">Create Provider</Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => list('ai_providers')}
+          >
+            Cancel
+          </Button>
+        </div>
+      </form>
+    </FormPageLayout>
   )
 }
 
 export function AiProvidersEdit() {
   const { id } = useParams()
-  const { data, isLoading } = useOne({ resource: "ai_providers", id: id || "" })
+  const { data, isLoading } = useOne({ resource: 'ai_providers', id: id || '' })
   const { mutate: update } = useUpdate()
   const { list } = useNavigation()
   const [formData, setFormData] = useState({
-    name: "",
-    logo_url: "",
-    website_url: "",
+    name: '',
+    logo_url: '',
+    website_url: '',
   })
 
   useEffect(() => {
     if (data?.data) {
       setFormData({
-        name: data.data.name || "",
-        logo_url: data.data.logo_url || "",
-        website_url: data.data.website_url || "",
+        name: data.data.name || '',
+        logo_url: data.data.logo_url || '',
+        website_url: data.data.website_url || '',
       })
     }
   }, [data])
@@ -317,64 +383,68 @@ export function AiProvidersEdit() {
 
     update(
       {
-        resource: "ai_providers",
-        id: id || "",
+        resource: 'ai_providers',
+        id: id || '',
         values: formData,
       },
       {
         onSuccess: () => {
-          list("ai_providers")
+          list('ai_providers')
         },
-      }
+      },
     )
   }
 
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        <div className="h-8 w-48 animate-pulse rounded bg-muted" />
-        <div className="h-96 max-w-2xl animate-pulse rounded bg-muted" />
-      </div>
-    )
-  }
+  const previewUrl = getImageUrl(formData.logo_url)
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Edit AI Provider</h2>
-        <p className="text-muted-foreground">Update provider information</p>
-      </div>
-
-      <Card className="max-w-2xl">
-        <CardHeader>
-          <CardTitle>Provider Details</CardTitle>
-          <CardDescription>Update the information for this AI provider</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+    <FormPageLayout
+      title="Edit AI Provider"
+      description="Update provider information"
+      isLoading={isLoading}
+    >
+      {!isLoading && (
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <FormCard
+            title="Provider Information"
+            description="Update the basic information for the AI provider"
+          >
             <div className="space-y-2">
-              <Label htmlFor="name">Name *</Label>
+              <Label htmlFor="name">Provider Name *</Label>
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="OpenAI"
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
+                placeholder="e.g. OpenAI, Anthropic, Google"
                 required
               />
             </div>
+          </FormCard>
 
+          <FormCard
+            title="Branding & Links"
+            description="Optional logo and website information"
+          >
             <div className="space-y-2">
-              <Label htmlFor="logo_url">Logo URL</Label>
+              <Label htmlFor="logo_url">Logo Path (in content-bucket)</Label>
               <Input
                 id="logo_url"
-                type="url"
                 value={formData.logo_url}
-                onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
-                placeholder="https://example.com/logo.png"
+                onChange={(e) =>
+                  setFormData({ ...formData, logo_url: e.target.value })
+                }
+                placeholder="logos/openai.png"
               />
-              {formData.logo_url && (
-                <div className="mt-2">
-                  <img src={formData.logo_url} alt="Logo preview" className="h-12 w-12 rounded object-contain border" />
+              {previewUrl && (
+                <div className="flex items-center gap-3 rounded-md border p-3">
+                  <img
+                    src={previewUrl}
+                    alt="Logo preview"
+                    className="size-12 rounded border object-contain p-1"
+                  />
+                  <p className="text-xs text-muted-foreground">Logo preview</p>
                 </div>
               )}
             </div>
@@ -385,20 +455,26 @@ export function AiProvidersEdit() {
                 id="website_url"
                 type="url"
                 value={formData.website_url}
-                onChange={(e) => setFormData({ ...formData, website_url: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, website_url: e.target.value })
+                }
                 placeholder="https://example.com"
               />
             </div>
+          </FormCard>
 
-            <div className="flex gap-2 pt-4">
-              <Button type="submit">Update Provider</Button>
-              <Button type="button" variant="outline" onClick={() => list("ai_providers")}>
-                Cancel
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+          <div className="flex items-center gap-2">
+            <Button type="submit">Save Changes</Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => list('ai_providers')}
+            >
+              Cancel
+            </Button>
+          </div>
+        </form>
+      )}
+    </FormPageLayout>
   )
 }

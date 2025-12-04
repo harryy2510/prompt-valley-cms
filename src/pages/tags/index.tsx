@@ -6,7 +6,6 @@ import { Pencil, Trash2, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Table,
   TableBody,
@@ -16,18 +15,22 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { PageHeader, DataTableWrapper, FormPageLayout, FormCard } from "@/components/page-layout"
 
 export function TagsList() {
   const { query } = useList({
     resource: "tags",
   })
+
   const { data, isLoading, refetch } = query
   const { create, edit } = useNavigation()
   const { mutate: deleteTag } = useDelete()
@@ -49,92 +52,89 @@ export function TagsList() {
     )
   }
 
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        <div className="h-8 w-48 animate-pulse rounded bg-muted" />
-        <div className="h-64 animate-pulse rounded bg-muted" />
-      </div>
-    )
-  }
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Tags</h2>
-          <p className="text-muted-foreground">Manage prompt tags</p>
-        </div>
-        <Button onClick={() => create("tags")}>
-          <Plus className="mr-2 size-4" />
-          Create New
-        </Button>
-      </div>
+    <div className="mx-auto w-full">
+      <PageHeader
+        title="Tags"
+        description="Manage prompt tags"
+        action={{
+          label: "Create New",
+          onClick: () => create("tags")
+        }}
+      />
 
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead>
+      <DataTableWrapper isLoading={isLoading}>
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead>Name</TableHead>
+              <TableHead className="w-[80px] text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data?.data?.length === 0 ? (
+              <TableRow className="hover:bg-transparent">
+                <TableCell colSpan={2} className="h-32 text-center">
+                  <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                    <div className="flex size-12 items-center justify-center rounded-full bg-muted">
+                      <Plus className="size-6" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">No tags yet</p>
+                      <p className="text-xs">Get started by creating your first tag</p>
+                    </div>
+                  </div>
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data?.data?.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={2} className="text-center text-muted-foreground">
-                    No tags found. Create one to get started.
+            ) : (
+              data?.data?.map((tag: any) => (
+                <TableRow key={tag.id}>
+                  <TableCell className="font-medium">{tag.name}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8"
+                        onClick={() => edit("tags", tag.id)}
+                      >
+                        <Pencil className="size-4" />
+                        <span className="sr-only">Edit</span>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 text-destructive"
+                        onClick={() => setDeleteDialog({ open: true, id: tag.id, name: tag.name })}
+                      >
+                        <Trash2 className="size-4" />
+                        <span className="sr-only">Delete</span>
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
-              ) : (
-                data?.data?.map((tag: any) => (
-                  <TableRow key={tag.id}>
-                    <TableCell className="font-medium">{tag.name}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => edit("tags", tag.id)}
-                        >
-                          <Pencil className="size-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setDeleteDialog({ open: true, id: tag.id, name: tag.name })}
-                        >
-                          <Trash2 className="size-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </DataTableWrapper>
 
-      <Dialog open={deleteDialog?.open} onOpenChange={(open) => !open && setDeleteDialog(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Tag</DialogTitle>
-            <DialogDescription>
+      <AlertDialog open={deleteDialog?.open} onOpenChange={(open) => !open && setDeleteDialog(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Tag</AlertDialogTitle>
+            <AlertDialogDescription>
               Are you sure you want to delete &quot;{deleteDialog?.name}&quot;? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialog(null)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDelete}>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
@@ -181,19 +181,16 @@ export function TagsCreate() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Create Tag</h2>
-        <p className="text-muted-foreground">Add a new tag for organizing prompts</p>
-      </div>
-
-      <Card className="max-w-2xl">
-        <CardHeader>
-          <CardTitle>Tag Details</CardTitle>
-          <CardDescription>Enter the name for the new tag</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+    <FormPageLayout
+      title="Create Tag"
+      description="Add a new tag for organizing prompts"
+    >
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <FormCard
+          title="Tag Details"
+          description="Enter the name for the new tag"
+        >
+          <div className="grid gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Name *</Label>
               <Input
@@ -206,29 +203,33 @@ export function TagsCreate() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="id">ID (slug) *</Label>
+              <Label htmlFor="id">
+                ID (slug) *
+                <span className="ml-2 text-xs font-normal text-muted-foreground">(auto-generated)</span>
+              </Label>
               <Input
                 id="id"
                 value={formData.id}
                 onChange={(e) => handleIdChange(e.target.value)}
                 placeholder="seo"
                 required
+                className="font-mono text-sm"
               />
               <p className="text-xs text-muted-foreground">
-                Auto-generated from name. You can edit it manually.
+                Unique identifier used in the system. Auto-generated from name but can be customized.
               </p>
             </div>
+          </div>
+        </FormCard>
 
-            <div className="flex gap-2 pt-4">
-              <Button type="submit">Create Tag</Button>
-              <Button type="button" variant="outline" onClick={() => list("tags")}>
-                Cancel
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+        <div className="flex items-center gap-2">
+          <Button type="submit">Create Tag</Button>
+          <Button type="button" variant="outline" onClick={() => list("tags")}>
+            Cancel
+          </Button>
+        </div>
+      </form>
+    </FormPageLayout>
   )
 }
 
@@ -266,29 +267,18 @@ export function TagsEdit() {
     )
   }
 
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        <div className="h-8 w-48 animate-pulse rounded bg-muted" />
-        <div className="h-96 max-w-2xl animate-pulse rounded bg-muted" />
-      </div>
-    )
-  }
-
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Edit Tag</h2>
-        <p className="text-muted-foreground">Update tag information</p>
-      </div>
-
-      <Card className="max-w-2xl">
-        <CardHeader>
-          <CardTitle>Tag Details</CardTitle>
-          <CardDescription>Update the name for this tag</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+    <FormPageLayout
+      title="Edit Tag"
+      description="Update tag information"
+      isLoading={isLoading}
+    >
+      {!isLoading && (
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <FormCard
+            title="Tag Details"
+            description="Update the name for this tag"
+          >
             <div className="space-y-2">
               <Label htmlFor="name">Name *</Label>
               <Input
@@ -299,16 +289,16 @@ export function TagsEdit() {
                 required
               />
             </div>
+          </FormCard>
 
-            <div className="flex gap-2 pt-4">
-              <Button type="submit">Update Tag</Button>
-              <Button type="button" variant="outline" onClick={() => list("tags")}>
-                Cancel
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+          <div className="flex items-center gap-2">
+            <Button type="submit">Save Changes</Button>
+            <Button type="button" variant="outline" onClick={() => list("tags")}>
+              Cancel
+            </Button>
+          </div>
+        </form>
+      )}
+    </FormPageLayout>
   )
 }
