@@ -5,13 +5,14 @@ import { BrowserRouter, Routes, Route, Outlet } from 'react-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 import { supabase } from '@/libs/supabase'
+import { authProvider } from '@/libs/auth-provider'
 import { AppLayout } from './components/layout'
-import { ThemeProvider } from './components/theme-provider'
+import { Logo } from './components/logo'
+import { ThemeProvider } from '@/components/refine-ui/theme/theme-provider'
 import { AuthGuard } from './components/auth-guard'
+import { useNotificationProvider } from '@/components/refine-ui/notification/use-notification-provider'
+import { Toaster as RefineToaster } from '@/components/refine-ui/notification/toaster'
 
-const queryClient = new QueryClient()
-
-// Pages
 import { LoginPage } from './pages/login'
 import { DashboardPage } from './pages/dashboard'
 import {
@@ -32,7 +33,8 @@ import {
   PromptsEdit,
   PromptsShow,
 } from './pages/prompts'
-import { Toaster } from '@/components/ui/sonner'
+
+const queryClient = new QueryClient()
 
 export function App() {
   return (
@@ -43,6 +45,8 @@ export function App() {
             dataProvider={dataProvider(supabase)}
             liveProvider={liveProvider(supabase)}
             routerProvider={routerProvider}
+            authProvider={authProvider}
+            notificationProvider={useNotificationProvider}
             resources={[
               {
                 name: 'ai_providers',
@@ -96,6 +100,10 @@ export function App() {
               warnWhenUnsavedChanges: true,
               mutationMode: 'optimistic',
               disableTelemetry: true,
+              title: {
+                icon: <Logo className="h-12 w-auto" />,
+                text: 'PromptValley',
+              },
             }}
           >
             <Routes>
@@ -162,7 +170,7 @@ export function App() {
               </Route>
             </Routes>
           </Refine>
-          <Toaster />
+          <RefineToaster />
         </QueryClientProvider>
       </ThemeProvider>
     </BrowserRouter>

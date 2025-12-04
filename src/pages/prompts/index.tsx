@@ -52,7 +52,7 @@ import { getImageUrl } from '@/libs/storage'
 import { supabase } from '@/libs/supabase'
 
 export function PromptsList() {
-  const { query } = useList({
+  const { result, query } = useList({
     resource: 'prompts',
     queryOptions: {
       retry: 1,
@@ -108,7 +108,7 @@ export function PromptsList() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data?.data?.length === 0 ? (
+            {result?.data?.length === 0 ? (
               <TableRow className="hover:bg-transparent">
                 <TableCell colSpan={6} className="h-32 text-center">
                   <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
@@ -125,7 +125,7 @@ export function PromptsList() {
                 </TableCell>
               </TableRow>
             ) : (
-              data?.data?.map((prompt: any) => (
+              result?.data?.map((prompt: any) => (
                 <TableRow key={prompt.id}>
                   <TableCell>
                     <div className="space-y-1">
@@ -239,9 +239,9 @@ export function PromptsList() {
 export function PromptsCreate() {
   const { mutate: create } = useCreate()
   const { list } = useNavigation()
-  const { data: categoriesData } = useList({ resource: 'categories' })
-  const { data: tagsData } = useList({ resource: 'tags' })
-  const { data: modelsData } = useList({ resource: 'ai_models' })
+  const { result: categoriesResult } = useList({ resource: 'categories' })
+  const { result: tagsResult } = useList({ resource: 'tags' })
+  const { result: modelsResult } = useList({ resource: 'ai_models' })
 
   const [formData, setFormData] = useState({
     id: '',
@@ -419,7 +419,7 @@ export function PromptsCreate() {
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categoriesData?.data?.map((category: any) => (
+                  {categoriesResult?.data?.map((category: any) => (
                     <SelectItem key={category.id} value={category.id}>
                       {category.name}
                     </SelectItem>
@@ -528,7 +528,7 @@ export function PromptsCreate() {
             <div className="space-y-2">
               <Label>Tags</Label>
               <div className="rounded-md border p-4 space-y-2 max-h-48 overflow-y-auto">
-                {tagsData?.data?.map((tag: any) => (
+                {tagsResult?.data?.map((tag: any) => (
                   <div key={tag.id} className="flex items-center space-x-2">
                     <Checkbox
                       id={`tag-${tag.id}`}
@@ -557,7 +557,7 @@ export function PromptsCreate() {
             <div className="space-y-2">
               <Label>Compatible Models</Label>
               <div className="rounded-md border p-4 space-y-2 max-h-48 overflow-y-auto">
-                {modelsData?.data?.map((model: any) => (
+                {modelsResult?.data?.map((model: any) => (
                   <div key={model.id} className="flex items-center space-x-2">
                     <Checkbox
                       id={`model-${model.id}`}
@@ -605,12 +605,13 @@ export function PromptsCreate() {
 
 export function PromptsEdit() {
   const { id } = useParams()
-  const { data, isLoading } = useOne({ resource: 'prompts', id: id || '' })
+  const { result, query } = useOne({ resource: 'prompts', id: id || '' })
+  const { data, isLoading } = query
   const { mutate: update } = useUpdate()
   const { list } = useNavigation()
-  const { data: categoriesData } = useList({ resource: 'categories' })
-  const { data: tagsData } = useList({ resource: 'tags' })
-  const { data: modelsData } = useList({ resource: 'ai_models' })
+  const { result: categoriesResult } = useList({ resource: 'categories' })
+  const { result: tagsResult } = useList({ resource: 'tags' })
+  const { result: modelsResult } = useList({ resource: 'ai_models' })
 
   const [formData, setFormData] = useState({
     title: '',
@@ -628,16 +629,16 @@ export function PromptsEdit() {
 
   useEffect(() => {
     const loadData = async () => {
-      if (data?.data && id) {
+      if (result?.data && id) {
         setFormData({
-          title: data.data.title || '',
-          description: data.data.description || '',
-          content: data.data.content || '',
-          category_id: data.data.category_id || '',
-          tier: data.data.tier || 'free',
-          is_published: data.data.is_published ?? false,
-          is_featured: data.data.is_featured ?? false,
-          images: data.data.images || [],
+          title: result.data.title || '',
+          description: result.data.description || '',
+          content: result.data.content || '',
+          category_id: result.data.category_id || '',
+          tier: result.data.tier || 'free',
+          is_published: result.data.is_published ?? false,
+          is_featured: result.data.is_featured ?? false,
+          images: result.data.images || [],
         })
 
         // Load existing tags
@@ -663,7 +664,7 @@ export function PromptsEdit() {
     }
 
     loadData()
-  }, [data, id])
+  }, [result, id])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -792,7 +793,7 @@ export function PromptsEdit() {
                     <SelectValue placeholder="Select a category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {categoriesData?.data?.map((category: any) => (
+                    {categoriesResult?.data?.map((category: any) => (
                       <SelectItem key={category.id} value={category.id}>
                         {category.name}
                       </SelectItem>
@@ -901,7 +902,7 @@ export function PromptsEdit() {
               <div className="space-y-2">
                 <Label>Tags</Label>
                 <div className="rounded-md border p-4 space-y-2 max-h-48 overflow-y-auto">
-                  {tagsData?.data?.map((tag: any) => (
+                  {tagsResult?.data?.map((tag: any) => (
                     <div key={tag.id} className="flex items-center space-x-2">
                       <Checkbox
                         id={`tag-${tag.id}`}
@@ -930,7 +931,7 @@ export function PromptsEdit() {
               <div className="space-y-2">
                 <Label>Compatible Models</Label>
                 <div className="rounded-md border p-4 space-y-2 max-h-48 overflow-y-auto">
-                  {modelsData?.data?.map((model: any) => (
+                  {modelsResult?.data?.map((model: any) => (
                     <div key={model.id} className="flex items-center space-x-2">
                       <Checkbox
                         id={`model-${model.id}`}
@@ -981,7 +982,8 @@ export function PromptsEdit() {
 
 export function PromptsShow() {
   const { id } = useParams()
-  const { data, isLoading } = useOne({ resource: 'prompts', id: id || '' })
+  const { result, query } = useOne({ resource: 'prompts', id: id || '' })
+  const { data, isLoading } = query
   const { list, edit } = useNavigation()
   const [tags, setTags] = useState<any[]>([])
   const [models, setModels] = useState<any[]>([])
@@ -1014,7 +1016,7 @@ export function PromptsShow() {
     loadRelations()
   }, [id])
 
-  const prompt = data?.data
+  const prompt = result?.data
 
   return (
     <FormPageLayout
@@ -1045,7 +1047,7 @@ export function PromptsShow() {
                       return (
                         <img
                           key={index}
-                          src={imageUrl}
+                          src={imageUrl || ''}
                           alt={`Prompt image ${index + 1}`}
                           className="h-24 w-24 rounded-md border object-cover"
                         />

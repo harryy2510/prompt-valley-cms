@@ -68,7 +68,7 @@ export const SignInForm = () => {
       <div className={cn('flex', 'items-center', 'justify-center')}>
         {title.icon && (
           <div
-            className={cn('text-foreground', '[&>svg]:w-12', '[&>svg]:h-12')}
+            className={cn('text-foreground', '[&>svg]:w-40', '[&>svg]:h-12')}
           >
             {title.icon}
           </div>
@@ -77,14 +77,7 @@ export const SignInForm = () => {
 
       <Card className={cn('sm:w-[456px]', 'p-12', 'mt-6')}>
         <CardHeader className={cn('px-0')}>
-          <CardTitle
-            className={cn(
-              'text-blue-600',
-              'dark:text-blue-400',
-              'text-3xl',
-              'font-semibold',
-            )}
-          >
+          <CardTitle className={cn('text-3xl', 'font-semibold')}>
             Sign in
           </CardTitle>
           <CardDescription

@@ -5,36 +5,36 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { PageHeader } from "@/components/page-layout"
 
 export function DashboardPage() {
-  const { data: promptsData } = useList({ resource: "prompts", pagination: { pageSize: 1 } })
-  const { data: categoriesData } = useList({ resource: "categories", pagination: { pageSize: 1 } })
-  const { data: tagsData } = useList({ resource: "tags", pagination: { pageSize: 1 } })
-  const { data: modelsData } = useList({ resource: "ai_models", pagination: { pageSize: 1 } })
-  const { data: providersData } = useList({ resource: "ai_providers", pagination: { pageSize: 1 } })
+  const { result: promptsResult } = useList({ resource: "prompts", pagination: { pageSize: 1 } })
+  const { result: categoriesResult } = useList({ resource: "categories", pagination: { pageSize: 1 } })
+  const { result: tagsResult } = useList({ resource: "tags", pagination: { pageSize: 1 } })
+  const { result: modelsResult } = useList({ resource: "ai_models", pagination: { pageSize: 1 } })
+  const { result: providersResult } = useList({ resource: "ai_providers", pagination: { pageSize: 1 } })
 
   const stats = [
       {
           label: "AI Providers",
-          value: providersData?.total || 0,
+          value: providersResult?.total || 0,
           icon: Bot,
       },
       {
           label: "AI Models",
-          value: modelsData?.total || 0,
+          value: modelsResult?.total || 0,
           icon: Package,
       },
     {
       label: "Categories",
-      value: categoriesData?.total || 0,
+      value: categoriesResult?.total || 0,
       icon: FolderTree,
     },
     {
       label: "Tags",
-      value: tagsData?.total || 0,
+      value: tagsResult?.total || 0,
       icon: Tags,
     },
       {
           label: "Prompts",
-          value: promptsData?.total || 0,
+          value: promptsResult?.total || 0,
           icon: FileText,
       },
   ]
