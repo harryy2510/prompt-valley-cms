@@ -1,10 +1,8 @@
-import { useState } from 'react'
-import { useParams } from 'react-router'
 import { useForm } from '@refinedev/react-hook-form'
-import { useSelect } from '@refinedev/core'
+import { HttpError, useBack, useSelect } from '@refinedev/core'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { X } from 'lucide-react'
+import { getDefaultsForSchema } from 'zod-defaults'
 
 import {
   EditView,
@@ -12,7 +10,6 @@ import {
 } from '@/components/refine-ui/views/edit-view'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import {
   Card,
   CardContent,
@@ -36,61 +33,61 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  MultiSelect,
+  MultiSelectContent,
+  MultiSelectGroup,
+  MultiSelectItem,
+  MultiSelectTrigger,
+  MultiSelectValue,
+} from '@/components/ui/multi-select'
 import { LoadingOverlay } from '@/components/refine-ui/layout/loading-overlay'
+import { Enums, Tables } from '@/types/database.types'
+import { startCase } from 'lodash-es'
 
-const modelSchema = z.object({
-  id: z.string().min(1, 'Model ID is required'),
-  name: z.string().min(1, 'Model name is required'),
+type AIModel = Tables<'ai_models'>
+type AIProvider = Tables<'ai_providers'>
+type ModelCapability = Enums<'model_capability'>
+
+const CAPABILITY_OPTIONS: ModelCapability[] = ['text', 'image', 'video', 'code']
+
+const modelFormSchema = z.object({
+  id: z.string().min(1, 'ID is required'),
+  name: z.string().min(2, 'Name must be at least 2 characters'),
   provider_id: z.string().min(1, 'Provider is required'),
-  capabilities: z.array(z.string()).default([]),
-  context_window: z.coerce.number().positive().optional().nullable(),
-  cost_input_per_million: z.coerce.number().positive().optional().nullable(),
-  cost_output_per_million: z.coerce.number().positive().optional().nullable(),
-  max_output_tokens: z.coerce.number().positive().optional().nullable(),
+  capabilities: z.array(z.enum(CAPABILITY_OPTIONS)),
+  context_window: z.number().positive().optional().nullable(),
+  cost_input_per_million: z.number().positive().optional().nullable(),
+  cost_output_per_million: z.number().positive().optional().nullable(),
+  max_output_tokens: z.number().positive().optional().nullable(),
 })
 
-type ModelFormData = z.infer<typeof modelSchema>
-
-const CAPABILITY_OPTIONS = ['text', 'image', 'video', 'code']
+type ModelFormValues = z.infer<typeof modelFormSchema>
 
 export function AiModelsEdit() {
-  const { id } = useParams()
-  const [capabilityInput, setCapabilityInput] = useState('')
-
-  const { options: providerOptions } = useSelect({
-    resource: 'ai_providers',
-    optionLabel: 'name',
-    optionValue: 'id',
-    pagination: { pageSize: 1000 },
-  })
+  const back = useBack()
 
   const {
-    refineCore: { onFinish, formLoading, query },
+    refineCore: { onFinish, formLoading, query, mutation },
     ...form
-  } = useForm<ModelFormData>({
-    resolver: zodResolver(modelSchema) as any,
+  } = useForm<AIModel, HttpError, ModelFormValues>({
+    defaultValues: getDefaultsForSchema(modelFormSchema),
+    resolver: zodResolver(modelFormSchema),
     refineCoreProps: {
       resource: 'ai_models',
       action: 'edit',
-      id: id || '',
       redirect: 'list',
     },
   })
 
-  const addCapability = (cap: string) => {
-    const current = form.getValues('capabilities')
-    if (!current.includes(cap)) {
-      form.setValue('capabilities', [...current, cap])
-    }
-  }
-
-  const removeCapability = (cap: string) => {
-    const current = form.getValues('capabilities')
-    form.setValue(
-      'capabilities',
-      current.filter((c: string) => c !== cap),
-    )
-  }
+  const { options: providerOptions, query: providerQuery } =
+    useSelect<AIProvider>({
+      resource: 'ai_providers',
+      optionLabel: 'name',
+      optionValue: 'id',
+      defaultValue: query?.data?.data?.provider_id,
+      pagination: { pageSize: 1000 },
+    })
 
   return (
     <EditView>
@@ -100,7 +97,10 @@ export function AiModelsEdit() {
           onSubmit={form.handleSubmit(onFinish)}
           className="space-y-6 max-w-2xl"
         >
-          <LoadingOverlay loading={query?.isLoading || formLoading}>
+          <LoadingOverlay
+            containerClassName="space-y-6"
+            loading={query?.isLoading || formLoading}
+          >
             <Card>
               <CardHeader>
                 <CardTitle>Model Information</CardTitle>
@@ -131,7 +131,7 @@ export function AiModelsEdit() {
                   name="id"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Model ID</FormLabel>
+                      <FormLabel>Model ID *</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="e.g. gpt-4, claude-3-5"
@@ -159,7 +159,7 @@ export function AiModelsEdit() {
                         value={field.value}
                       >
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger className="w-full max-w-[400px]">
                             <SelectValue placeholder="Select a provider" />
                           </SelectTrigger>
                         </FormControl>
@@ -182,44 +182,26 @@ export function AiModelsEdit() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Capabilities</FormLabel>
-                      <div className="space-y-2">
-                        <div className="flex gap-2">
-                          <Select
-                            value={capabilityInput}
-                            onValueChange={(value) => {
-                              addCapability(value)
-                              setCapabilityInput('')
-                            }}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Add capability" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {CAPABILITY_OPTIONS.map((cap) => (
-                                <SelectItem key={cap} value={cap}>
-                                  {cap}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        {field.value?.length > 0 && (
-                          <div className="flex flex-wrap gap-2">
-                            {field.value?.map((cap: string) => (
-                              <Badge key={cap} variant="secondary">
-                                {cap}
-                                <button
-                                  type="button"
-                                  onClick={() => removeCapability(cap)}
-                                  className="ml-1 hover:text-destructive"
-                                >
-                                  <X className="size-3" />
-                                </button>
-                              </Badge>
+                      <MultiSelect
+                        values={field.value}
+                        onValuesChange={field.onChange}
+                      >
+                        <MultiSelectTrigger className="w-full max-w-[400px]">
+                          <MultiSelectValue
+                            overflowBehavior="cutoff"
+                            placeholder="Select capabilities..."
+                          />
+                        </MultiSelectTrigger>
+                        <MultiSelectContent search={false}>
+                          <MultiSelectGroup>
+                            {CAPABILITY_OPTIONS.map((cap) => (
+                              <MultiSelectItem key={cap} value={cap}>
+                                {startCase(cap)}
+                              </MultiSelectItem>
                             ))}
-                          </div>
-                        )}
-                      </div>
+                          </MultiSelectGroup>
+                        </MultiSelectContent>
+                      </MultiSelect>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -318,9 +300,12 @@ export function AiModelsEdit() {
               </CardContent>
             </Card>
 
-            <div className="flex items-center gap-2">
+            <div className="flex justify-end space-x-2">
+              <Button type="button" variant="outline" onClick={() => back()}>
+                Cancel
+              </Button>
               <Button type="submit" disabled={formLoading}>
-                Save Changes
+                {mutation.isPending ? 'Saving...' : 'Save'}
               </Button>
             </div>
           </LoadingOverlay>

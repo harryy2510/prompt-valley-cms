@@ -12,8 +12,6 @@ import {
 } from '@/components/refine-ui/views/edit-view'
 import { LoadingOverlay } from '@/components/refine-ui/layout/loading-overlay'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import {
   Card,
@@ -40,6 +38,8 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import { supabase } from '@/libs/supabase'
+import { getImageUrl } from '@/libs/storage'
+import { Input } from '@/components/ui/input'
 
 const promptSchema = z.object({
   id: z.string().min(1, 'ID is required'),
@@ -59,8 +59,8 @@ type PromptFormData = z.infer<typeof promptSchema>
 
 export function PromptsEdit() {
   const { id } = useParams()
-  const [imageInput, setImageInput] = useState('')
   const [isLoadingRelations, setIsLoadingRelations] = useState(true)
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
   const { list } = useNavigation()
 
   const { options: categoryOptions } = useSelect({
@@ -126,11 +126,26 @@ export function PromptsEdit() {
     },
   })
 
-  // Load existing junction table relations
+  // Load existing junction table relations and images
   useEffect(() => {
     const loadRelations = async () => {
-      if (id && query?.data) {
+      if (id && query?.data?.data) {
         setIsLoadingRelations(true)
+
+        const data = query.data.data
+
+        // Initialize all form fields from query data
+        form.setValue('id', data.id || '')
+        form.setValue('title', data.title || '')
+        form.setValue('description', data.description || '')
+        form.setValue('content', data.content || '')
+        form.setValue('category_id', data.category_id || '')
+        form.setValue('tier', data.tier || 'free')
+        form.setValue('is_published', data.is_published || false)
+        form.setValue('is_featured', data.is_featured || false)
+        form.setValue('images', data.images || [])
+        form.setValue('tags', [])
+        form.setValue('models', [])
 
         // Load existing tags
         const { data: tagsData } = await supabase
@@ -138,7 +153,7 @@ export function PromptsEdit() {
           .select('tag_id')
           .eq('prompt_id', id)
 
-        if (tagsData) {
+        if (tagsData && tagsData.length > 0) {
           form.setValue(
             'tags',
             tagsData.map((t: any) => t.tag_id),
@@ -151,7 +166,7 @@ export function PromptsEdit() {
           .select('model_id')
           .eq('prompt_id', id)
 
-        if (modelsData) {
+        if (modelsData && modelsData.length > 0) {
           form.setValue(
             'models',
             modelsData.map((m: any) => m.model_id),
@@ -166,17 +181,19 @@ export function PromptsEdit() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, query?.data])
 
-  const addImage = () => {
-    if (imageInput.trim()) {
-      const current = form.getValues('images')
-      if (!current.includes(imageInput.trim())) {
-        form.setValue('images', [...current, imageInput.trim()])
-        setImageInput('')
-      }
+  const handleImageUpload = async (file: File) => {
+    setIsUploadingImage(true)
+    const { uploadImage } = await import('@/libs/storage')
+    const filePath = await uploadImage(file, 'images/prompts')
+    setIsUploadingImage(false)
+
+    if (filePath) {
+      const current = form.getValues('images') || []
+      form.setValue('images', [...current, filePath])
     }
   }
 
-  const removeImage = (image: string) => {
+  const removeImage = async (image: string) => {
     const current = form.getValues('images')
     form.setValue(
       'images',
@@ -186,11 +203,17 @@ export function PromptsEdit() {
 
   const isLoading = query?.isLoading || isLoadingRelations
 
+  const handleSubmit = (data: PromptFormData) => {
+    // Remove junction table fields before submitting
+    const { tags, models, ...promptData } = data
+    return onFinish(promptData as any)
+  }
+
   return (
     <EditView>
       <EditViewHeader title="Edit Prompt" />
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onFinish)} className="space-y-6">
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
           <LoadingOverlay loading={isLoading || formLoading}>
             <Card>
               <CardHeader>
@@ -361,46 +384,79 @@ export function PromptsEdit() {
               <CardHeader>
                 <CardTitle>Images</CardTitle>
                 <CardDescription>
-                  Update images to illustrate the prompt (paths in
-                  content-bucket)
+                  Add images to illustrate the prompt
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  <div className="flex gap-2">
-                    <Input
-                      value={imageInput}
-                      onChange={(e) => setImageInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault()
-                          addImage()
+                <div className="space-y-3">
+                  <div>
+                    <label htmlFor="prompt-image-upload">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={isUploadingImage}
+                        onClick={() =>
+                          document
+                            .getElementById('prompt-image-upload')
+                            ?.click()
                         }
+                      >
+                        {isUploadingImage ? (
+                          <>Uploading...</>
+                        ) : (
+                          <>
+                            <Plus className="mr-2 size-4" />
+                            Add Image
+                          </>
+                        )}
+                      </Button>
+                    </label>
+                    <input
+                      id="prompt-image-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) handleImageUpload(file)
+                        e.target.value = ''
                       }}
-                      placeholder="images/example.png"
+                      disabled={isUploadingImage}
+                      className="hidden"
                     />
-                    <Button type="button" onClick={addImage} variant="outline">
-                      <Plus className="size-4" />
-                    </Button>
                   </div>
+
                   {form.watch('images')?.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {form.watch('images').map((image: string) => (
-                        <Badge
-                          key={image}
-                          variant="secondary"
-                          className="max-w-xs truncate"
-                        >
-                          {image}
-                          <button
-                            type="button"
-                            onClick={() => removeImage(image)}
-                            className="ml-1 hover:text-destructive"
+                    <div className="space-y-2">
+                      {form.watch('images').map((image: string) => {
+                        const imageUrl = getImageUrl(image)
+                        return (
+                          <div
+                            key={image}
+                            className="flex items-center gap-3 rounded-md border p-3"
                           >
-                            <X className="size-3" />
-                          </button>
-                        </Badge>
-                      ))}
+                            {imageUrl && (
+                              <img
+                                src={imageUrl}
+                                alt="Prompt image"
+                                className="size-16 rounded border object-cover"
+                              />
+                            )}
+                            <div className="flex-1 space-y-1">
+                              <p className="text-xs text-muted-foreground break-all">
+                                {image}
+                              </p>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeImage(image)}
+                            >
+                              <X className="size-4" />
+                            </Button>
+                          </div>
+                        )
+                      })}
                     </div>
                   )}
                 </div>

@@ -11,9 +11,9 @@ import {
 } from '@/components/refine-ui/views/create-view'
 import { LoadingOverlay } from '@/components/refine-ui/layout/loading-overlay'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
+import { ImageUpload } from '@/components/ui/image-upload'
 import {
   Card,
   CardContent,
@@ -39,6 +39,8 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
+import { getImageUrl } from '@/libs/storage'
+import { Input } from '@/components/ui/input'
 
 const promptSchema = z.object({
   id: z.string().min(1, 'ID is required'),
@@ -58,7 +60,7 @@ type PromptFormData = z.infer<typeof promptSchema>
 
 export function PromptsCreate() {
   const [autoSlug, setAutoSlug] = useState(true)
-  const [imageInput, setImageInput] = useState('')
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
   const { list } = useNavigation()
 
   const { options: categoryOptions } = useSelect({
@@ -144,17 +146,19 @@ export function PromptsCreate() {
     }
   }
 
-  const addImage = () => {
-    if (imageInput.trim()) {
+  const handleImageUpload = async (file: File) => {
+    setIsUploadingImage(true)
+    const { uploadImage } = await import('@/libs/storage')
+    const filePath = await uploadImage(file, 'images/prompts')
+    setIsUploadingImage(false)
+
+    if (filePath) {
       const current = form.getValues('images')
-      if (!current.includes(imageInput.trim())) {
-        form.setValue('images', [...current, imageInput.trim()])
-        setImageInput('')
-      }
+      form.setValue('images', [...current, filePath])
     }
   }
 
-  const removeImage = (image: string) => {
+  const removeImage = async (image: string) => {
     const current = form.getValues('images')
     form.setValue(
       'images',
@@ -289,7 +293,10 @@ export function PromptsCreate() {
                           </FormControl>
                           <SelectContent>
                             {categoryOptions?.map((option) => (
-                              <SelectItem key={option.value} value={String(option.value)}>
+                              <SelectItem
+                                key={option.value}
+                                value={String(option.value)}
+                              >
                                 {option.label}
                               </SelectItem>
                             ))}
@@ -366,45 +373,79 @@ export function PromptsCreate() {
               <CardHeader>
                 <CardTitle>Images</CardTitle>
                 <CardDescription>
-                  Add images to illustrate the prompt (paths in content-bucket)
+                  Add images to illustrate the prompt
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  <div className="flex gap-2">
-                    <Input
-                      value={imageInput}
-                      onChange={(e) => setImageInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault()
-                          addImage()
+                <div className="space-y-3">
+                  <div>
+                    <label htmlFor="prompt-image-upload-create">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={isUploadingImage}
+                        onClick={() =>
+                          document
+                            .getElementById('prompt-image-upload-create')
+                            ?.click()
                         }
+                      >
+                        {isUploadingImage ? (
+                          <>Uploading...</>
+                        ) : (
+                          <>
+                            <Plus className="mr-2 size-4" />
+                            Add Image
+                          </>
+                        )}
+                      </Button>
+                    </label>
+                    <input
+                      id="prompt-image-upload-create"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) handleImageUpload(file)
+                        e.target.value = ''
                       }}
-                      placeholder="images/example.png"
+                      disabled={isUploadingImage}
+                      className="hidden"
                     />
-                    <Button type="button" onClick={addImage} variant="outline">
-                      <Plus className="size-4" />
-                    </Button>
                   </div>
+
                   {form.watch('images').length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {form.watch('images').map((image: string) => (
-                        <Badge
-                          key={image}
-                          variant="secondary"
-                          className="max-w-xs truncate"
-                        >
-                          {image}
-                          <button
-                            type="button"
-                            onClick={() => removeImage(image)}
-                            className="ml-1 hover:text-destructive"
+                    <div className="space-y-2">
+                      {form.watch('images').map((image: string) => {
+                        const imageUrl = getImageUrl(image)
+                        return (
+                          <div
+                            key={image}
+                            className="flex items-center gap-3 rounded-md border p-3"
                           >
-                            <X className="size-3" />
-                          </button>
-                        </Badge>
-                      ))}
+                            {imageUrl && (
+                              <img
+                                src={imageUrl}
+                                alt="Prompt image"
+                                className="size-16 rounded border object-cover"
+                              />
+                            )}
+                            <div className="flex-1 space-y-1">
+                              <p className="text-xs text-muted-foreground break-all">
+                                {image}
+                              </p>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeImage(image)}
+                            >
+                              <X className="size-4" />
+                            </Button>
+                          </div>
+                        )
+                      })}
                     </div>
                   )}
                 </div>
@@ -439,13 +480,20 @@ export function PromptsCreate() {
                                 >
                                   <FormControl>
                                     <Checkbox
-                                      checked={field.value?.includes(String(tag.value))}
+                                      checked={field.value?.includes(
+                                        String(tag.value),
+                                      )}
                                       onCheckedChange={(checked) => {
                                         const value = String(tag.value)
                                         return checked
-                                          ? field.onChange([...field.value, value])
+                                          ? field.onChange([
+                                              ...field.value,
+                                              value,
+                                            ])
                                           : field.onChange(
-                                              field.value?.filter((v: string) => v !== value),
+                                              field.value?.filter(
+                                                (v: string) => v !== value,
+                                              ),
                                             )
                                       }}
                                     />
@@ -481,13 +529,20 @@ export function PromptsCreate() {
                                 >
                                   <FormControl>
                                     <Checkbox
-                                      checked={field.value?.includes(String(model.value))}
+                                      checked={field.value?.includes(
+                                        String(model.value),
+                                      )}
                                       onCheckedChange={(checked) => {
                                         const value = String(model.value)
                                         return checked
-                                          ? field.onChange([...field.value, value])
+                                          ? field.onChange([
+                                              ...field.value,
+                                              value,
+                                            ])
                                           : field.onChange(
-                                              field.value?.filter((v: string) => v !== value),
+                                              field.value?.filter(
+                                                (v: string) => v !== value,
+                                              ),
                                             )
                                       }}
                                     />

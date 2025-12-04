@@ -4,10 +4,26 @@ import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from 'lucide-react'
 
 import { cn } from '@/libs/cn'
 
+const guardEmpty =
+  <T extends string>(fn: ((value: T) => void) | undefined, enabled: boolean) =>
+  (value: T) => {
+    if (!enabled || value !== '') fn?.(value)
+  }
+
 function Select({
+  onValueChange,
+  allowEmptyValues,
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.Root>) {
-  return <SelectPrimitive.Root data-slot="select" {...props} />
+}: React.ComponentProps<typeof SelectPrimitive.Root> & {
+  allowEmptyValues?: boolean
+}) {
+  return (
+    <SelectPrimitive.Root
+      data-slot="select"
+      {...props}
+      onValueChange={guardEmpty(onValueChange, !allowEmptyValues)}
+    />
+  )
 }
 
 function SelectGroup({

@@ -3,9 +3,13 @@ import { useForm } from '@refinedev/react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 
-import { CreateView, CreateViewHeader } from '@/components/refine-ui/views/create-view'
+import {
+  CreateView,
+  CreateViewHeader,
+} from '@/components/refine-ui/views/create-view'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { ImageUpload } from '@/components/ui/image-upload'
 import {
   Card,
   CardContent,
@@ -23,13 +27,16 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { LoadingOverlay } from '@/components/refine-ui/layout/loading-overlay'
-import { getImageUrl } from '@/libs/storage'
 
 const providerSchema = z.object({
   id: z.string().min(1, 'Provider ID is required'),
   name: z.string().min(1, 'Provider name is required'),
   logo_url: z.string().optional(),
-  website_url: z.string().url('Must be a valid URL').optional().or(z.literal('')),
+  website_url: z
+    .string()
+    .url('Must be a valid URL')
+    .optional()
+    .or(z.literal('')),
 })
 
 type ProviderFormData = z.infer<typeof providerSchema>
@@ -69,14 +76,15 @@ export function AiProvidersCreate() {
     }
   }
 
-  const previewUrl = getImageUrl(form.watch('logo_url'))
-
   return (
     <CreateView>
       <CreateViewHeader title="Create AI Provider" />
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onFinish)} className="space-y-6 max-w-2xl">
+        <form
+          onSubmit={form.handleSubmit(onFinish)}
+          className="space-y-6 max-w-2xl"
+        >
           <LoadingOverlay loading={formLoading}>
             <Card>
               <CardHeader>
@@ -127,7 +135,8 @@ export function AiProvidersCreate() {
                         />
                       </FormControl>
                       <FormDescription>
-                        Unique identifier used in the system. Auto-generated from name but can be customized.
+                        Unique identifier used in the system. Auto-generated
+                        from name but can be customized.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -149,21 +158,16 @@ export function AiProvidersCreate() {
                   name="logo_url"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Logo Path (in content-bucket)</FormLabel>
+                      <FormLabel>Provider Logo</FormLabel>
                       <FormControl>
-                        <Input placeholder="logos/openai.png" {...field} />
+                        <ImageUpload
+                          value={field.value}
+                          onChange={field.onChange}
+                          folder="ai-models"
+                          label="Upload Logo"
+                        />
                       </FormControl>
                       <FormMessage />
-                      {previewUrl && (
-                        <div className="flex items-center gap-3 rounded-md border p-3">
-                          <img
-                            src={previewUrl}
-                            alt="Logo preview"
-                            className="size-12 rounded border object-contain p-1"
-                          />
-                          <p className="text-xs text-muted-foreground">Logo preview</p>
-                        </div>
-                      )}
                     </FormItem>
                   )}
                 />
@@ -175,7 +179,11 @@ export function AiProvidersCreate() {
                     <FormItem>
                       <FormLabel>Website URL</FormLabel>
                       <FormControl>
-                        <Input type="url" placeholder="https://example.com" {...field} />
+                        <Input
+                          type="url"
+                          placeholder="https://example.com"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

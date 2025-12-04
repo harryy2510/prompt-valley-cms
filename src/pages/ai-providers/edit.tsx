@@ -9,6 +9,7 @@ import {
 } from '@/components/refine-ui/views/edit-view'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { ImageUpload } from '@/components/ui/image-upload'
 import {
   Card,
   CardContent,
@@ -26,7 +27,6 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { LoadingOverlay } from '@/components/refine-ui/layout/loading-overlay'
-import { getImageUrl } from '@/libs/storage'
 
 const providerSchema = z.object({
   id: z.string().min(1, 'Provider ID is required'),
@@ -52,8 +52,6 @@ export function AiProvidersEdit() {
       redirect: 'list',
     },
   })
-
-  const previewUrl = getImageUrl(form.watch('logo_url'))
 
   return (
     <EditView>
@@ -127,23 +125,16 @@ export function AiProvidersEdit() {
                   name="logo_url"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Logo Path (in content-bucket)</FormLabel>
+                      <FormLabel>Provider Logo</FormLabel>
                       <FormControl>
-                        <Input placeholder="logos/openai.png" {...field} />
+                        <ImageUpload
+                          value={field.value}
+                          onChange={field.onChange}
+                          folder="ai-models"
+                          label="Upload Logo"
+                        />
                       </FormControl>
                       <FormMessage />
-                      {previewUrl && (
-                        <div className="flex items-center gap-3 rounded-md border p-3">
-                          <img
-                            src={previewUrl}
-                            alt="Logo preview"
-                            className="size-12 rounded border object-contain p-1"
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            Logo preview
-                          </p>
-                        </div>
-                      )}
                     </FormItem>
                   )}
                 />
