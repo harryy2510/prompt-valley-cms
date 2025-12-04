@@ -88,7 +88,7 @@
     "zod": "^4.1.13"
   },
   "devDependencies": {
-    "@tailwindcss/typography": "^9.11.3",
+    "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "4.1.17",
     "@types/node": "24.10.1",
     "@types/react": "^19.2.7",

@@ -1,30 +1,22 @@
 import { Link, useLocation } from 'react-router'
-import {
-  LayoutDashboard,
-  FolderTree,
-  Tags,
-  FileText,
-  Bot,
-  Package,
-} from 'lucide-react'
+import { Bot, FileText, FolderTree, Package, Tags } from 'lucide-react'
 
 import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
+  SidebarInset,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
-  SidebarInset,
   SidebarTrigger,
 } from '@/components/ui/sidebar'
 import { Separator } from '@/components/ui/separator'
-import { ThemeToggle } from '@/components/theme-toggle'
 import { Logo } from '@/components/logo'
+import { ThemeSelect } from '@/components/refine-ui/theme/theme-select'
 
 const menuItems = [
   {
@@ -67,7 +59,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </SidebarHeader>
         <SidebarContent>
           <SidebarGroup>
-            <SidebarGroupLabel>Management</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {menuItems.map((item) => (
@@ -93,8 +84,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <SidebarTrigger className="-ml-2" />
           <Separator orientation="vertical" className="mr-2 h-4" />
           <div className="flex flex-1 items-center justify-between gap-2">
-            <h1 className="text-sm font-semibold">PromptValley CMS</h1>
-            <ThemeToggle />
+            <h1 className="text-sm font-semibold">CMS</h1>
+            <ThemeSelect />
           </div>
         </header>
         <main className="flex flex-1 flex-col p-6">{children}</main>

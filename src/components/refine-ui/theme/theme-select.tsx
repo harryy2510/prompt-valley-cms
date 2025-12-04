@@ -48,7 +48,7 @@ export function ThemeSelect() {
           variant="ghost"
           size="lg"
           className={cn(
-            'w-full',
+            'w-30',
             'justify-between',
             'px-3',
             'text-left',
