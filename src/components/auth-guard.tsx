@@ -57,7 +57,7 @@ export function AuthGuard({ children, requireAuth = true }: AuthGuardProps) {
 
   // If requireAuth is false (login page) and user is authenticated, redirect to dashboard
   if (!requireAuth && isAuthenticated) {
-    return <Navigate to="/dashboard" replace />
+    return <Navigate to="/" replace />
   }
 
   return <>{children}</>

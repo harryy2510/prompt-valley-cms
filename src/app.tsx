@@ -14,7 +14,6 @@ import { useNotificationProvider } from '@/components/refine-ui/notification/use
 import { Toaster as RefineToaster } from '@/components/refine-ui/notification/toaster'
 
 import { LoginPage } from './pages/login'
-import { DashboardPage } from './pages/dashboard'
 import {
   AiProvidersList,
   AiProvidersCreate,
@@ -128,9 +127,8 @@ export function App() {
               >
                 <Route
                   index
-                  element={<NavigateToResource resource="dashboard" />}
+                  element={<NavigateToResource resource="prompts" />}
                 />
-                <Route path="/dashboard" element={<DashboardPage />} />
 
                 {/* AI Providers */}
                 <Route path="/ai-providers">

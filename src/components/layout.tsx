@@ -1,10 +1,12 @@
-import { Link, useLocation } from "react-router"
+import { Link, useLocation } from 'react-router'
 import {
-    LayoutDashboard,
-    FolderTree,
-    Tags,
-    FileText, Bot, Package,
-} from "lucide-react"
+  LayoutDashboard,
+  FolderTree,
+  Tags,
+  FileText,
+  Bot,
+  Package,
+} from 'lucide-react'
 
 import {
   Sidebar,
@@ -19,40 +21,35 @@ import {
   SidebarProvider,
   SidebarInset,
   SidebarTrigger,
-} from "@/components/ui/sidebar"
-import { Separator } from "@/components/ui/separator"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { Logo } from "@/components/logo"
+} from '@/components/ui/sidebar'
+import { Separator } from '@/components/ui/separator'
+import { ThemeToggle } from '@/components/theme-toggle'
+import { Logo } from '@/components/logo'
 
 const menuItems = [
   {
-    title: "Dashboard",
-    url: "/dashboard",
-    icon: LayoutDashboard,
-  },
-  {
-    title: "AI Providers",
-    url: "/ai-providers",
+    title: 'AI Providers',
+    url: '/ai-providers',
     icon: Bot,
   },
   {
-    title: "AI Models",
-    url: "/ai-models",
+    title: 'AI Models',
+    url: '/ai-models',
     icon: Package,
   },
   {
-    title: "Categories",
-    url: "/categories",
+    title: 'Categories',
+    url: '/categories',
     icon: FolderTree,
   },
   {
-    title: "Tags",
-    url: "/tags",
+    title: 'Tags',
+    url: '/tags',
     icon: Tags,
   },
   {
-    title: "Prompts",
-    url: "/prompts",
+    title: 'Prompts',
+    url: '/prompts',
     icon: FileText,
   },
 ]
