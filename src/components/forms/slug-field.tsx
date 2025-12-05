@@ -2,7 +2,7 @@ import { useState, useEffect, ReactNode, ChangeEvent, useMemo } from 'react'
 import { FieldPath, FieldValues, useController } from 'react-hook-form'
 import slugify from '@sindresorhus/slugify'
 import { RefreshCw, Check, X, Loader2 } from 'lucide-react'
-import { useDebouncedCallback } from 'use-debounce'
+import { useDebounceCallback } from 'usehooks-ts'
 
 import { useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
@@ -49,7 +49,7 @@ export function SlugField<T extends FieldValues>({
   const [pendingSlug, setPendingSlug] = useState('')
   const { field } = useController({ name })
 
-  const scheduleCheck = useDebouncedCallback((value: string) => {
+  const scheduleCheck = useDebounceCallback((value: string) => {
     setPendingSlug(value)
   }, 500)
 

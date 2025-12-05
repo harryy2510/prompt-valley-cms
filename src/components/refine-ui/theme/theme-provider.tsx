@@ -1,10 +1,10 @@
-import { createContext, useContext, useEffect, useState } from 'react'
-
+import { createContext, ReactNode, useContext, useEffect } from 'react'
+import { useLocalStorage } from 'usehooks-ts'
 
 type Theme = 'dark' | 'light' | 'system'
 
 type ThemeProviderProps = {
-  children: React.ReactNode
+  children: ReactNode
   defaultTheme?: Theme
   storageKey?: string
 }
@@ -27,9 +27,7 @@ export function ThemeProvider({
   storageKey = 'refine-ui-theme',
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem(storageKey) as Theme) || defaultTheme,
-  )
+  const [theme, setTheme] = useLocalStorage(storageKey, defaultTheme)
 
   useEffect(() => {
     const root = window.document.documentElement
@@ -49,16 +47,8 @@ export function ThemeProvider({
     root.classList.add(theme)
   }, [theme])
 
-  const value = {
-    theme,
-    setTheme: (theme: Theme) => {
-      localStorage.setItem(storageKey, theme)
-      setTheme(theme)
-    },
-  }
-
   return (
-    <ThemeProviderContext.Provider {...props} value={value}>
+    <ThemeProviderContext.Provider {...props} value={{ theme, setTheme }}>
       {children}
     </ThemeProviderContext.Provider>
   )

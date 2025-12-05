@@ -15,23 +15,12 @@ import { Tables } from '@/types/database.types'
 import { startCase } from 'lodash-es'
 
 type AiModel = Tables<'ai_models'> & {
-  ai_providers: Pick<Tables<'ai_providers'>, 'name'>
+  ai_providers: Pick<Tables<'ai_providers'>, 'id' | 'name'>
 }
 
 export function AiModelsList() {
   const { edit } = useNavigation()
   const { mutateAsync: deleteModel } = useDelete()
-
-  // capabilities: Database["public"]["Enums"]["model_capability"][]
-  // context_window: number | null
-  // cost_input_per_million: number | null
-  // cost_output_per_million: number | null
-  // created_at: string
-  // id: string
-  // max_output_tokens: number | null
-  // name: string
-  // provider_id: string
-  // updated_at: string
 
   const columns = useMemo<ColumnDef<AiModel>[]>(
     () => [
@@ -42,7 +31,7 @@ export function AiModelsList() {
         cell: ({ row }) => (
           <>
             <div className="font-medium">{row.original.name}</div>
-            <div className="text-xs text-muted-foreground">
+            <div className="text-xs text-muted-foreground font-mono">
               {row.original.id}
             </div>
           </>
@@ -51,12 +40,12 @@ export function AiModelsList() {
       {
         id: 'provider',
         header: 'Provider',
-        accessorKey: 'name',
+        accessorKey: 'ai_providers.name',
         cell: ({ row }) => (
           <>
             <div className="font-medium">{row.original.ai_providers.name}</div>
-            <div className="text-xs text-muted-foreground">
-              {row.original.provider_id}
+            <div className="text-xs text-muted-foreground font-mono">
+              {row.original.ai_providers.id}
             </div>
           </>
         ),
@@ -67,9 +56,12 @@ export function AiModelsList() {
         accessorKey: 'capabilities',
         cell: ({ getValue }) => {
           const caps = getValue() as string[]
+          if (!caps?.length) {
+            return <span className="text-muted-foreground">—</span>
+          }
           return (
             <div className="flex flex-wrap gap-1">
-              {caps?.map((cap) => (
+              {caps.map((cap) => (
                 <Badge key={cap} variant="outline" className="text-xs">
                   {startCase(cap)}
                 </Badge>
@@ -81,19 +73,89 @@ export function AiModelsList() {
       },
       {
         id: 'context_window',
-        header: 'Context',
+        header: 'Context Window',
         accessorKey: 'context_window',
         cell: ({ getValue }) => {
           const value = getValue() as number | null
-          return value ? (
-            <span className="text-sm">{value.toLocaleString()} tokens</span>
-          ) : (
-            <span className="text-sm text-muted-foreground">—</span>
+          if (!value) return <span className="text-muted-foreground">—</span>
+          return (
+            <span className="text-sm tabular-nums">
+              {value >= 1000
+                ? `${(value / 1000).toLocaleString()}K`
+                : value.toLocaleString()}
+            </span>
+          )
+        },
+      },
+      {
+        id: 'max_output_tokens',
+        header: 'Max Output',
+        accessorKey: 'max_output_tokens',
+        cell: ({ getValue }) => {
+          const value = getValue() as number | null
+          if (!value) return <span className="text-muted-foreground">—</span>
+          return (
+            <span className="text-sm tabular-nums">
+              {value >= 1000
+                ? `${(value / 1000).toLocaleString()}K`
+                : value.toLocaleString()}
+            </span>
+          )
+        },
+      },
+      {
+        id: 'cost',
+        header: 'Cost / 1M tokens',
+        cell: ({ row }) => {
+          const input = row.original.cost_input_per_million
+          const output = row.original.cost_output_per_million
+          if (!input && !output) {
+            return <span className="text-muted-foreground">—</span>
+          }
+          return (
+            <div className="text-sm tabular-nums">
+              <div className="flex items-center gap-1">
+                <span className="text-muted-foreground text-xs">In:</span>
+                <span>{input ? `$${input.toFixed(2)}` : '—'}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-muted-foreground text-xs">Out:</span>
+                <span>{output ? `$${output.toFixed(2)}` : '—'}</span>
+              </div>
+            </div>
+          )
+        },
+        enableSorting: false,
+      },
+      {
+        id: 'created_at',
+        header: 'Created At',
+        accessorKey: 'created_at',
+        cell: ({ getValue }) => {
+          const value = getValue() as string
+          return (
+            <span className="text-sm text-muted-foreground">
+              {new Date(value).toLocaleDateString()}
+            </span>
+          )
+        },
+      },
+      {
+        id: 'updated_at',
+        header: 'Updated At',
+        accessorKey: 'updated_at',
+        cell: ({ getValue }) => {
+          const value = getValue() as string
+          return (
+            <span className="text-sm text-muted-foreground">
+              {new Date(value).toLocaleDateString()}
+            </span>
           )
         },
       },
       {
         id: 'actions',
+        header: '',
         cell: ({ row }) => (
           <div className="flex items-center justify-end gap-1">
             <Button
@@ -123,9 +185,7 @@ export function AiModelsList() {
                   resource: 'ai_models',
                   id: row.original.id,
                 })
-                return {
-                  error: false,
-                }
+                return { error: false }
               }}
             >
               <Trash2 className="size-4" />
@@ -137,7 +197,7 @@ export function AiModelsList() {
         size: 80,
       },
     ],
-    [edit],
+    [edit, deleteModel],
   )
 
   const table = useTable<AiModel>({
