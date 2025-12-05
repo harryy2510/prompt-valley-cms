@@ -216,7 +216,16 @@ export function TagsList() {
           </div>
         }
       />
-      <DataTable table={table} />
+      <DataTable
+        table={table}
+        resource="tags"
+        onDelete={async (row) => {
+          await deleteTag({
+            resource: 'tags',
+            id: row.id,
+          })
+        }}
+      />
     </ListView>
   )
 }

@@ -543,7 +543,16 @@ export function PromptsList() {
           </div>
         }
       />
-      <DataTable table={table} />
+      <DataTable
+        table={table}
+        resource="prompts"
+        onDelete={async (row) => {
+          await deletePrompt({
+            resource: 'prompts',
+            id: row.id,
+          })
+        }}
+      />
     </ListView>
   )
 }

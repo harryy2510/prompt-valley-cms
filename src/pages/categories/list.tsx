@@ -329,7 +329,16 @@ export function CategoriesList() {
           </div>
         }
       />
-      <DataTable table={table} />
+      <DataTable
+        table={table}
+        resource="categories"
+        onDelete={async (row) => {
+          await deleteCategory({
+            resource: 'categories',
+            id: row.id,
+          })
+        }}
+      />
     </ListView>
   )
 }

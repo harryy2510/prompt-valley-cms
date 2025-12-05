@@ -1,9 +1,10 @@
 import type { HttpError, BaseRecord } from '@refinedev/core'
 import type { UseTableReturnType } from '@refinedev/react-table'
-import type { Column } from '@tanstack/react-table'
+import type { Column, Row } from '@tanstack/react-table'
 import { flexRender } from '@tanstack/react-table'
-import { Loader2 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { Loader2, Eye, Pencil, Trash2, Copy, ExternalLink } from 'lucide-react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useNavigation, useNotification } from '@refinedev/core'
 
 import {
   Table,
@@ -13,15 +14,42 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
 import { DataTablePagination } from '@/components/refine-ui/data-table/data-table-pagination'
 import { cn } from '@/libs/cn'
 
+type ContextMenuAction<TData> = {
+  label: string
+  icon?: ReactNode
+  onClick: (row: TData) => void
+  variant?: 'default' | 'destructive'
+  hidden?: (row: TData) => boolean
+}
+
 type DataTableProps<TData extends BaseRecord> = {
   table: UseTableReturnType<TData, HttpError>
+  /** Resource name for default context menu actions (view, edit, delete) */
+  resource?: string
+  /** Custom context menu actions */
+  contextMenuActions?: ContextMenuAction<TData>[]
+  /** Disable default context menu */
+  disableContextMenu?: boolean
+  /** Custom delete handler */
+  onDelete?: (row: TData) => Promise<void>
 }
 
 export function DataTable<TData extends BaseRecord>({
   table,
+  resource,
+  contextMenuActions = [],
+  disableContextMenu = false,
+  onDelete,
 }: DataTableProps<TData>) {
   const {
     reactTable: { getHeaderGroups, getRowModel, getAllColumns },
@@ -35,6 +63,9 @@ export function DataTable<TData extends BaseRecord>({
     },
   } = table
 
+  const { edit, show } = useNavigation()
+  const { open: notify } = useNotification()
+
   const columns = getAllColumns()
   const leafColumns = table.reactTable.getAllLeafColumns()
   const isLoading = tableQuery.isLoading
@@ -45,6 +76,14 @@ export function DataTable<TData extends BaseRecord>({
     horizontal: false,
     vertical: false,
   })
+
+  const handleCopyId = (id: string | number) => {
+    navigator.clipboard.writeText(String(id))
+    notify?.({
+      type: 'success',
+      message: 'ID copied to clipboard',
+    })
+  }
 
   useEffect(() => {
     const checkOverflow = () => {
@@ -159,10 +198,11 @@ export function DataTable<TData extends BaseRecord>({
               </>
             ) : getRowModel().rows?.length ? (
               getRowModel().rows.map((row) => {
-                return (
+                const rowContent = (
                   <TableRow
                     key={row.original?.id ?? row.id}
                     data-state={row.getIsSelected() && 'selected'}
+                    className={!disableContextMenu ? 'cursor-context-menu' : ''}
                   >
                     {row.getVisibleCells().map((cell) => {
                       return (
@@ -185,6 +225,59 @@ export function DataTable<TData extends BaseRecord>({
                       )
                     })}
                   </TableRow>
+                )
+
+                if (disableContextMenu) {
+                  return rowContent
+                }
+
+                return (
+                  <ContextMenu key={row.original?.id ?? row.id}>
+                    <ContextMenuTrigger asChild>{rowContent}</ContextMenuTrigger>
+                    <ContextMenuContent className="w-48">
+                      {resource && row.original.id && (
+                        <>
+                          <ContextMenuItem onClick={() => show(resource, row.original.id!)}>
+                            <Eye className="size-4 mr-2" />
+                            View
+                          </ContextMenuItem>
+                          <ContextMenuItem onClick={() => edit(resource, row.original.id!)}>
+                            <Pencil className="size-4 mr-2" />
+                            Edit
+                          </ContextMenuItem>
+                        </>
+                      )}
+                      {row.original.id && (
+                        <ContextMenuItem onClick={() => handleCopyId(row.original.id!)}>
+                          <Copy className="size-4 mr-2" />
+                          Copy ID
+                        </ContextMenuItem>
+                      )}
+                      {contextMenuActions.map((action, idx) => {
+                        if (action.hidden?.(row.original)) return null
+                        return (
+                          <ContextMenuItem
+                            key={idx}
+                            onClick={() => action.onClick(row.original)}
+                            variant={action.variant}
+                          >
+                            {action.icon}
+                            {action.label}
+                          </ContextMenuItem>
+                        )
+                      })}
+                      {(resource || onDelete) && <ContextMenuSeparator />}
+                      {onDelete && (
+                        <ContextMenuItem
+                          variant="destructive"
+                          onClick={() => onDelete(row.original)}
+                        >
+                          <Trash2 className="size-4 mr-2" />
+                          Delete
+                        </ContextMenuItem>
+                      )}
+                    </ContextMenuContent>
+                  </ContextMenu>
                 )
               })
             ) : (

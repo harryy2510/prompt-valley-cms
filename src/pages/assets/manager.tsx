@@ -39,6 +39,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -865,118 +872,158 @@ function FileGridItem({
     }
   }
 
-  return (
-    <div
-      data-name={name}
-      className={cn(
-        'selectable-item',
-        'group relative flex flex-col items-center justify-center',
-        'rounded-lg border bg-card p-4',
-        'cursor-pointer transition-colors',
-        'hover:bg-accent hover:border-accent-foreground/20',
-        isSelected && 'bg-accent border-primary ring-2 ring-primary/20',
+  const menuContent = (
+    <>
+      {onPreview && (
+        <>
+          <ContextMenuItem onClick={onPreview}>
+            <Eye className="size-4 mr-2" />
+            Preview
+          </ContextMenuItem>
+          <ContextMenuSeparator />
+        </>
       )}
-      onDoubleClick={onDoubleClick}
-      onClick={handleClick}
-    >
-      {/* Checkbox - shown on hover or when selected */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className={cn(
-          'absolute top-1 left-1 size-7',
-          'transition-opacity',
-          isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
-        )}
-        onClick={(e) => {
-          e.stopPropagation()
-          onToggleSelect()
-        }}
-      >
-        {isSelected ? (
-          <CheckSquare className="size-4 text-primary" />
-        ) : (
-          <Square className="size-4" />
-        )}
-      </Button>
+      {!isFolder && (
+        <>
+          <ContextMenuItem onClick={onDownload}>
+            <Download className="size-4 mr-2" />
+            Download
+          </ContextMenuItem>
+          <ContextMenuItem onClick={onCopyUrl}>
+            <Link className="size-4 mr-2" />
+            Copy URL
+          </ContextMenuItem>
+        </>
+      )}
+      <ContextMenuItem onClick={onCopyPath}>
+        <Copy className="size-4 mr-2" />
+        Copy Path
+      </ContextMenuItem>
+      <ContextMenuSeparator />
+      <ContextMenuItem onClick={onDelete} variant="destructive">
+        <Trash2 className="size-4 mr-2" />
+        Delete
+      </ContextMenuItem>
+    </>
+  )
 
-      {/* Context Menu */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <div
+          data-name={name}
+          className={cn(
+            'selectable-item',
+            'group relative flex flex-col items-center justify-center',
+            'rounded-lg border bg-card p-4',
+            'cursor-pointer transition-colors',
+            'hover:bg-accent hover:border-accent-foreground/20',
+            isSelected && 'bg-accent border-primary ring-2 ring-primary/20',
+          )}
+          onDoubleClick={onDoubleClick}
+          onClick={handleClick}
+        >
+          {/* Checkbox - shown on hover or when selected */}
           <Button
             variant="ghost"
             size="icon"
             className={cn(
-              'absolute top-1 right-1 size-7',
-              'opacity-0 group-hover:opacity-100 transition-opacity',
+              'absolute top-1 left-1 size-7',
+              'transition-opacity',
+              isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
             )}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation()
+              onToggleSelect()
+            }}
           >
-            <MoreVertical className="size-4" />
+            {isSelected ? (
+              <CheckSquare className="size-4 text-primary" />
+            ) : (
+              <Square className="size-4" />
+            )}
           </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          {onPreview && (
-            <DropdownMenuItem onClick={onPreview}>
-              <Eye className="size-4 mr-2" />
-              Preview
-            </DropdownMenuItem>
-          )}
-          {!isFolder && (
-            <>
-              <DropdownMenuItem onClick={onDownload}>
-                <Download className="size-4 mr-2" />
-                Download
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={onCopyUrl}>
-                <Link className="size-4 mr-2" />
-                Copy URL
-              </DropdownMenuItem>
+
+          {/* Dropdown Menu Button */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  'absolute top-1 right-1 size-7',
+                  'opacity-0 group-hover:opacity-100 transition-opacity',
+                )}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreVertical className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {onPreview && (
+                <DropdownMenuItem onClick={onPreview}>
+                  <Eye className="size-4 mr-2" />
+                  Preview
+                </DropdownMenuItem>
+              )}
+              {!isFolder && (
+                <>
+                  <DropdownMenuItem onClick={onDownload}>
+                    <Download className="size-4 mr-2" />
+                    Download
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={onCopyUrl}>
+                    <Link className="size-4 mr-2" />
+                    Copy URL
+                  </DropdownMenuItem>
+                </>
+              )}
               <DropdownMenuItem onClick={onCopyPath}>
                 <Copy className="size-4 mr-2" />
                 Copy Path
               </DropdownMenuItem>
-            </>
-          )}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={onDelete}
-            className="text-destructive focus:text-destructive"
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={onDelete}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="size-4 mr-2" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Thumbnail or Icon */}
+          <div className="size-16 flex items-center justify-center mb-2">
+            {isImage && publicUrl ? (
+              <img
+                src={publicUrl}
+                alt={name}
+                className="size-16 object-cover rounded"
+              />
+            ) : isFolder ? (
+              <FolderOpen className="size-12 text-muted-foreground" />
+            ) : (
+              <Icon className="size-12 text-muted-foreground" />
+            )}
+          </div>
+
+          {/* Name */}
+          <p
+            className="text-sm font-medium text-center truncate w-full"
+            title={name}
           >
-            <Trash2 className="size-4 mr-2" />
-            Delete
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+            {name}
+          </p>
 
-      {/* Thumbnail or Icon */}
-      <div className="size-16 flex items-center justify-center mb-2">
-        {isImage && publicUrl ? (
-          <img
-            src={publicUrl}
-            alt={name}
-            className="size-16 object-cover rounded"
-          />
-        ) : isFolder ? (
-          <FolderOpen className="size-12 text-muted-foreground" />
-        ) : (
-          <Icon className="size-12 text-muted-foreground" />
-        )}
-      </div>
-
-      {/* Name */}
-      <p
-        className="text-sm font-medium text-center truncate w-full"
-        title={name}
-      >
-        {name}
-      </p>
-
-      {/* Size */}
-      {!isFolder && size && (
-        <p className="text-xs text-muted-foreground">{formatFileSize(size)}</p>
-      )}
-    </div>
+          {/* Size */}
+          {!isFolder && size && (
+            <p className="text-xs text-muted-foreground">{formatFileSize(size)}</p>
+          )}
+        </div>
+      </ContextMenuTrigger>
+      <ContextMenuContent>{menuContent}</ContextMenuContent>
+    </ContextMenu>
   )
 }
 
@@ -1021,100 +1068,140 @@ function FileListItem({
     }
   }
 
-  return (
-    <div
-      data-name={name}
-      className={cn(
-        'selectable-item',
-        'group flex items-center gap-3 px-3 py-2',
-        'rounded-md cursor-pointer transition-colors',
-        'hover:bg-accent',
-        isSelected && 'bg-accent ring-2 ring-primary/20',
-      )}
-      onDoubleClick={onDoubleClick}
-      onClick={handleClick}
-    >
-      {/* Checkbox */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className={cn(
-          'size-7 shrink-0',
-          'transition-opacity',
-          isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
-        )}
-        onClick={(e) => {
-          e.stopPropagation()
-          onToggleSelect()
-        }}
-      >
-        {isSelected ? (
-          <CheckSquare className="size-4 text-primary" />
-        ) : (
-          <Square className="size-4" />
-        )}
-      </Button>
-      <Icon className="size-5 text-muted-foreground shrink-0" />
-      <span className="flex-1 truncate text-sm font-medium">{name}</span>
-      {!isFolder && (
+  const menuContent = (
+    <>
+      {onPreview && (
         <>
-          <span className="text-xs text-muted-foreground w-20 text-right">
-            {formatFileSize(size)}
-          </span>
-          {updatedAt && (
-            <span className="text-xs text-muted-foreground w-32 text-right">
-              {new Date(updatedAt).toLocaleDateString()}
-            </span>
-          )}
+          <ContextMenuItem onClick={onPreview}>
+            <Eye className="size-4 mr-2" />
+            Preview
+          </ContextMenuItem>
+          <ContextMenuSeparator />
         </>
       )}
-      {isFolder && <Badge variant="secondary">Folder</Badge>}
+      {!isFolder && (
+        <>
+          <ContextMenuItem onClick={onDownload}>
+            <Download className="size-4 mr-2" />
+            Download
+          </ContextMenuItem>
+          <ContextMenuItem onClick={onCopyUrl}>
+            <Link className="size-4 mr-2" />
+            Copy URL
+          </ContextMenuItem>
+        </>
+      )}
+      <ContextMenuItem onClick={onCopyPath}>
+        <Copy className="size-4 mr-2" />
+        Copy Path
+      </ContextMenuItem>
+      <ContextMenuSeparator />
+      <ContextMenuItem onClick={onDelete} variant="destructive">
+        <Trash2 className="size-4 mr-2" />
+        Delete
+      </ContextMenuItem>
+    </>
+  )
 
-      {/* Actions */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <div
+          data-name={name}
+          className={cn(
+            'selectable-item',
+            'group flex items-center gap-3 px-3 py-2',
+            'rounded-md cursor-pointer transition-colors',
+            'hover:bg-accent',
+            isSelected && 'bg-accent ring-2 ring-primary/20',
+          )}
+          onDoubleClick={onDoubleClick}
+          onClick={handleClick}
+        >
+          {/* Checkbox */}
           <Button
             variant="ghost"
             size="icon"
-            className="size-7 opacity-0 group-hover:opacity-100 transition-opacity"
-            onClick={(e) => e.stopPropagation()}
+            className={cn(
+              'size-7 shrink-0',
+              'transition-opacity',
+              isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+            )}
+            onClick={(e) => {
+              e.stopPropagation()
+              onToggleSelect()
+            }}
           >
-            <MoreVertical className="size-4" />
+            {isSelected ? (
+              <CheckSquare className="size-4 text-primary" />
+            ) : (
+              <Square className="size-4" />
+            )}
           </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          {onPreview && (
-            <DropdownMenuItem onClick={onPreview}>
-              <Eye className="size-4 mr-2" />
-              Preview
-            </DropdownMenuItem>
-          )}
+          <Icon className="size-5 text-muted-foreground shrink-0" />
+          <span className="flex-1 truncate text-sm font-medium">{name}</span>
           {!isFolder && (
             <>
-              <DropdownMenuItem onClick={onDownload}>
-                <Download className="size-4 mr-2" />
-                Download
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={onCopyUrl}>
-                <Link className="size-4 mr-2" />
-                Copy URL
-              </DropdownMenuItem>
+              <span className="text-xs text-muted-foreground w-20 text-right">
+                {formatFileSize(size)}
+              </span>
+              {updatedAt && (
+                <span className="text-xs text-muted-foreground w-32 text-right">
+                  {new Date(updatedAt).toLocaleDateString()}
+                </span>
+              )}
+            </>
+          )}
+          {isFolder && <Badge variant="secondary">Folder</Badge>}
+
+          {/* Actions */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreVertical className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {onPreview && (
+                <DropdownMenuItem onClick={onPreview}>
+                  <Eye className="size-4 mr-2" />
+                  Preview
+                </DropdownMenuItem>
+              )}
+              {!isFolder && (
+                <>
+                  <DropdownMenuItem onClick={onDownload}>
+                    <Download className="size-4 mr-2" />
+                    Download
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={onCopyUrl}>
+                    <Link className="size-4 mr-2" />
+                    Copy URL
+                  </DropdownMenuItem>
+                </>
+              )}
               <DropdownMenuItem onClick={onCopyPath}>
                 <Copy className="size-4 mr-2" />
                 Copy Path
               </DropdownMenuItem>
-            </>
-          )}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={onDelete}
-            className="text-destructive focus:text-destructive"
-          >
-            <Trash2 className="size-4 mr-2" />
-            Delete
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={onDelete}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="size-4 mr-2" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </ContextMenuTrigger>
+      <ContextMenuContent>{menuContent}</ContextMenuContent>
+    </ContextMenu>
   )
 }

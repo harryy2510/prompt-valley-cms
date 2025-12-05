@@ -388,7 +388,16 @@ export function AiModelsList() {
           </div>
         }
       />
-      <DataTable table={table} />
+      <DataTable
+        table={table}
+        resource="ai_models"
+        onDelete={async (row) => {
+          await deleteModel({
+            resource: 'ai_models',
+            id: row.id,
+          })
+        }}
+      />
     </ListView>
   )
 }

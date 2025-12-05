@@ -279,7 +279,16 @@ export function AiProvidersList() {
           </div>
         }
       />
-      <DataTable table={table} />
+      <DataTable
+        table={table}
+        resource="ai_providers"
+        onDelete={async (row) => {
+          await deleteProvider({
+            resource: 'ai_providers',
+            id: row.id,
+          })
+        }}
+      />
     </ListView>
   )
 }
