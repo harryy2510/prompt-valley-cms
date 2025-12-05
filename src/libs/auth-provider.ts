@@ -133,7 +133,7 @@ export const authProvider: AuthProvider = {
   },
   getPermissions: async () => {
     const { data } = await supabase.auth.getUser()
-    return data?.user?.role || null
+    return (data?.user?.app_metadata?.role as 'admin' | 'user') || null
   },
   getIdentity: async () => {
     const { data } = await supabase.auth.getUser()

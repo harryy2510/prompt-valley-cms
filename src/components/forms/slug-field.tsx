@@ -1,11 +1,13 @@
-import { useState, useEffect, ReactNode, ChangeEvent, useMemo } from 'react'
-import { FieldPath, FieldValues, useController } from 'react-hook-form'
+import { useState, useEffect, ReactNode, ChangeEvent, useRef } from 'react'
+import {
+  FieldPath,
+  FieldValues,
+  useController,
+  useFormContext,
+} from 'react-hook-form'
 import slugify from '@sindresorhus/slugify'
-import { RefreshCw, Check, X, Loader2 } from 'lucide-react'
-import { useDebounceCallback } from 'usehooks-ts'
+import { RefreshCw, Check, Loader2, AlertCircle } from 'lucide-react'
 
-import { useCallback } from 'react'
-import { useQuery } from '@tanstack/react-query'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
@@ -14,7 +16,6 @@ import {
   FormField,
   FormItem,
   FormLabel,
-  FormMessage,
 } from '@/components/ui/form'
 import {
   Tooltip,
@@ -24,12 +25,13 @@ import {
 import { cn } from '@/libs/cn'
 import { supabase } from '@/libs/supabase'
 
-type AvailabilityStatus = 'idle' | 'checking' | 'available' | 'taken'
+type AvailabilityStatus = 'idle' | 'typing' | 'checking' | 'available'
 
 interface SlugFieldProps<T extends FieldValues> {
   name: FieldPath<T>
   sourceValue: string
   resource: string
+  currentId?: string
   label?: ReactNode
   description?: ReactNode
   placeholder?: string
@@ -40,122 +42,197 @@ export function SlugField<T extends FieldValues>({
   name,
   sourceValue,
   resource,
+  currentId,
   label,
   description,
   placeholder,
   disabled = false,
 }: SlugFieldProps<T>) {
   const [syncWithSource, setSyncWithSource] = useState(!disabled)
-  const [pendingSlug, setPendingSlug] = useState('')
+  const [status, setStatus] = useState<AvailabilityStatus>('idle')
   const { field } = useController({ name })
+  const { setError, clearErrors } = useFormContext()
 
-  const scheduleCheck = useDebounceCallback((value: string) => {
-    setPendingSlug(value)
-  }, 500)
+  // Track the last checked slug to prevent re-checking
+  const lastCheckedSlugRef = useRef<string>('')
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const resolveAvailableSlug = useCallback(
-    async (baseSlug: string): Promise<string> => {
-      if (!baseSlug) return baseSlug
+  // Find an available slug (appends -1, -2, etc. if needed)
+  const findAvailableSlug = async (baseSlug: string): Promise<string> => {
+    if (!baseSlug) return baseSlug
 
-      const { count } = await supabase
-        .from(resource)
-        .select(name, { count: 'exact', head: true })
-        // @ts-ignore
-        .eq(name, baseSlug)
+    // First check if the base slug is available
+    let query = supabase
+      .from(resource)
+      .select('id', { count: 'exact', head: true })
+      // @ts-expect-error - dynamic field name
+      .eq(name, baseSlug)
 
-      if (count === 0) return baseSlug
+    if (currentId) {
+      query = query.neq('id', currentId)
+    }
 
-      const { data } = await supabase
-        .from(resource)
-        .select(name)
-        .like(name, `${baseSlug}%`)
+    const { count } = await query
 
-      // @ts-ignore
-      const existingSlugs = new Set(data?.map((row) => row[name]) || [])
+    if (count === 0) {
+      return baseSlug // Available as-is
+    }
 
-      let counter = 1
-      let candidate = `${baseSlug}-${counter}`
+    // Slug is taken, find an available one with suffix
+    const { data } = await supabase
+      .from(resource)
+      .select(name)
+      .like(name, `${baseSlug}%`)
 
-      while (existingSlugs.has(candidate)) {
-        counter++
-        candidate = `${baseSlug}-${counter}`
+    // @ts-expect-error - dynamic field access
+    const existingSlugs = new Set(data?.map((row) => row[name]) || [])
+
+    let counter = 1
+    let candidate = `${baseSlug}-${counter}`
+
+    while (existingSlugs.has(candidate)) {
+      counter++
+      candidate = `${baseSlug}-${counter}`
+    }
+
+    return candidate
+  }
+
+  // Check slug availability with debounce
+  const checkSlug = async (slug: string) => {
+    if (!slug || disabled || slug === lastCheckedSlugRef.current) {
+      return
+    }
+
+    setStatus('checking')
+    setError(name, { type: 'manual', message: 'Checking availability...' })
+
+    try {
+      const availableSlug = await findAvailableSlug(slug)
+      lastCheckedSlugRef.current = availableSlug
+
+      if (availableSlug !== slug) {
+        // Slug was taken, update to available one
+        field.onChange(availableSlug)
       }
 
-      return candidate
-    },
-    [resource, name],
-  )
-
-  const { data: resolvedSlug, isFetching } = useQuery({
-    queryKey: ['slug-availability', resource, name, pendingSlug],
-    queryFn: () => resolveAvailableSlug(pendingSlug),
-    enabled: Boolean(pendingSlug) && !disabled,
-    staleTime: 30 * 1000,
-    gcTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  })
-
-  const availability: AvailabilityStatus = useMemo(() => {
-    if (!field.value || disabled) return 'idle'
-    if (isFetching || field.value !== pendingSlug) return 'checking'
-    if (resolvedSlug === field.value) return 'available'
-    if (resolvedSlug && resolvedSlug !== field.value) return 'taken'
-    return 'idle'
-  }, [field.value, disabled, isFetching, resolvedSlug, pendingSlug])
-
-  // Auto-update field when available slug is resolved
-  useEffect(() => {
-    if (
-      resolvedSlug &&
-      resolvedSlug !== field.value &&
-      syncWithSource &&
-      !disabled
-    ) {
-      field.onChange(resolvedSlug)
+      setStatus('available')
+      clearErrors(name)
+    } catch (error) {
+      console.error('Error checking slug:', error)
+      setStatus('idle')
+      clearErrors(name)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only run when resolvedSlug changes
-  }, [resolvedSlug])
+  }
 
-  // Auto-generate slug from source
+  // Debounced check when field value changes
+  useEffect(() => {
+    if (disabled || !field.value) {
+      setStatus('idle')
+      clearErrors(name)
+      return
+    }
+
+    // If this slug was already checked and confirmed available, skip
+    if (field.value === lastCheckedSlugRef.current) {
+      setStatus('available')
+      clearErrors(name)
+      return
+    }
+
+    // Clear previous timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
+
+    setStatus('typing')
+    setError(name, { type: 'manual', message: 'Checking availability...' })
+
+    // Set new timer
+    debounceTimerRef.current = setTimeout(() => {
+      checkSlug(field.value)
+    }, 1000)
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+    }
+  }, [field.value, disabled])
+
+  // Auto-generate slug from source (only when syncing)
   useEffect(() => {
     if (!syncWithSource || !sourceValue || disabled) return
 
     const newSlug = slugify(sourceValue)
     if (newSlug === field.value) return
 
+    // Reset the last checked slug when auto-generating
+    lastCheckedSlugRef.current = ''
     field.onChange(newSlug)
-    scheduleCheck(newSlug)
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only run when sourceValue changes
-  }, [sourceValue])
+  }, [sourceValue, syncWithSource, disabled])
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     setSyncWithSource(false)
-    const value = e.target.value
+    // Reset the last checked slug when user types
+    lastCheckedSlugRef.current = ''
+    const value = slugify(e.target.value)
     field.onChange(value)
-    if (value && !disabled) {
-      scheduleCheck(value)
-    }
   }
 
   const handleRegenerate = () => {
     if (!sourceValue) return
 
+    // Reset the last checked slug when regenerating
+    lastCheckedSlugRef.current = ''
     const newSlug = slugify(sourceValue)
     field.onChange(newSlug)
     setSyncWithSource(true)
-    setPendingSlug(newSlug)
   }
 
-  const AvailabilityIcon = () => {
-    switch (availability) {
+  const StatusIcon = () => {
+    switch (status) {
+      case 'typing':
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <AlertCircle className="size-4 text-muted-foreground" />
+            </TooltipTrigger>
+            <TooltipContent>Waiting for you to finish typing...</TooltipContent>
+          </Tooltip>
+        )
       case 'checking':
-        return <Loader2 className="size-4 animate-spin text-muted-foreground" />
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Loader2 className="size-4 animate-spin text-muted-foreground" />
+            </TooltipTrigger>
+            <TooltipContent>Checking availability...</TooltipContent>
+          </Tooltip>
+        )
       case 'available':
-        return <Check className="size-4 text-green-500" />
-      case 'taken':
-        return <X className="size-4 text-destructive" />
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Check className="size-4 text-green-500" />
+            </TooltipTrigger>
+            <TooltipContent>Slug is available!</TooltipContent>
+          </Tooltip>
+        )
       default:
         return null
+    }
+  }
+
+  const getInputClassName = () => {
+    switch (status) {
+      case 'available':
+        return 'border-green-500 focus-visible:ring-green-500'
+      case 'typing':
+      case 'checking':
+        return 'border-yellow-500 focus-visible:ring-yellow-500'
+      default:
+        return ''
     }
   }
 
@@ -170,18 +247,13 @@ export function SlugField<T extends FieldValues>({
               <div className="relative flex-1">
                 <Input
                   placeholder={placeholder}
-                  className={cn('font-mono text-sm pr-8', {
-                    'border-green-500 focus-visible:ring-green-500':
-                      availability === 'available',
-                    'border-destructive focus-visible:ring-destructive':
-                      availability === 'taken',
-                  })}
+                  className={cn('font-mono text-sm pr-8', getInputClassName())}
                   {...field}
                   disabled={disabled}
                   onChange={handleInputChange}
                 />
                 <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                  <AvailabilityIcon />
+                  <StatusIcon />
                 </div>
               </div>
             </FormControl>
@@ -193,26 +265,27 @@ export function SlugField<T extends FieldValues>({
                     variant="outline"
                     size="icon"
                     onClick={handleRegenerate}
-                    disabled={!sourceValue || isFetching}
+                    disabled={!sourceValue || status === 'checking'}
                   >
                     <RefreshCw
                       className={cn('size-4', {
-                        'animate-spin': availability === 'checking',
+                        'animate-spin': status === 'checking',
                       })}
                     />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Regenerate slug</TooltipContent>
+                <TooltipContent>Regenerate slug from title</TooltipContent>
               </Tooltip>
             )}
           </div>
           {description && <FormDescription>{description}</FormDescription>}
-          {availability === 'taken' && (
-            <p className="text-sm text-destructive">
-              This slug is already taken
+          {(status === 'typing' || status === 'checking') && (
+            <p className="text-sm text-muted-foreground">
+              {status === 'typing'
+                ? 'Will check availability after you stop typing...'
+                : 'Checking availability...'}
             </p>
           )}
-          <FormMessage />
         </FormItem>
       )}
     />
