@@ -12,14 +12,22 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { LoadingOverlay } from '@/components/refine-ui/layout/loading-overlay'
 import { Tables } from '@/types/database.types'
-import { FormAction, HttpError, useBack } from '@refinedev/core'
+import { FormAction, HttpError, useBack, useSelect } from '@refinedev/core'
 import { useForm } from '@refinedev/react-hook-form'
 import { getDefaultsForSchema } from 'zod-defaults'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -31,6 +39,7 @@ type Category = Tables<'categories'>
 export const categoryFormSchema = z.object({
   id: slug,
   name: z.string().min(1, 'Category name is required'),
+  parent_id: z.string().nullable().optional(),
 })
 
 export type CategoryFormValues = z.infer<typeof categoryFormSchema>
@@ -44,7 +53,7 @@ export function CategoryForm({ mode }: CategoryFormProps) {
   const back = useBack()
 
   const {
-    refineCore: { onFinish, formLoading, mutation },
+    refineCore: { onFinish, formLoading, mutation, query },
     ...form
   } = useForm<Category, HttpError, CategoryFormValues>({
     defaultValues: getDefaultsForSchema(categoryFormSchema),
@@ -54,6 +63,33 @@ export function CategoryForm({ mode }: CategoryFormProps) {
       action: mode,
       redirect: 'list',
     },
+  })
+
+  const currentCategoryId = query?.data?.data?.id
+
+  // Fetch parent categories (only top-level categories can be parents)
+  const { options: parentOptions } = useSelect<Category>({
+    resource: 'categories',
+    optionLabel: 'name',
+    optionValue: 'id',
+    filters: [
+      {
+        field: 'parent_id',
+        operator: 'null',
+        value: true,
+      },
+      // Exclude current category when editing
+      ...(currentCategoryId
+        ? [
+            {
+              field: 'id',
+              operator: 'ne' as const,
+              value: currentCategoryId,
+            },
+          ]
+        : []),
+    ],
+    pagination: { pageSize: 1000 },
   })
 
   return (
@@ -102,6 +138,45 @@ export function CategoryForm({ mode }: CategoryFormProps) {
                 }
                 placeholder="e.g. marketing, development"
                 disabled={!isCreate}
+              />
+
+              <FormField
+                control={form.control}
+                name="parent_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Parent Category</FormLabel>
+                    <Select
+                      onValueChange={(value) =>
+                        field.onChange(value === '_none_' ? null : value)
+                      }
+                      value={field.value ?? '_none_'}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="w-full max-w-[400px]">
+                          <SelectValue placeholder="Select a parent category" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="_none_">
+                          <span className="text-muted-foreground">
+                            No parent (top-level)
+                          </span>
+                        </SelectItem>
+                        {parentOptions?.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Optionally nest this category under a parent. Only one
+                      level of nesting is allowed.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </CardContent>
           </Card>

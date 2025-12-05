@@ -113,7 +113,8 @@ export function SlugField<T extends FieldValues>({
     ) {
       field.onChange(resolvedSlug)
     }
-  }, [resolvedSlug, syncWithSource, disabled])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only run when resolvedSlug changes
+  }, [resolvedSlug])
 
   // Auto-generate slug from source
   useEffect(() => {
@@ -124,18 +125,16 @@ export function SlugField<T extends FieldValues>({
 
     field.onChange(newSlug)
     scheduleCheck(newSlug)
-  }, [sourceValue, syncWithSource, disabled])
-
-  // Trigger check on field change
-  useEffect(() => {
-    if (field.value && !disabled) {
-      scheduleCheck(field.value)
-    }
-  }, [field.value, disabled])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only run when sourceValue changes
+  }, [sourceValue])
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     setSyncWithSource(false)
-    field.onChange(e.target.value)
+    const value = e.target.value
+    field.onChange(value)
+    if (value && !disabled) {
+      scheduleCheck(value)
+    }
   }
 
   const handleRegenerate = () => {

@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { useTable } from '@refinedev/react-table'
 import { type ColumnDef, type VisibilityState } from '@tanstack/react-table'
-import { Pencil, Trash2 } from 'lucide-react'
+import { ChevronRight, Pencil, Trash2 } from 'lucide-react'
 import { useDelete, useNavigation } from '@refinedev/core'
 import { useLocalStorage } from 'usehooks-ts'
 import dayjs from 'dayjs'
@@ -14,9 +14,13 @@ import { DataTable } from '@/components/refine-ui/data-table/data-table'
 import { DataTableSorter } from '@/components/refine-ui/data-table/data-table-sorter'
 import { Button } from '@/components/ui/button'
 import { ActionButton } from '@/components/ui/action-button'
+import { Badge } from '@/components/ui/badge'
 import { Tables } from '@/types/database.types'
 
-type Category = Tables<'categories'>
+type Category = Tables<'categories'> & {
+  parent: Pick<Tables<'categories'>, 'id' | 'name'> | null
+  children: { count: number }[]
+}
 
 const STORAGE_KEY = 'categories-column-visibility'
 
@@ -37,14 +41,69 @@ export function CategoriesList() {
             <DataTableSorter column={column} />
           </div>
         ),
-        cell: ({ row }) => (
-          <>
-            <div className="font-medium">{row.original.name}</div>
-            <div className="text-xs text-muted-foreground font-mono">
-              {row.original.id}
+        cell: ({ row }) => {
+          const hasParent = !!row.original.parent
+          const childCount = row.original.children?.[0]?.count ?? 0
+
+          return (
+            <div className="flex items-center gap-2">
+              {hasParent && (
+                <ChevronRight className="size-4 text-muted-foreground" />
+              )}
+              <div>
+                <div className="font-medium">{row.original.name}</div>
+                <div className="text-xs text-muted-foreground font-mono">
+                  {row.original.id}
+                </div>
+              </div>
             </div>
-          </>
-        ),
+          )
+        },
+      },
+      {
+        id: 'parent',
+        accessorKey: 'parent_id',
+        header: 'Parent',
+        enableSorting: false,
+        cell: ({ row }) => {
+          const parent = row.original.parent
+          if (!parent) {
+            return <span className="text-muted-foreground">—</span>
+          }
+          return (
+            <div>
+              <div className="text-sm">{parent.name}</div>
+              <div className="text-xs text-muted-foreground font-mono">
+                {parent.id}
+              </div>
+            </div>
+          )
+        },
+      },
+      {
+        id: 'children',
+        header: 'Sub-Categories',
+        enableSorting: false,
+        cell: ({ row }) => {
+          const childCount = row.original.children?.[0]?.count ?? 0
+          const hasParent = !!row.original.parent
+
+          // Subcategories can't have children (only one level deep)
+          if (hasParent) {
+            return <span className="text-muted-foreground">—</span>
+          }
+
+          if (childCount === 0) {
+            return <span className="text-muted-foreground">—</span>
+          }
+
+          return (
+            <Badge variant="secondary" className="font-normal">
+              {childCount}{' '}
+              {childCount === 1 ? 'sub-category' : 'sub-categories'}
+            </Badge>
+          )
+        },
       },
       {
         id: 'created_at',
@@ -139,6 +198,9 @@ export function CategoriesList() {
     onColumnVisibilityChange: setColumnVisibility,
     refineCoreProps: {
       resource: 'categories',
+      meta: {
+        select: '*, parent:parent_id(id, name), children:categories(count)',
+      },
       sorters: {
         initial: [{ field: 'created_at', order: 'desc' }],
       },
