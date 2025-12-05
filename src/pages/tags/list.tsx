@@ -1,155 +1,154 @@
+import { useMemo } from 'react'
 import { useTable } from '@refinedev/react-table'
-import { type ColumnDef } from '@tanstack/react-table'
-import { useState, useMemo } from 'react'
-import { Pencil, Trash2, MoreHorizontal } from 'lucide-react'
+import { type ColumnDef, type VisibilityState } from '@tanstack/react-table'
+import { Pencil, Trash2 } from 'lucide-react'
 import { useDelete, useNavigation } from '@refinedev/core'
+import { useLocalStorage } from 'usehooks-ts'
+import dayjs from 'dayjs'
 
-import { ListView, ListViewHeader } from '@/components/refine-ui/views/list-view'
+import {
+  ListView,
+  ListViewHeader,
+} from '@/components/refine-ui/views/list-view'
 import { DataTable } from '@/components/refine-ui/data-table/data-table'
+import { DataTableSorter } from '@/components/refine-ui/data-table/data-table-sorter'
 import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
+import { ActionButton } from '@/components/ui/action-button'
+import { Tables } from '@/types/database.types'
 
-type Tag = {
-  id: string
-  name: string
-  created_at: string
-  updated_at: string
-}
+type Tag = Tables<'tags'>
+
+const STORAGE_KEY = 'tags-column-visibility'
 
 export function TagsList() {
   const { edit } = useNavigation()
-  const { mutate: deleteTag } = useDelete()
-  const [deleteDialog, setDeleteDialog] = useState<{
-    open: boolean
-    id: string
-    name: string
-  } | null>(null)
+  const { mutateAsync: deleteTag } = useDelete()
+  const [columnVisibility, setColumnVisibility] =
+    useLocalStorage<VisibilityState>(STORAGE_KEY, {})
 
   const columns = useMemo<ColumnDef<Tag>[]>(
     () => [
       {
         id: 'name',
-        header: 'Name',
         accessorKey: 'name',
-        cell: ({ getValue }) => (
-          <div className="font-medium">{getValue() as string}</div>
+        header: ({ column }) => (
+          <div className="flex items-center gap-1">
+            <span>Tag</span>
+            <DataTableSorter column={column} />
+          </div>
+        ),
+        cell: ({ row }) => (
+          <>
+            <div className="font-medium">{row.original.name}</div>
+            <div className="text-xs text-muted-foreground font-mono">
+              {row.original.id}
+            </div>
+          </>
         ),
       },
       {
-        id: 'id',
-        header: 'ID',
-        accessorKey: 'id',
-        cell: ({ getValue }) => (
-          <span className="text-sm font-mono text-muted-foreground">
-            {getValue() as string}
-          </span>
+        id: 'created_at',
+        accessorKey: 'created_at',
+        header: ({ column }) => (
+          <div className="flex items-center gap-1">
+            <span>Created</span>
+            <DataTableSorter column={column} />
+          </div>
         ),
+        cell: ({ getValue }) => {
+          const value = getValue() as string
+          return (
+            <span className="text-sm text-muted-foreground">
+              {dayjs(value).format('DD MMM, YYYY')}
+            </span>
+          )
+        },
+      },
+      {
+        id: 'updated_at',
+        accessorKey: 'updated_at',
+        header: ({ column }) => (
+          <div className="flex items-center gap-1">
+            <span>Updated</span>
+            <DataTableSorter column={column} />
+          </div>
+        ),
+        cell: ({ getValue }) => {
+          const value = getValue() as string
+          return (
+            <span className="text-sm text-muted-foreground">
+              {dayjs(value).format('DD MMM, YYYY')}
+            </span>
+          )
+        },
       },
       {
         id: 'actions',
-        header: () => <div className="text-right">Actions</div>,
+        header: '',
+        enableSorting: false,
+        enableHiding: false,
+        size: 80,
         cell: ({ row }) => (
           <div className="flex items-center justify-end gap-1">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="size-8">
-                  <MoreHorizontal className="size-4" />
-                  <span className="sr-only">Open menu</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => edit('tags', row.original.id)}>
-                  <Pencil className="mr-2 size-4" />
-                  Edit
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="text-destructive"
-                  onClick={() =>
-                    setDeleteDialog({
-                      open: true,
-                      id: row.original.id,
-                      name: row.original.name,
-                    })
-                  }
-                >
-                  <Trash2 className="mr-2 size-4" />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8"
+              onClick={() => edit('tags', row.original.id)}
+            >
+              <Pencil className="size-4" />
+              <span className="sr-only">Edit</span>
+            </Button>
+            <ActionButton
+              variant="ghost"
+              size="icon"
+              className="size-8 text-destructive"
+              requireAreYouSure
+              areYouSureTitle="Delete Tag?"
+              areYouSureDescription={
+                <>
+                  This will permanently delete the tag "{row.original.name}".
+                  This action cannot be undone.
+                </>
+              }
+              confirmLabel="Delete"
+              action={async () => {
+                await deleteTag({
+                  resource: 'tags',
+                  id: row.original.id,
+                })
+                return { error: false }
+              }}
+            >
+              <Trash2 className="size-4" />
+              <span className="sr-only">Delete</span>
+            </ActionButton>
           </div>
         ),
-        enableSorting: false,
-        size: 80,
       },
     ],
-    [edit],
+    [edit, deleteTag],
   )
 
   const table = useTable<Tag>({
+    enableMultiSort: false,
     columns,
+    state: {
+      columnVisibility,
+    },
+    onColumnVisibilityChange: setColumnVisibility,
     refineCoreProps: {
       resource: 'tags',
+      sorters: {
+        initial: [{ field: 'created_at', order: 'desc' }],
+      },
     },
   })
 
-  const handleDelete = () => {
-    if (!deleteDialog) return
-    deleteTag(
-      {
-        resource: 'tags',
-        id: deleteDialog.id,
-      },
-      {
-        onSuccess: () => {
-          setDeleteDialog(null)
-        },
-      },
-    )
-  }
-
   return (
     <ListView>
-      <ListViewHeader />
+      <ListViewHeader table={table} />
       <DataTable table={table} />
-
-      <AlertDialog open={deleteDialog?.open} onOpenChange={(open) => !open && setDeleteDialog(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete the tag "{deleteDialog?.name}".
-              This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setDeleteDialog(null)}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </ListView>
   )
 }
