@@ -23,6 +23,8 @@ import {
   Link,
   X,
   CheckSquare,
+  Square,
+  CheckCheck,
 } from 'lucide-react'
 
 import { supabase } from '@/libs/supabase'
@@ -427,35 +429,13 @@ export function AssetsManager() {
     setDeleteDialogOpen(true)
   }
 
-  const toggleSelection = (name: string, event?: React.MouseEvent) => {
+  const toggleSelection = (name: string) => {
     const newSelected = new Set(selectedItems)
-
-    if (event?.metaKey || event?.ctrlKey) {
-      // Cmd/Ctrl+click: toggle single item
-      if (newSelected.has(name)) {
-        newSelected.delete(name)
-      } else {
-        newSelected.add(name)
-      }
-    } else if (event?.shiftKey && selectedItems.size > 0) {
-      // Shift+click: range selection
-      const lastSelected = Array.from(selectedItems).pop()!
-      const allNames = allItems.map((i) => i.name)
-      const lastIndex = allNames.indexOf(lastSelected)
-      const currentIndex = allNames.indexOf(name)
-
-      const start = Math.min(lastIndex, currentIndex)
-      const end = Math.max(lastIndex, currentIndex)
-
-      for (let i = start; i <= end; i++) {
-        newSelected.add(allNames[i])
-      }
+    if (newSelected.has(name)) {
+      newSelected.delete(name)
     } else {
-      // Regular click: select only this item
-      newSelected.clear()
       newSelected.add(name)
     }
-
     setSelectedItems(newSelected)
   }
 
@@ -516,15 +496,26 @@ export function AssetsManager() {
         </div>
       </div>
 
-      {/* Selection Toolbar */}
-      {selectedItems.size > 0 && (
-        <div className="flex items-center gap-2 pb-4 px-3 py-2 bg-muted rounded-md mb-4">
-          <CheckSquare className="size-4 text-muted-foreground" />
+      {/* Breadcrumb & Selection Toolbar Container */}
+      <div className="relative">
+        {/* Selection Toolbar - overlays breadcrumb */}
+        <div
+          className={cn(
+            'absolute inset-0 z-10',
+            'flex items-center gap-2 px-3 py-2 bg-muted rounded-md',
+            'transition-all duration-200 ease-out',
+            selectedItems.size > 0
+              ? 'opacity-100 translate-y-0'
+              : 'opacity-0 -translate-y-2 pointer-events-none',
+          )}
+        >
+          <CheckSquare className="size-4 text-primary" />
           <span className="text-sm font-medium">
             {selectedItems.size} selected
           </span>
           <Separator orientation="vertical" className="h-4" />
           <Button variant="ghost" size="sm" onClick={selectAll}>
+            <CheckCheck className="size-4 mr-1" />
             Select All
           </Button>
           <Button variant="ghost" size="sm" onClick={clearSelection}>
@@ -537,16 +528,20 @@ export function AssetsManager() {
             onClick={() => setBulkDeleteDialogOpen(true)}
           >
             <Trash2 className="size-4 mr-2" />
-            Delete Selected
+            Delete
           </Button>
-          <Button variant="ghost" size="icon" onClick={clearSelection}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            onClick={clearSelection}
+          >
             <X className="size-4" />
           </Button>
         </div>
-      )}
 
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 pb-4">
+        {/* Breadcrumb */}
+        <div className="flex items-center gap-2 pb-4">
         <Button
           variant="ghost"
           size="icon"
@@ -581,6 +576,7 @@ export function AssetsManager() {
             ))}
           </BreadcrumbList>
         </Breadcrumb>
+        </div>
       </div>
 
       <Separator className="mb-4" />
@@ -611,23 +607,16 @@ export function AssetsManager() {
             </p>
           </div>
         ) : viewMode === 'grid' ? (
-          <div
-            className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 selecto-container"
-            onClick={(e) => {
-              // Click on empty space clears selection
-              if (e.target === e.currentTarget) {
-                clearSelection()
-              }
-            }}
-          >
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 selecto-container">
             {folders.map((folder) => (
               <FileGridItem
                 key={folder}
                 name={folder}
                 isFolder={true}
                 isSelected={selectedItems.has(folder)}
+                isSelectionMode={selectedItems.size > 0}
                 onDoubleClick={() => navigateToFolder(folder)}
-                onClick={(e) => toggleSelection(folder, e)}
+                onToggleSelect={() => toggleSelection(folder)}
                 onDelete={() => confirmDelete(folder, true)}
                 onCopyUrl={() => {}}
                 onCopyPath={() => handleCopyPath(folder)}
@@ -639,6 +628,7 @@ export function AssetsManager() {
                 name={file.name}
                 isFolder={false}
                 isSelected={selectedItems.has(file.name)}
+                isSelectionMode={selectedItems.size > 0}
                 metadata={file.metadata}
                 publicUrl={getPublicUrl(file.name)}
                 onDoubleClick={() => {
@@ -646,7 +636,7 @@ export function AssetsManager() {
                     setPreviewFile(getPublicUrl(file.name))
                   }
                 }}
-                onClick={(e) => toggleSelection(file.name, e)}
+                onToggleSelect={() => toggleSelection(file.name)}
                 onDelete={() => confirmDelete(file.name, false)}
                 onDownload={() => handleDownload(file.name)}
                 onCopyUrl={() => handleCopyUrl(file.name)}
@@ -660,22 +650,16 @@ export function AssetsManager() {
             ))}
           </div>
         ) : (
-          <div
-            className="flex flex-col gap-1 selecto-container"
-            onClick={(e) => {
-              if (e.target === e.currentTarget) {
-                clearSelection()
-              }
-            }}
-          >
+          <div className="flex flex-col gap-1 selecto-container">
             {folders.map((folder) => (
               <FileListItem
                 key={folder}
                 name={folder}
                 isFolder={true}
                 isSelected={selectedItems.has(folder)}
+                isSelectionMode={selectedItems.size > 0}
                 onDoubleClick={() => navigateToFolder(folder)}
-                onClick={(e) => toggleSelection(folder, e)}
+                onToggleSelect={() => toggleSelection(folder)}
                 onDelete={() => confirmDelete(folder, true)}
                 onCopyUrl={() => {}}
                 onCopyPath={() => handleCopyPath(folder)}
@@ -687,6 +671,7 @@ export function AssetsManager() {
                 name={file.name}
                 isFolder={false}
                 isSelected={selectedItems.has(file.name)}
+                isSelectionMode={selectedItems.size > 0}
                 metadata={file.metadata}
                 updatedAt={file.updated_at}
                 onDoubleClick={() => {
@@ -694,7 +679,7 @@ export function AssetsManager() {
                     setPreviewFile(getPublicUrl(file.name))
                   }
                 }}
-                onClick={(e) => toggleSelection(file.name, e)}
+                onToggleSelect={() => toggleSelection(file.name)}
                 onDelete={() => confirmDelete(file.name, false)}
                 onDownload={() => handleDownload(file.name)}
                 onCopyUrl={() => handleCopyUrl(file.name)}
@@ -842,10 +827,11 @@ type FileGridItemProps = {
   name: string
   isFolder: boolean
   isSelected: boolean
+  isSelectionMode: boolean
   metadata?: Record<string, unknown> | null
   publicUrl?: string
   onDoubleClick: () => void
-  onClick: (e: React.MouseEvent) => void
+  onToggleSelect: () => void
   onDelete: () => void
   onDownload?: () => void
   onCopyUrl: () => void
@@ -857,10 +843,11 @@ function FileGridItem({
   name,
   isFolder,
   isSelected,
+  isSelectionMode,
   metadata,
   publicUrl,
   onDoubleClick,
-  onClick,
+  onToggleSelect,
   onDelete,
   onDownload,
   onCopyUrl,
@@ -870,6 +857,13 @@ function FileGridItem({
   const Icon = getFileIcon(name, isFolder)
   const isImage = !isFolder && isImageFile(name)
   const size = metadata?.size as number | undefined
+
+  const handleClick = () => {
+    // Only toggle selection on click if we're already in selection mode
+    if (isSelectionMode) {
+      onToggleSelect()
+    }
+  }
 
   return (
     <div
@@ -883,8 +877,29 @@ function FileGridItem({
         isSelected && 'bg-accent border-primary ring-2 ring-primary/20',
       )}
       onDoubleClick={onDoubleClick}
-      onClick={onClick}
+      onClick={handleClick}
     >
+      {/* Checkbox - shown on hover or when selected */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className={cn(
+          'absolute top-1 left-1 size-7',
+          'transition-opacity',
+          isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+        )}
+        onClick={(e) => {
+          e.stopPropagation()
+          onToggleSelect()
+        }}
+      >
+        {isSelected ? (
+          <CheckSquare className="size-4 text-primary" />
+        ) : (
+          <Square className="size-4" />
+        )}
+      </Button>
+
       {/* Context Menu */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -969,10 +984,11 @@ type FileListItemProps = {
   name: string
   isFolder: boolean
   isSelected: boolean
+  isSelectionMode: boolean
   metadata?: Record<string, unknown> | null
   updatedAt?: string | null
   onDoubleClick: () => void
-  onClick: (e: React.MouseEvent) => void
+  onToggleSelect: () => void
   onDelete: () => void
   onDownload?: () => void
   onCopyUrl: () => void
@@ -984,10 +1000,11 @@ function FileListItem({
   name,
   isFolder,
   isSelected,
+  isSelectionMode,
   metadata,
   updatedAt,
   onDoubleClick,
-  onClick,
+  onToggleSelect,
   onDelete,
   onDownload,
   onCopyUrl,
@@ -996,6 +1013,13 @@ function FileListItem({
 }: FileListItemProps) {
   const Icon = getFileIcon(name, isFolder)
   const size = metadata?.size as number | undefined
+
+  const handleClick = () => {
+    // Only toggle selection on click if we're already in selection mode
+    if (isSelectionMode) {
+      onToggleSelect()
+    }
+  }
 
   return (
     <div
@@ -1008,8 +1032,28 @@ function FileListItem({
         isSelected && 'bg-accent ring-2 ring-primary/20',
       )}
       onDoubleClick={onDoubleClick}
-      onClick={onClick}
+      onClick={handleClick}
     >
+      {/* Checkbox */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className={cn(
+          'size-7 shrink-0',
+          'transition-opacity',
+          isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+        )}
+        onClick={(e) => {
+          e.stopPropagation()
+          onToggleSelect()
+        }}
+      >
+        {isSelected ? (
+          <CheckSquare className="size-4 text-primary" />
+        ) : (
+          <Square className="size-4" />
+        )}
+      </Button>
       <Icon className="size-5 text-muted-foreground shrink-0" />
       <span className="flex-1 truncate text-sm font-medium">{name}</span>
       {!isFolder && (
