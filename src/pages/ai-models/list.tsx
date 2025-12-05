@@ -252,6 +252,7 @@ export function AiModelsList() {
   )
 
   const table = useTable<AiModel>({
+    enableMultiSort: false,
     columns,
     state: {
       columnVisibility,

@@ -100,7 +100,7 @@ export function App() {
           options={{
             syncWithLocation: true,
             warnWhenUnsavedChanges: true,
-            mutationMode: 'optimistic',
+            mutationMode: 'pessimistic',
             disableTelemetry: true,
             title: {
               icon: <LogoWithText className="h-8 w-auto" />,

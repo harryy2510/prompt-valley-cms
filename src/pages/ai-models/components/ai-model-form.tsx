@@ -40,7 +40,7 @@ import { FormAction, HttpError, useBack, useSelect } from '@refinedev/core'
 import { useForm } from '@refinedev/react-hook-form'
 import { getDefaultsForSchema } from 'zod-defaults'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { nullableNonNegativeNumber } from '@/utils/validations'
+import { nullableNonNegativeNumber, slug } from '@/utils/validations'
 import { SlugField } from '@/components/forms/slug-field'
 
 type ModelCapability = Enums<'model_capability'>
@@ -55,7 +55,7 @@ export const CAPABILITY_OPTIONS: ModelCapability[] = [
 ]
 
 export const modelFormSchema = z.object({
-  id: z.string().min(1, 'ID is required'),
+  id: slug,
   name: z.string().min(2, 'Name must be at least 2 characters'),
   provider_id: z.string().min(1, 'Provider is required'),
   capabilities: z.array(z.enum(CAPABILITY_OPTIONS)),

@@ -1,5 +1,18 @@
 import { z } from 'zod'
 
+/**
+ * Slug validation: lowercase letters, numbers, and hyphens only.
+ * Must start with a letter or number, no consecutive hyphens.
+ */
+export const slug = z
+  .string()
+  .min(1, 'ID is required')
+  .max(100, 'ID must be 100 characters or less')
+  .regex(
+    /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+    'ID must be lowercase letters, numbers, and hyphens only (e.g. "my-model-1")',
+  )
+
 export const nullableNonNegativeNumber = z
   .union([z.string(), z.number(), z.null()])
   .transform((val): number | null => {
