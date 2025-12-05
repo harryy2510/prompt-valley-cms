@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" fill="none" viewBox="0 0 24 24">
+    <defs>
+        <mask id="A" maskUnits="userSpaceOnUse" x="1" y="1" width="22" height="21" mask-type="alpha">
+            <path d="M5.558 14.213a2 2 0 0 1 2.981-.088l2.021 2.134h.001L16 22H3.299c-1.7 0-2.625-1.987-1.53-3.288l3.789-4.499zm8.641-3.811c.806-1.298 2.713-1.25 3.451.088l4.714 8.544c.735 1.333-.229 2.967-1.751 2.967h-2.546l-.977-1.031-5.709-6.027 2.818-4.54zM8 1c.3 0 .56.208.627.5l.356 1.564a1.93 1.93 0 0 0 1.452 1.453L12 4.873c.293.067.5.327.5.627s-.207.56-.5.627l-1.564.355a1.93 1.93 0 0 0-1.452 1.453L8.626 9.5C8.56 9.792 8.3 10 8 10s-.559-.208-.626-.5l-.356-1.564a1.93 1.93 0 0 0-1.452-1.453L4 6.127C3.708 6.06 3.5 5.8 3.5 5.5s.208-.56.501-.627l1.564-.355a1.93 1.93 0 0 0 1.452-1.453L7.374 1.5C7.44 1.208 7.7 1 8 1z" fill="#5a5ded"/>
+        </mask>
+        <filter id="noise" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+            <feFlood flood-opacity="0"/>
+            <feBlend in="SourceGraphic" result="B"/>
+            <feTurbulence type="fractalNoise" baseFrequency="3.333" stitchTiles="stitch" numOctaves="3" seed="9433"/>
+            <feComponentTransfer>
+                <feFuncR type="linear" slope="2" intercept="-0.5"/>
+                <feFuncG type="linear" slope="2" intercept="-0.5"/>
+                <feFuncB type="linear" slope="2" intercept="-0.5"/>
+                <feFuncA type="discrete" tableValues="1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0"/>
+            </feComponentTransfer>
+            <feComposite operator="in" in2="B"/>
+            <feComponentTransfer result="F">
+                <feFuncA type="table" tableValues="0 0.1"/>
+            </feComponentTransfer>
+            <feMerge>
+                <feMergeNode in="B"/>
+                <feMergeNode in="F"/>
+            </feMerge>
+        </filter>
+        <filter id="blur1" x="-1" y="-13" width="36" height="36" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+            <feGaussianBlur stdDeviation="3"/>
+        </filter>
+        <filter id="blur2" x="-13" y="-1" width="36" height="36" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+            <feGaussianBlur stdDeviation="3"/>
+        </filter>
+        <filter id="blur3" x="8" y="8" width="28" height="28" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+            <feGaussianBlur stdDeviation="3"/>
+        </filter>
+    </defs>
+    <g filter="url(#noise)">
+        <g mask="url(#A)">
+            <circle cx="17" cy="5" r="12" fill="#a8aaff" filter="url(#blur1)"/>
+            <circle cx="5" cy="17" r="12" fill="#5a5ded" filter="url(#blur2)"/>
+            <circle cx="22" cy="22" r="8" fill="#ebd6b2" filter="url(#blur3)"/>
+        </g>
+    </g>
+</svg>
