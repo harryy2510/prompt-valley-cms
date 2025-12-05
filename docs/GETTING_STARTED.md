@@ -5,6 +5,7 @@
 Your Refine CMS is now fully functional! Here's what has been implemented:
 
 ### Project Setup
+
 - ✅ Refine + React + Vite configured
 - ✅ Supabase data provider connected
 - ✅ Tailwind CSS ready
@@ -12,6 +13,7 @@ Your Refine CMS is now fully functional! Here's what has been implemented:
 - ✅ All dependencies installed
 
 ### Pages Created
+
 - ✅ **Dashboard** - Real-time stats with counts for all resources
 - ✅ **AI Providers** - Full CRUD with list, create, edit, delete
 - ✅ **AI Models** - Full CRUD with provider dropdown, capabilities array
@@ -20,6 +22,7 @@ Your Refine CMS is now fully functional! Here's what has been implemented:
 - ✅ **Prompts** - Complete CRUD with junction tables (tags, models)
 
 ### Features Implemented
+
 - ✅ Full CRUD operations for all 5 resources
 - ✅ Slug auto-generation from name/title
 - ✅ Delete with confirmation dialogs
@@ -36,11 +39,13 @@ Your Refine CMS is now fully functional! Here's what has been implemented:
 ## 🚀 Running the CMS
 
 The development server is already running at:
+
 ```
 http://localhost:5173/
 ```
 
 If you need to restart it:
+
 ```bash
 cd /Users/harryy/Desktop/prompt-valley-cms
 pnpm dev
@@ -51,6 +56,7 @@ pnpm dev
 The CMS is now fully functional for basic operations. Here are some optional enhancements you could add:
 
 ### 1. Advanced Features
+
 - ⚡ Search and filter functionality on list pages
 - ⚡ Bulk actions (publish/unpublish, delete multiple)
 - ⚡ Image file uploads (currently using URL inputs)
@@ -59,6 +65,7 @@ The CMS is now fully functional for basic operations. Here are some optional enh
 - ⚡ Date range filters
 
 ### 2. User Experience
+
 - ⚡ Loading states and skeleton screens
 - ⚡ Toast notifications for success/error
 - ⚡ Drag-and-drop for sort order
@@ -66,6 +73,7 @@ The CMS is now fully functional for basic operations. Here are some optional enh
 - ⚡ Duplicate prompt functionality
 
 ### 3. Data Management
+
 - ⚡ Export data (CSV, JSON)
 - ⚡ Import prompts from files
 - ⚡ Batch update operations
@@ -76,16 +84,19 @@ The CMS is now fully functional for basic operations. Here are some optional enh
 All forms are implemented using React's `useState` for form management. Here's how they work:
 
 ### Basic Pattern (AI Providers, Categories, Tags)
+
 1. **Create**: Auto-generates slug from name, inserts to database
 2. **Edit**: Loads existing data with `useOne`, updates on submit
 3. **Delete**: Confirms with user, calls `useDelete` hook
 
 ### Advanced Pattern (AI Models)
+
 - Uses `useList` to fetch related data (providers)
 - Manages array fields (capabilities) with add/remove functionality
 - Displays provider dropdown for foreign key selection
 
 ### Complex Pattern (Prompts)
+
 - Handles multiple relationships (categories, tags, models)
 - Manages junction tables (`prompt_tags`, `prompt_models`)
 - Direct Supabase client usage for complex operations
@@ -128,6 +139,7 @@ pnpm dlx shadcn-ui@latest add table
 ## ❓ Need Help?
 
 Refer to the comprehensive prompts created for you:
+
 - `REFINE_AI_PROMPT.md` - Full detailed prompt
 - `REFINE_AI_PROMPT_SHORT.md` - Concise version
 

@@ -1,402 +1,391 @@
-import { useMemo } from 'react'
+import { Link, useDelete, useNavigation, useSelect } from '@refinedev/core'
 import { useTable } from '@refinedev/react-table'
-import { type ColumnDef, type VisibilityState } from '@tanstack/react-table'
-import { Pencil, Trash2 } from 'lucide-react'
-import { useDelete, useNavigation, useSelect, Link } from '@refinedev/core'
-import {
-  ListView,
-  ListViewHeader,
-} from '@/components/refine-ui/views/list-view'
-import { DataTable } from '@/components/refine-ui/data-table/data-table'
-import { DataTableSorter } from '@/components/refine-ui/data-table/data-table-sorter'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { ActionButton } from '@/components/ui/action-button'
-import { Tables } from '@/types/database.types'
-import { startCase } from 'lodash-es'
-import {
-  DataTableExport,
-  DataTableImport,
-  ColumnMapping,
-} from '@/components/refine-ui/data-table/data-table-export-import'
-import {
-  DataTableFilterClearButton,
-  DataTableFilterCombobox,
-} from '@/components/refine-ui/data-table/data-table-filter'
-import { useLocalStorage } from 'usehooks-ts'
+import type { ColumnDef, VisibilityState } from '@tanstack/react-table'
 import dayjs from 'dayjs'
+import { startCase } from 'lodash-es'
+import { Pencil, Trash2 } from 'lucide-react'
+import { useMemo } from 'react'
+import { useLocalStorage } from 'usehooks-ts'
+
+import { DataTable } from '@/components/refine-ui/data-table/data-table'
+import {
+	DataTableExport,
+	DataTableImport
+} from '@/components/refine-ui/data-table/data-table-export-import'
+import type { ColumnMapping } from '@/components/refine-ui/data-table/data-table-export-import'
+import {
+	DataTableFilterClearButton,
+	DataTableFilterCombobox
+} from '@/components/refine-ui/data-table/data-table-filter'
+import { DataTableSorter } from '@/components/refine-ui/data-table/data-table-sorter'
+import { ListView, ListViewHeader } from '@/components/refine-ui/views/list-view'
+import { ActionButton } from '@/components/ui/action-button'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import type { Tables } from '@/types/database.types'
 import { fCurrency, fShortenNumber } from '@/utils/format'
 
 type AiModel = Tables<'ai_models'> & {
-  ai_providers: Pick<Tables<'ai_providers'>, 'id' | 'name'>
-  prompt_models: { count: number }[]
+	ai_providers: Pick<Tables<'ai_providers'>, 'id' | 'name'>
+	prompt_models: Array<{ count: number }>
 }
 
 const STORAGE_KEY = 'ai-models-column-visibility'
 
 type ExportAiModel = {
-  id: string
-  name: string
-  provider_id: string
-  provider_name: string
-  capabilities: string
-  context_window: number | null
-  max_output_tokens: number | null
-  cost_input_per_million: number | null
-  cost_output_per_million: number | null
-  created_at: string
+	capabilities: string
+	context_window: null | number
+	cost_input_per_million: null | number
+	cost_output_per_million: null | number
+	created_at: string
+	id: string
+	max_output_tokens: null | number
+	name: string
+	provider_id: string
+	provider_name: string
 }
 
-const EXPORT_COLUMNS: ColumnMapping<ExportAiModel>[] = [
-  { key: 'id', header: 'ID', example: 'gpt-4o' },
-  { key: 'name', header: 'Name', example: 'GPT-4o' },
-  { key: 'provider_id', header: 'Provider ID', example: 'openai' },
-  { key: 'provider_name', header: 'Provider Name', example: 'OpenAI' },
-  { key: 'capabilities', header: 'Capabilities', example: 'text, vision, function' },
-  { key: 'context_window', header: 'Context Window', example: '128000' },
-  { key: 'max_output_tokens', header: 'Max Output', example: '4096' },
-  { key: 'cost_input_per_million', header: 'Cost Input/1M', example: '2.50' },
-  { key: 'cost_output_per_million', header: 'Cost Output/1M', example: '10.00' },
-  { key: 'created_at', header: 'Created At', example: '' },
+const EXPORT_COLUMNS: Array<ColumnMapping<ExportAiModel>> = [
+	{ example: 'gpt-4o', header: 'ID', key: 'id' },
+	{ example: 'GPT-4o', header: 'Name', key: 'name' },
+	{ example: 'openai', header: 'Provider ID', key: 'provider_id' },
+	{ example: 'OpenAI', header: 'Provider Name', key: 'provider_name' },
+	{ example: 'text, vision, function', header: 'Capabilities', key: 'capabilities' },
+	{ example: '128000', header: 'Context Window', key: 'context_window' },
+	{ example: '4096', header: 'Max Output', key: 'max_output_tokens' },
+	{ example: '2.50', header: 'Cost Input/1M', key: 'cost_input_per_million' },
+	{ example: '10.00', header: 'Cost Output/1M', key: 'cost_output_per_million' },
+	{ example: '', header: 'Created At', key: 'created_at' }
 ]
 
-function transformModelsForExport(models: AiModel[]): ExportAiModel[] {
-  return models.map((m) => ({
-    id: m.id,
-    name: m.name,
-    provider_id: m.provider_id,
-    provider_name: m.ai_providers?.name || '',
-    capabilities: m.capabilities?.join(', ') || '',
-    context_window: m.context_window,
-    max_output_tokens: m.max_output_tokens,
-    cost_input_per_million: m.cost_input_per_million,
-    cost_output_per_million: m.cost_output_per_million,
-    created_at: m.created_at,
-  }))
+export function AiModelsList() {
+	const { edit } = useNavigation()
+	const { mutateAsync: deleteModel } = useDelete()
+	const [columnVisibility, setColumnVisibility] = useLocalStorage<VisibilityState>(STORAGE_KEY, {})
+
+	// Fetch providers for filter dropdown
+	const { options: providerOptions } = useSelect<Tables<'ai_providers'>>({
+		optionLabel: 'name',
+		optionValue: 'id',
+		pagination: { pageSize: 1000 },
+		resource: 'ai_providers'
+	})
+
+	const columns = useMemo<Array<ColumnDef<AiModel>>>(
+		() => [
+			{
+				accessorKey: 'name',
+				cell: ({ row }) => (
+					<>
+						<div className="font-medium">{row.original.name}</div>
+						<div className="text-xs text-muted-foreground font-mono">{row.original.id}</div>
+					</>
+				),
+				header: ({ column, table }) => (
+					<div className="flex items-center gap-1">
+						<span>Model</span>
+						<DataTableSorter column={column} />
+					</div>
+				),
+				id: 'name'
+			},
+			{
+				accessorKey: 'provider_id',
+				cell: ({ row }) => (
+					<>
+						<div className="font-medium">{row.original.ai_providers.name}</div>
+						<div className="text-xs text-muted-foreground font-mono">
+							{row.original.ai_providers.id}
+						</div>
+					</>
+				),
+				header: ({ column, table }) => (
+					<div className="flex items-center gap-1">
+						<span>Provider</span>
+						<DataTableSorter column={column} />
+						<DataTableFilterCombobox
+							column={column}
+							defaultOperator="eq"
+							operators={['eq']}
+							options={providerOptions}
+							table={table}
+						/>
+						<DataTableFilterClearButton column={column} />
+					</div>
+				),
+				id: 'provider_id'
+			},
+			{
+				accessorKey: 'capabilities',
+				cell: ({ getValue }) => {
+					const caps = getValue() as Array<string>
+					if (!caps?.length) {
+						return <span className="text-muted-foreground">—</span>
+					}
+					return (
+						<div className="flex flex-wrap gap-1">
+							{caps.map((cap) => (
+								<Badge className="text-xs" key={cap} variant="outline">
+									{startCase(cap)}
+								</Badge>
+							))}
+						</div>
+					)
+				},
+				enableSorting: false,
+				header: 'Capabilities',
+				id: 'capabilities'
+			},
+			{
+				accessorKey: 'context_window',
+				cell: ({ getValue }) => {
+					const value = getValue() as null | number
+					if (!value) return <span className="text-muted-foreground">—</span>
+					return <span className="text-sm tabular-nums">{fShortenNumber(value)}</span>
+				},
+				header: ({ column }) => (
+					<div className="flex items-center gap-1">
+						<span>Context Window</span>
+						<DataTableSorter column={column} />
+					</div>
+				),
+				id: 'context_window'
+			},
+			{
+				accessorKey: 'max_output_tokens',
+				cell: ({ getValue }) => {
+					const value = getValue() as null | number
+					if (!value) return <span className="text-muted-foreground">—</span>
+					return <span className="text-sm tabular-nums">{fShortenNumber(value)}</span>
+				},
+				header: ({ column }) => (
+					<div className="flex items-center gap-1">
+						<span>Max Output</span>
+						<DataTableSorter column={column} />
+					</div>
+				),
+				id: 'max_output_tokens'
+			},
+			{
+				cell: ({ row }) => {
+					const input = row.original.cost_input_per_million
+					const output = row.original.cost_output_per_million
+					if (!input && !output) {
+						return <span className="text-muted-foreground">—</span>
+					}
+					return (
+						<div className="text-sm tabular-nums">
+							<div className="flex items-center gap-1">
+								<span className="text-muted-foreground text-xs">In:</span>
+								<span>{input ? fCurrency(input) : '—'}</span>
+							</div>
+							<div className="flex items-center gap-1">
+								<span className="text-muted-foreground text-xs">Out:</span>
+								<span>{output ? fCurrency(output) : '—'}</span>
+							</div>
+						</div>
+					)
+				},
+				enableSorting: false,
+				header: 'Cost / 1M tokens',
+				id: 'cost'
+			},
+			{
+				cell: ({ row }) => {
+					const count = row.original.prompt_models?.[0]?.count ?? 0
+					if (count === 0) {
+						return <span className="text-muted-foreground">0 prompts</span>
+					}
+					const filterParams = new URLSearchParams({
+						'filters[0][field]': 'model_id',
+						'filters[0][operator]': 'eq',
+						'filters[0][value]': row.original.id
+					})
+					return (
+						<Link
+							className="text-sm font-medium text-primary hover:underline"
+							to={`/prompts?${filterParams.toString()}`}
+						>
+							{fShortenNumber(count)} {count === 1 ? 'prompt' : 'prompts'}
+						</Link>
+					)
+				},
+				enableSorting: false,
+				header: 'Prompts',
+				id: 'prompts'
+			},
+			{
+				accessorKey: 'created_at',
+				cell: ({ getValue }) => {
+					const value = getValue() as string
+					return (
+						<span className="text-sm text-muted-foreground">
+							{dayjs(value).format('DD MMM, YYYY')}
+						</span>
+					)
+				},
+				header: ({ column }) => (
+					<div className="flex items-center gap-1">
+						<span>Created</span>
+						<DataTableSorter column={column} />
+					</div>
+				),
+				id: 'created_at'
+			},
+			{
+				accessorKey: 'updated_at',
+				cell: ({ getValue }) => {
+					const value = getValue() as string
+					return (
+						<span className="text-sm text-muted-foreground">
+							{dayjs(value).format('DD MMM, YYYY')}
+						</span>
+					)
+				},
+				header: ({ column }) => (
+					<div className="flex items-center gap-1">
+						<span>Updated</span>
+						<DataTableSorter column={column} />
+					</div>
+				),
+				id: 'updated_at'
+			},
+			{
+				cell: ({ row }) => (
+					<div className="flex items-center justify-end gap-1">
+						<Button
+							className="size-8"
+							onClick={() => edit('ai_models', row.original.id)}
+							size="icon"
+							variant="ghost"
+						>
+							<Pencil className="size-4" />
+							<span className="sr-only">Edit</span>
+						</Button>
+						<ActionButton
+							action={async () => {
+								await deleteModel({
+									id: row.original.id,
+									resource: 'ai_models'
+								})
+								return { error: false }
+							}}
+							areYouSureDescription={
+								<>
+									This will permanently delete the model "{row.original.name}". This action cannot
+									be undone.
+								</>
+							}
+							areYouSureTitle="Delete AI Model?"
+							className="size-8 text-destructive"
+							confirmLabel="Delete"
+							requireAreYouSure
+							size="icon"
+							variant="ghost"
+						>
+							<Trash2 className="size-4" />
+							<span className="sr-only">Delete</span>
+						</ActionButton>
+					</div>
+				),
+				enableHiding: false,
+				enableSorting: false,
+				header: '',
+				id: 'actions',
+				size: 80
+			}
+		],
+		[edit, deleteModel, providerOptions]
+	)
+
+	const table = useTable<AiModel>({
+		columns,
+		enableMultiSort: false,
+		onColumnVisibilityChange: setColumnVisibility,
+		refineCoreProps: {
+			meta: {
+				select: '*, ai_providers(id, name), prompt_models(count)'
+			},
+			resource: 'ai_models',
+			sorters: {
+				initial: [{ field: 'created_at', order: 'desc' }]
+			}
+		},
+		state: {
+			columnVisibility
+		}
+	})
+
+	const tableData = table.refineCore.tableQuery.data?.data ?? []
+	const exportData = transformModelsForExport(tableData)
+
+	const handleImportSuccess = () => {
+		table.refineCore.tableQuery.refetch()
+	}
+
+	return (
+		<ListView>
+			<ListViewHeader
+				action={
+					<div className="flex items-center gap-2">
+						<DataTableImport<ExportAiModel>
+							columns={EXPORT_COLUMNS}
+							excludeFields={['provider_name', 'created_at']}
+							onSuccess={handleImportSuccess}
+							relationships={[
+								{
+									field: 'provider_id',
+									resource: 'ai_providers'
+								}
+							]}
+							resource="ai_models"
+							templateFilename="ai-models-template"
+							transformBeforeInsert={(row) => ({
+								...row,
+								capabilities: row.capabilities
+									? String(row.capabilities)
+											.split(',')
+											.map((s) => s.trim())
+									: []
+							})}
+						/>
+						<DataTableExport
+							columns={EXPORT_COLUMNS}
+							data={exportData}
+							filename="ai-models"
+							resource="ai_models"
+							select="*, ai_providers(id, name)"
+							transformData={(data) => transformModelsForExport(data as Array<AiModel>)}
+						/>
+					</div>
+				}
+				table={table}
+			/>
+			<DataTable
+				onDelete={async (row) => {
+					await deleteModel({
+						id: row.id,
+						resource: 'ai_models'
+					})
+				}}
+				resource="ai_models"
+				table={table}
+			/>
+		</ListView>
+	)
 }
 
-export function AiModelsList() {
-  const { edit } = useNavigation()
-  const { mutateAsync: deleteModel } = useDelete()
-  const [columnVisibility, setColumnVisibility] =
-    useLocalStorage<VisibilityState>(STORAGE_KEY, {})
-
-  // Fetch providers for filter dropdown
-  const { options: providerOptions } = useSelect<Tables<'ai_providers'>>({
-    resource: 'ai_providers',
-    optionLabel: 'name',
-    optionValue: 'id',
-    pagination: { pageSize: 1000 },
-  })
-
-  const columns = useMemo<ColumnDef<AiModel>[]>(
-    () => [
-      {
-        id: 'name',
-        accessorKey: 'name',
-        header: ({ column, table }) => (
-          <div className="flex items-center gap-1">
-            <span>Model</span>
-            <DataTableSorter column={column} />
-          </div>
-        ),
-        cell: ({ row }) => (
-          <>
-            <div className="font-medium">{row.original.name}</div>
-            <div className="text-xs text-muted-foreground font-mono">
-              {row.original.id}
-            </div>
-          </>
-        ),
-      },
-      {
-        id: 'provider_id',
-        accessorKey: 'provider_id',
-        header: ({ column, table }) => (
-          <div className="flex items-center gap-1">
-            <span>Provider</span>
-            <DataTableSorter column={column} />
-            <DataTableFilterCombobox
-              column={column}
-              options={providerOptions}
-              table={table}
-              operators={['eq']}
-              defaultOperator="eq"
-            />
-            <DataTableFilterClearButton column={column} />
-          </div>
-        ),
-        cell: ({ row }) => (
-          <>
-            <div className="font-medium">{row.original.ai_providers.name}</div>
-            <div className="text-xs text-muted-foreground font-mono">
-              {row.original.ai_providers.id}
-            </div>
-          </>
-        ),
-      },
-      {
-        id: 'capabilities',
-        accessorKey: 'capabilities',
-        header: 'Capabilities',
-        enableSorting: false,
-        cell: ({ getValue }) => {
-          const caps = getValue() as string[]
-          if (!caps?.length) {
-            return <span className="text-muted-foreground">—</span>
-          }
-          return (
-            <div className="flex flex-wrap gap-1">
-              {caps.map((cap) => (
-                <Badge key={cap} variant="outline" className="text-xs">
-                  {startCase(cap)}
-                </Badge>
-              ))}
-            </div>
-          )
-        },
-      },
-      {
-        id: 'context_window',
-        accessorKey: 'context_window',
-        header: ({ column }) => (
-          <div className="flex items-center gap-1">
-            <span>Context Window</span>
-            <DataTableSorter column={column} />
-          </div>
-        ),
-        cell: ({ getValue }) => {
-          const value = getValue() as number | null
-          if (!value) return <span className="text-muted-foreground">—</span>
-          return (
-            <span className="text-sm tabular-nums">
-              {fShortenNumber(value)}
-            </span>
-          )
-        },
-      },
-      {
-        id: 'max_output_tokens',
-        accessorKey: 'max_output_tokens',
-        header: ({ column }) => (
-          <div className="flex items-center gap-1">
-            <span>Max Output</span>
-            <DataTableSorter column={column} />
-          </div>
-        ),
-        cell: ({ getValue }) => {
-          const value = getValue() as number | null
-          if (!value) return <span className="text-muted-foreground">—</span>
-          return (
-            <span className="text-sm tabular-nums">
-              {fShortenNumber(value)}
-            </span>
-          )
-        },
-      },
-      {
-        id: 'cost',
-        header: 'Cost / 1M tokens',
-        enableSorting: false,
-        cell: ({ row }) => {
-          const input = row.original.cost_input_per_million
-          const output = row.original.cost_output_per_million
-          if (!input && !output) {
-            return <span className="text-muted-foreground">—</span>
-          }
-          return (
-            <div className="text-sm tabular-nums">
-              <div className="flex items-center gap-1">
-                <span className="text-muted-foreground text-xs">In:</span>
-                <span>{input ? fCurrency(input) : '—'}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="text-muted-foreground text-xs">Out:</span>
-                <span>{output ? fCurrency(output) : '—'}</span>
-              </div>
-            </div>
-          )
-        },
-      },
-      {
-        id: 'prompts',
-        header: 'Prompts',
-        enableSorting: false,
-        cell: ({ row }) => {
-          const count = row.original.prompt_models?.[0]?.count ?? 0
-          if (count === 0) {
-            return <span className="text-muted-foreground">0 prompts</span>
-          }
-          const filterParams = new URLSearchParams({
-            'filters[0][field]': 'model_id',
-            'filters[0][operator]': 'eq',
-            'filters[0][value]': row.original.id,
-          })
-          return (
-            <Link
-              to={`/prompts?${filterParams.toString()}`}
-              className="text-sm font-medium text-primary hover:underline"
-            >
-              {fShortenNumber(count)} {count === 1 ? 'prompt' : 'prompts'}
-            </Link>
-          )
-        },
-      },
-      {
-        id: 'created_at',
-        accessorKey: 'created_at',
-        header: ({ column }) => (
-          <div className="flex items-center gap-1">
-            <span>Created</span>
-            <DataTableSorter column={column} />
-          </div>
-        ),
-        cell: ({ getValue }) => {
-          const value = getValue() as string
-          return (
-            <span className="text-sm text-muted-foreground">
-              {dayjs(value).format('DD MMM, YYYY')}
-            </span>
-          )
-        },
-      },
-      {
-        id: 'updated_at',
-        accessorKey: 'updated_at',
-        header: ({ column }) => (
-          <div className="flex items-center gap-1">
-            <span>Updated</span>
-            <DataTableSorter column={column} />
-          </div>
-        ),
-        cell: ({ getValue }) => {
-          const value = getValue() as string
-          return (
-            <span className="text-sm text-muted-foreground">
-              {dayjs(value).format('DD MMM, YYYY')}
-            </span>
-          )
-        },
-      },
-      {
-        id: 'actions',
-        header: '',
-        enableSorting: false,
-        enableHiding: false,
-        size: 80,
-        cell: ({ row }) => (
-          <div className="flex items-center justify-end gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-8"
-              onClick={() => edit('ai_models', row.original.id)}
-            >
-              <Pencil className="size-4" />
-              <span className="sr-only">Edit</span>
-            </Button>
-            <ActionButton
-              variant="ghost"
-              size="icon"
-              className="size-8 text-destructive"
-              requireAreYouSure
-              areYouSureTitle="Delete AI Model?"
-              areYouSureDescription={
-                <>
-                  This will permanently delete the model "{row.original.name}".
-                  This action cannot be undone.
-                </>
-              }
-              confirmLabel="Delete"
-              action={async () => {
-                await deleteModel({
-                  resource: 'ai_models',
-                  id: row.original.id,
-                })
-                return { error: false }
-              }}
-            >
-              <Trash2 className="size-4" />
-              <span className="sr-only">Delete</span>
-            </ActionButton>
-          </div>
-        ),
-      },
-    ],
-    [edit, deleteModel, providerOptions],
-  )
-
-  const table = useTable<AiModel>({
-    enableMultiSort: false,
-    columns,
-    state: {
-      columnVisibility,
-    },
-    onColumnVisibilityChange: setColumnVisibility,
-    refineCoreProps: {
-      resource: 'ai_models',
-      meta: {
-        select: '*, ai_providers(id, name), prompt_models(count)',
-      },
-      sorters: {
-        initial: [{ field: 'created_at', order: 'desc' }],
-      },
-    },
-  })
-
-  const tableData = table.refineCore.tableQuery.data?.data ?? []
-  const exportData = transformModelsForExport(tableData)
-
-  const handleImportSuccess = () => {
-    table.refineCore.tableQuery.refetch()
-  }
-
-  return (
-    <ListView>
-      <ListViewHeader
-        table={table}
-        action={
-          <div className="flex items-center gap-2">
-            <DataTableImport<ExportAiModel>
-              resource="ai_models"
-              columns={EXPORT_COLUMNS}
-              templateFilename="ai-models-template"
-              onSuccess={handleImportSuccess}
-              relationships={[
-                {
-                  field: 'provider_id',
-                  resource: 'ai_providers',
-                },
-              ]}
-              excludeFields={['provider_name', 'created_at']}
-              transformBeforeInsert={(row) => ({
-                ...row,
-                capabilities: row.capabilities
-                  ? String(row.capabilities).split(',').map((s) => s.trim())
-                  : [],
-              })}
-            />
-            <DataTableExport
-              data={exportData}
-              filename="ai-models"
-              columns={EXPORT_COLUMNS}
-              resource="ai_models"
-              select="*, ai_providers(id, name)"
-              transformData={(data) => transformModelsForExport(data as AiModel[])}
-            />
-          </div>
-        }
-      />
-      <DataTable
-        table={table}
-        resource="ai_models"
-        onDelete={async (row) => {
-          await deleteModel({
-            resource: 'ai_models',
-            id: row.id,
-          })
-        }}
-      />
-    </ListView>
-  )
+function transformModelsForExport(models: Array<AiModel>): Array<ExportAiModel> {
+	return models.map((m) => ({
+		capabilities: m.capabilities?.join(', ') || '',
+		context_window: m.context_window,
+		cost_input_per_million: m.cost_input_per_million,
+		cost_output_per_million: m.cost_output_per_million,
+		created_at: m.created_at,
+		id: m.id,
+		max_output_tokens: m.max_output_tokens,
+		name: m.name,
+		provider_id: m.provider_id,
+		provider_name: m.ai_providers?.name || ''
+	}))
 }

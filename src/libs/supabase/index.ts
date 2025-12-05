@@ -1,2 +1,2 @@
 export { getSupabaseBrowserClient } from './client'
-export { getSupabaseServerClient, getSupabaseServerAuthClient } from './server'
+export { getSupabaseServerAuthClient, getSupabaseServerClient } from './server'

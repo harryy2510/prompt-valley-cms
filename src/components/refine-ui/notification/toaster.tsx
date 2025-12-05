@@ -1,21 +1,23 @@
-import { Toaster as Sonner, type ToasterProps } from 'sonner'
+import { Toaster as Sonner } from 'sonner'
+import type { ToasterProps } from 'sonner'
+
 import { useTheme } from '@/components/refine-ui/theme/theme-provider'
 
 export function Toaster({ ...props }: ToasterProps) {
-  const { theme = 'system' } = useTheme()
+	const { theme = 'system' } = useTheme()
 
-  return (
-    <Sonner
-      theme={theme as ToasterProps['theme']}
-      className="toaster group"
-      style={
-        {
-          '--normal-bg': 'var(--popover)',
-          '--normal-text': 'var(--popover-foreground)',
-          '--normal-border': 'var(--border)',
-        } as React.CSSProperties
-      }
-      {...props}
-    />
-  )
+	return (
+		<Sonner
+			className="toaster group"
+			style={
+				{
+					'--normal-bg': 'var(--popover)',
+					'--normal-border': 'var(--border)',
+					'--normal-text': 'var(--popover-foreground)'
+				} as React.CSSProperties
+			}
+			theme={theme as ToasterProps['theme']}
+			{...props}
+		/>
+	)
 }

@@ -1,9 +1,11 @@
 # Refine AI Prompt: Build PromptValley CMS
 
 ## Project Overview
+
 Build a complete admin CMS for managing a prompt library SaaS called "PromptValley". This is a content management system for AI prompts across multiple platforms (ChatGPT, Claude, Gemini, etc.).
 
 ## Tech Stack Requirements
+
 - **Framework**: Refine + React + Vite
 - **Data Provider**: Supabase (@refinedev/supabase)
 - **Router**: React Router v7
@@ -12,6 +14,7 @@ Build a complete admin CMS for managing a prompt library SaaS called "PromptVall
 - **TypeScript**: Enabled
 
 ## Supabase Connection Details
+
 ```env
 VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
@@ -20,7 +23,9 @@ VITE_SUPABASE_ANON_KEY=
 ## Database Schema
 
 ### 1. AI Providers Table
+
 **Table**: `ai_providers`
+
 - `id` (TEXT PRIMARY KEY) - slug-based (e.g., "openai", "google")
 - `name` (TEXT NOT NULL UNIQUE) - Display name
 - `logo_url` (TEXT) - Logo image URL
@@ -29,7 +34,9 @@ VITE_SUPABASE_ANON_KEY=
 - `updated_at` (TIMESTAMPTZ)
 
 ### 2. AI Models Table
+
 **Table**: `ai_models`
+
 - `id` (TEXT PRIMARY KEY) - slug-based (e.g., "gpt-4", "claude-3-opus")
 - `name` (TEXT NOT NULL) - Display name
 - `provider_id` (TEXT REFERENCES ai_providers(id))
@@ -41,7 +48,9 @@ VITE_SUPABASE_ANON_KEY=
 - `updated_at` (TIMESTAMPTZ)
 
 ### 3. Categories Table
+
 **Table**: `categories`
+
 - `id` (TEXT PRIMARY KEY) - slug-based (e.g., "linkedin-prompts", "image-generation")
 - `name` (TEXT NOT NULL UNIQUE) - Display name
 - `description` (TEXT)
@@ -51,14 +60,18 @@ VITE_SUPABASE_ANON_KEY=
 - `updated_at` (TIMESTAMPTZ)
 
 ### 4. Tags Table
+
 **Table**: `tags`
+
 - `id` (TEXT PRIMARY KEY) - slug-based (e.g., "content-marketing", "seo")
 - `name` (TEXT NOT NULL UNIQUE) - Display name
 - `created_at` (TIMESTAMPTZ)
 - `updated_at` (TIMESTAMPTZ)
 
 ### 5. Prompts Table
+
 **Table**: `prompts`
+
 - `id` (TEXT PRIMARY KEY) - slug-based (e.g., "linkedin-about-generator")
 - `title` (TEXT NOT NULL) - Prompt title
 - `description` (TEXT) - Brief description
@@ -78,14 +91,18 @@ VITE_SUPABASE_ANON_KEY=
 - `published_at` (TIMESTAMPTZ)
 
 ### 6. Prompt Tags (Junction Table)
+
 **Table**: `prompt_tags`
+
 - `prompt_id` (TEXT REFERENCES prompts(id) ON DELETE CASCADE)
 - `tag_id` (TEXT REFERENCES tags(id) ON DELETE CASCADE)
 - `created_at` (TIMESTAMPTZ)
 - PRIMARY KEY: (prompt_id, tag_id)
 
 ### 7. Prompt Models (Junction Table)
+
 **Table**: `prompt_models`
+
 - `prompt_id` (TEXT REFERENCES prompts(id) ON DELETE CASCADE)
 - `model_id` (TEXT REFERENCES ai_models(id) ON DELETE CASCADE)
 - `created_at` (TIMESTAMPTZ)
@@ -94,6 +111,7 @@ VITE_SUPABASE_ANON_KEY=
 ## Key Features to Implement
 
 ### 1. Dashboard (Home Page)
+
 - Quick stats cards:
   - Total prompts (published/draft)
   - Total categories
@@ -103,26 +121,32 @@ VITE_SUPABASE_ANON_KEY=
 - Quick actions (Create Prompt, Add Category, etc.)
 
 ### 2. AI Providers Resource
+
 **List Page:**
+
 - Data table with columns: Logo, Name, Website, Created Date, Actions
 - Search by name
 - Create/Edit/Delete actions
 - Inline logo preview
 
 **Create/Edit Form:**
+
 - Name field (auto-generates slug ID)
 - Logo URL input with image preview
 - Website URL input
 - Form validation
 
 ### 3. AI Models Resource
+
 **List Page:**
+
 - Data table with: Name, Provider, Context Window, Active Status, Actions
 - Filter by provider
 - Filter by active/inactive
 - Search by name
 
 **Create/Edit Form:**
+
 - Name field (auto-generates slug ID)
 - Provider select (dropdown from ai_providers)
 - Description textarea
@@ -132,12 +156,15 @@ VITE_SUPABASE_ANON_KEY=
 - Form validation
 
 ### 4. Categories Resource
+
 **List Page:**
+
 - Data table with: Icon, Name, Description, Sort Order, Actions
 - Drag-and-drop reordering support (optional)
 - Search by name
 
 **Create/Edit Form:**
+
 - Name field (auto-generates slug ID)
 - Description textarea
 - Icon picker/input
@@ -145,17 +172,22 @@ VITE_SUPABASE_ANON_KEY=
 - Form validation
 
 ### 5. Tags Resource
+
 **List Page:**
+
 - Data table with: Name, Created Date, Prompt Count (optional), Actions
 - Search by name
 - Bulk delete option
 
 **Create/Edit Form:**
+
 - Name field (auto-generates slug ID)
 - Simple form with validation
 
 ### 6. Prompts Resource (Most Complex)
+
 **List Page:**
+
 - Data table with: Title, Category, Tier Badge, Status (published/draft), Views, Actions
 - Filter by:
   - Category (dropdown)
@@ -165,6 +197,7 @@ VITE_SUPABASE_ANON_KEY=
 - Bulk actions (publish/unpublish, feature/unfeature)
 
 **Create/Edit Form:**
+
 - Title field (auto-generates slug ID)
 - Description textarea
 - Content textarea (large, main prompt text)
@@ -179,6 +212,7 @@ VITE_SUPABASE_ANON_KEY=
 - Rich preview of the prompt
 
 **Show/Detail Page:**
+
 - Full prompt display
 - Associated tags, models, category
 - Engagement metrics (views, saves, copies)
@@ -187,36 +221,44 @@ VITE_SUPABASE_ANON_KEY=
 ## Important Implementation Notes
 
 ### Slug-Based Primary Keys
+
 All main tables use TEXT slugs as primary keys instead of UUIDs:
+
 - Auto-generate slugs from `name` or `title` fields
 - Format: lowercase, hyphens, alphanumeric only
 - Example: "GPT-4 Turbo" → "gpt-4-turbo"
 - Show slug field as readonly/disabled on edit forms
 
 ### Junction Tables (Many-to-Many)
+
 - **prompt_tags**: Connect prompts to multiple tags
 - **prompt_models**: Connect prompts to multiple AI models
 - Use Refine's relation features to handle these properly
 - Create UI for multi-select in forms
 
 ### Tier-Based Access
+
 - Prompts have a `tier` field: 'free' or 'pro'
 - Display with visual badge/chip
 - Color code: Blue for free, Purple for pro
 
 ### RLS Policies
+
 The database has Row Level Security enabled:
+
 - Service role key required for admin operations
 - All tables have admin policies for full CRUD
 - For development, use service role key
 
 ### Form Behavior
+
 - **Slug Generation**: When creating new records, generate slug from name/title automatically
 - **Slug Display**: On edit forms, show slug as readonly field
 - **Timestamps**: `created_at` and `updated_at` are auto-managed by database triggers
 - **Published Date**: Auto-set `published_at` when `is_published` changes to true
 
 ### UI/UX Requirements
+
 - Clean, modern interface using Shadcn/UI components
 - Responsive design (works on mobile/tablet/desktop)
 - Loading states and error handling
@@ -227,15 +269,18 @@ The database has Row Level Security enabled:
 ## Refine Configuration
 
 ### Data Provider Setup
+
 ```typescript
-import { dataProvider } from "@refinedev/supabase";
-import { supabaseClient } from "./utility";
+import { dataProvider } from '@refinedev/supabase'
+import { supabaseClient } from './utility'
 
 dataProvider(supabaseClient)
 ```
 
 ### Resource Configuration
+
 Define all 5 main resources:
+
 1. `ai-providers` (or `ai_providers`)
 2. `ai-models` (or `ai_models`)
 3. `categories`
@@ -243,17 +288,20 @@ Define all 5 main resources:
 5. `prompts`
 
 Each resource should have:
+
 - `list` - Data table page
 - `create` - Create form
 - `edit` - Edit form
 - `show` - Detail view (especially for prompts)
 
 ### Authentication
+
 - Use Supabase Auth integration
 - Admin-only access (check user role or use service_role)
 - Login/logout pages
 
 ## File Structure Suggestion
+
 ```
 src/
 ├── App.tsx (Main Refine setup)
@@ -288,7 +336,9 @@ src/
 ```
 
 ## Testing Checklist
+
 After implementation, verify:
+
 - [ ] Can create/edit/delete AI providers
 - [ ] Can create/edit/delete AI models with provider relationship
 - [ ] Can create/edit/delete categories
@@ -305,6 +355,7 @@ After implementation, verify:
 - [ ] Dashboard stats display correctly
 
 ## Additional Features (Nice to Have)
+
 - Bulk import prompts from CSV/JSON
 - Duplicate prompt functionality
 - Prompt template/clone feature
@@ -314,6 +365,7 @@ After implementation, verify:
 - Export functionality (CSV, JSON)
 
 ## Questions to Consider
+
 - Should there be user management in the CMS?
 - Do you need approval workflows for publishing?
 - Should there be version history for prompts?

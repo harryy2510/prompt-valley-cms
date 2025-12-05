@@ -1,10 +1,10 @@
-import { useEffect } from 'react'
 import { useWarnAboutChange } from '@refinedev/core'
+import { useEffect } from 'react'
 import type { FieldValues, FormState } from 'react-hook-form'
 
-interface UseUnsavedChangesWarningOptions<T extends FieldValues> {
-  /** The form state from react-hook-form */
-  formState: FormState<T>
+type UseUnsavedChangesWarningOptions<T extends FieldValues> = {
+	/** The form state from react-hook-form */
+	formState: FormState<T>
 }
 
 /**
@@ -26,22 +26,22 @@ interface UseUnsavedChangesWarningOptions<T extends FieldValues> {
  * ```
  */
 export function useUnsavedChangesWarning<T extends FieldValues>({
-  formState,
+	formState
 }: UseUnsavedChangesWarningOptions<T>) {
-  const { setWarnWhen } = useWarnAboutChange()
+	const { setWarnWhen } = useWarnAboutChange()
 
-  // Check if any fields have been modified by the user
-  const hasDirtyFields = Object.keys(formState.dirtyFields).length > 0
+	// Check if any fields have been modified by the user
+	const hasDirtyFields = Object.keys(formState.dirtyFields).length > 0
 
-  // Sync form dirty state with Refine's warning system
-  useEffect(() => {
-    setWarnWhen(hasDirtyFields)
-  }, [hasDirtyFields, setWarnWhen])
+	// Sync form dirty state with Refine's warning system
+	useEffect(() => {
+		setWarnWhen(hasDirtyFields)
+	}, [hasDirtyFields, setWarnWhen])
 
-  // Clean up on unmount
-  useEffect(() => {
-    return () => {
-      setWarnWhen(false)
-    }
-  }, [setWarnWhen])
+	// Clean up on unmount
+	useEffect(() => {
+		return () => {
+			setWarnWhen(false)
+		}
+	}, [setWarnWhen])
 }

@@ -1,150 +1,150 @@
 import type { AuthProvider } from '@refinedev/core'
 
 import {
-  fetchSessionServer,
-  getUserServer,
-  sendOtpServer,
-  signOutServer,
-  verifyOtpServer,
+	fetchSessionServer,
+	getUserServer,
+	sendOtpServer,
+	signOutServer,
+	verifyOtpServer
 } from '@/actions/auth'
 
 export const authProvider: AuthProvider = {
-  login: async ({ email, otp }) => {
-    try {
-      // Step 1: Send OTP if no token provided
-      if (!otp) {
-        const result = await sendOtpServer({ data: { email } })
+	check: async () => {
+		const session = await fetchSessionServer()
 
-        if (!result.success) {
-          return {
-            success: false,
-            error: {
-              name: 'LoginError',
-              message: result.error,
-            },
-          }
-        }
+		if (session) {
+			return {
+				authenticated: true
+			}
+		}
 
-        return {
-          success: true,
-        }
-      }
+		return {
+			authenticated: false,
+			logout: true,
+			redirectTo: '/login'
+		}
+	},
 
-      // Step 2: Verify OTP
-      const result = await verifyOtpServer({ data: { email, token: otp } })
+	forgotPassword: async () => {
+		return {
+			error: {
+				message: 'Please use the login form to sign up.',
+				name: 'ForgotPasswordError'
+			},
+			success: false
+		}
+	},
 
-      if (!result.success) {
-        return {
-          success: false,
-          error: {
-            name: 'LoginError',
-            message: result.error,
-          },
-        }
-      }
+	getIdentity: async () => {
+		const user = await getUserServer()
 
-      return {
-        success: true,
-        redirectTo: '/',
-      }
-    } catch (e: any) {
-      return {
-        success: false,
-        error: {
-          name: 'LoginError',
-          message: e.message || 'Login failed',
-        },
-      }
-    }
-  },
+		if (user) {
+			return {
+				avatar: user.user_metadata?.avatar_url,
+				email: user.email,
+				id: user.id,
+				name: user.user_metadata?.full_name || user.email
+			}
+		}
 
-  logout: async () => {
-    const result = await signOutServer()
+		return null
+	},
 
-    if (!result.success) {
-      return {
-        success: false,
-        error: {
-          name: 'LogoutError',
-          message: result.error,
-        },
-      }
-    }
+	getPermissions: async () => {
+		const user = await getUserServer()
+		return (user?.app_metadata?.role as 'admin' | 'user') || null
+	},
 
-    return {
-      success: true,
-      redirectTo: '/login',
-    }
-  },
+	login: async ({ email, otp }) => {
+		try {
+			// Step 1: Send OTP if no token provided
+			if (!otp) {
+				const result = await sendOtpServer({ data: { email } })
 
-  check: async () => {
-    const session = await fetchSessionServer()
+				if (!result.success) {
+					return {
+						error: {
+							message: result.error,
+							name: 'LoginError'
+						},
+						success: false
+					}
+				}
 
-    if (session) {
-      return {
-        authenticated: true,
-      }
-    }
+				return {
+					success: true
+				}
+			}
 
-    return {
-      authenticated: false,
-      redirectTo: '/login',
-      logout: true,
-    }
-  },
+			// Step 2: Verify OTP
+			const result = await verifyOtpServer({ data: { email, token: otp } })
 
-  getPermissions: async () => {
-    const user = await getUserServer()
-    return (user?.app_metadata?.role as 'admin' | 'user') || null
-  },
+			if (!result.success) {
+				return {
+					error: {
+						message: result.error,
+						name: 'LoginError'
+					},
+					success: false
+				}
+			}
 
-  getIdentity: async () => {
-    const user = await getUserServer()
+			return {
+				redirectTo: '/',
+				success: true
+			}
+		} catch (e: any) {
+			return {
+				error: {
+					message: e.message || 'Login failed',
+					name: 'LoginError'
+				},
+				success: false
+			}
+		}
+	},
 
-    if (user) {
-      return {
-        id: user.id,
-        name: user.user_metadata?.full_name || user.email,
-        email: user.email,
-        avatar: user.user_metadata?.avatar_url,
-      }
-    }
+	logout: async () => {
+		const result = await signOutServer()
 
-    return null
-  },
+		if (!result.success) {
+			return {
+				error: {
+					message: result.error,
+					name: 'LogoutError'
+				},
+				success: false
+			}
+		}
 
-  onError: async (error) => {
-    console.error(error)
-    return { error }
-  },
+		return {
+			redirectTo: '/login',
+			success: true
+		}
+	},
 
-  register: async () => {
-    return {
-      success: false,
-      error: {
-        name: 'RegisterError',
-        message: 'Please use the login form to sign up.',
-      },
-    }
-  },
+	onError: async (error) => {
+		console.error(error)
+		return { error }
+	},
 
-  forgotPassword: async () => {
-    return {
-      success: false,
-      error: {
-        name: 'ForgotPasswordError',
-        message: 'Please use the login form to sign up.',
-      },
-    }
-  },
+	register: async () => {
+		return {
+			error: {
+				message: 'Please use the login form to sign up.',
+				name: 'RegisterError'
+			},
+			success: false
+		}
+	},
 
-  updatePassword: async () => {
-    return {
-      success: false,
-      error: {
-        name: 'UpdatePasswordError',
-        message: 'Please use the login form to sign up.',
-      },
-    }
-  },
+	updatePassword: async () => {
+		return {
+			error: {
+				message: 'Please use the login form to sign up.',
+				name: 'UpdatePasswordError'
+			},
+			success: false
+		}
+	}
 }

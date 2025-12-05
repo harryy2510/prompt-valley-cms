@@ -16,8 +16,8 @@ In all list pages (`ai-providers`, `ai-models`, `categories`), the `useTable` ho
 
 ```typescript
 const table = useTable<Type>({
-  columns,
-  refineCoreProps: { resource: 'resource_name' },
+	columns,
+	refineCoreProps: { resource: 'resource_name' }
 })
 
 // Then use:
@@ -65,21 +65,21 @@ const table = useTable<Type>({
 
 ```typescript
 const schema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1),
+	id: z.string().min(1),
+	name: z.string().min(1)
 })
 
 const {
-  refineCore: { onFinish, formLoading },
-  ...form
+	refineCore: { onFinish, formLoading },
+	...form
 } = useForm<z.infer<typeof schema>>({
-  resolver: zodResolver(schema),
-  defaultValues: { id: '', name: '' },
-  refineCoreProps: {
-    resource: 'resource_name',
-    action: 'create', // or 'edit'
-    redirect: 'list',
-  },
+	resolver: zodResolver(schema),
+	defaultValues: { id: '', name: '' },
+	refineCoreProps: {
+		resource: 'resource_name',
+		action: 'create', // or 'edit'
+		redirect: 'list'
+	}
 })
 ```
 
@@ -292,8 +292,8 @@ import { LoadingOverlay } from '@/components/refine-ui/layout/loading-overlay'
 
 ```typescript
 const schema = z.object({
-  id: z.string().min(1, 'ID is required'),
-  name: z.string().min(1, 'Name is required'),
+	id: z.string().min(1, 'ID is required'),
+	name: z.string().min(1, 'Name is required')
 })
 ```
 
@@ -301,10 +301,10 @@ const schema = z.object({
 
 ```typescript
 const schema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1),
-  description: z.string().optional(),
-  website_url: z.string().url().optional().or(z.literal('')),
+	id: z.string().min(1),
+	name: z.string().min(1),
+	description: z.string().optional(),
+	website_url: z.string().url().optional().or(z.literal(''))
 })
 ```
 
@@ -312,9 +312,9 @@ const schema = z.object({
 
 ```typescript
 const schema = z.object({
-  id: z.string().min(1),
-  price: z.coerce.number().positive().optional().nullable(),
-  quantity: z.coerce.number().int().min(0),
+	id: z.string().min(1),
+	price: z.coerce.number().positive().optional().nullable(),
+	quantity: z.coerce.number().int().min(0)
 })
 ```
 
@@ -322,9 +322,9 @@ const schema = z.object({
 
 ```typescript
 const schema = z.object({
-  id: z.string().min(1),
-  tags: z.array(z.string()).default([]),
-  capabilities: z.array(z.string()).min(1, 'At least one required'),
+	id: z.string().min(1),
+	tags: z.array(z.string()).default([]),
+	capabilities: z.array(z.string()).min(1, 'At least one required')
 })
 ```
 
@@ -356,7 +356,7 @@ const table = useTable({ columns, refineCoreProps: { resource } })
 import { useForm } from '@refinedev/react-hook-form'
 
 const { refineCore, ...form } = useForm({
-  /* config */
+	/* config */
 })
 // refineCore has: onFinish, formLoading, query (for edit)
 // form has: control, handleSubmit, setValue, getValues, watch, etc.
@@ -385,52 +385,46 @@ import * as z from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-  FormDescription,
+	Form,
+	FormControl,
+	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage,
+	FormDescription
 } from '@/components/ui/form'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow
 } from '@/components/ui/table'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle
 } from '@/components/ui/alert-dialog'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue
 } from '@/components/ui/select'
 
 // Icons

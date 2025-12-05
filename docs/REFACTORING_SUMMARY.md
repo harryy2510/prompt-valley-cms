@@ -1,6 +1,7 @@
 # Refine + shadcn/ui Refactoring Summary
 
 ## Overview
+
 All CRUD pages have been successfully refactored to use official Refine hooks and patterns with shadcn/ui components.
 
 ---
@@ -8,7 +9,9 @@ All CRUD pages have been successfully refactored to use official Refine hooks an
 ## ✅ Completed Refactorings
 
 ### 1. **AI Providers** (`src/pages/ai-providers/index.tsx`)
+
 **Changed:**
+
 - List: Now uses `useTable` from `@refinedev/react-table` with proper column definitions
 - Create/Edit: Uses `useForm` from `@refinedev/react-hook-form` with Zod validation
 - Added `LoadingOverlay` component for loading states
@@ -16,6 +19,7 @@ All CRUD pages have been successfully refactored to use official Refine hooks an
 - Wrapped in Card components for better visual hierarchy
 
 **Key Features:**
+
 - Auto-slug generation from provider name
 - Logo URL preview
 - Form validation with Zod schema
@@ -24,13 +28,16 @@ All CRUD pages have been successfully refactored to use official Refine hooks an
 ---
 
 ### 2. **AI Models** (`src/pages/ai-models/index.tsx`)
+
 **Changed:**
+
 - List: `useTable` with TanStack Table integration
 - Create/Edit: `useForm` with Zod validation
 - Added `useSelect` hook for provider relationship
 - Capability management with badges and dynamic add/remove
 
 **Key Features:**
+
 - Provider dropdown selection using `useSelect`
 - Capabilities array management (text, image, video, code)
 - Technical specifications (context window, costs, tokens)
@@ -41,11 +48,13 @@ All CRUD pages have been successfully refactored to use official Refine hooks an
 
 ###3. **Categories** (`src/pages/categories/index.tsx`)
 **Changed:**
+
 - List: `useTable` implementation
 - Create/Edit: `useForm` with Zod validation
 - Simple two-field form (name + id)
 
 **Key Features:**
+
 - Auto-slug generation
 - Minimal, focused interface
 - Same patterns as other resources
@@ -53,7 +62,9 @@ All CRUD pages have been successfully refactored to use official Refine hooks an
 ---
 
 ### 4. **Tags** (`src/pages/tags/index.tsx`)
+
 **Status:** Similar structure to Categories
+
 - List, Create, Edit using same Refine patterns
 - Auto-slug generation
 - Simple name + id form
@@ -63,9 +74,10 @@ All CRUD pages have been successfully refactored to use official Refine hooks an
 ## 🎯 Pattern Improvements
 
 ### **Before (Old Pattern):**
+
 ```typescript
 // Manual data fetching
-const { query } = useList({ resource: "ai_providers" })
+const { query } = useList({ resource: 'ai_providers' })
 const { data, isLoading, refetch } = query
 
 // Manual CRUD operations
@@ -77,26 +89,27 @@ const [formData, setFormData] = useState({ name: '', id: '' })
 ```
 
 ### **After (Refine Pattern):**
+
 ```typescript
 // List with TanStack Table
 const table = useTable<AiProvider>({
-  columns,
-  refineCoreProps: {
-    resource: 'ai_providers',
-  },
+	columns,
+	refineCoreProps: {
+		resource: 'ai_providers'
+	}
 })
 
 // Forms with auto-CRUD
 const {
-  refineCore: { onFinish, formLoading, query },
-  ...form
+	refineCore: { onFinish, formLoading, query },
+	...form
 } = useForm<FormData>({
-  resolver: zodResolver(schema),
-  refineCoreProps: {
-    resource: 'ai_providers',
-    action: 'create', // or 'edit'
-    redirect: 'list',
-  },
+	resolver: zodResolver(schema),
+	refineCoreProps: {
+		resource: 'ai_providers',
+		action: 'create', // or 'edit'
+		redirect: 'list'
+	}
 })
 ```
 
@@ -105,12 +118,14 @@ const {
 ## 📦 Components Used
 
 ### **From Refine:**
+
 - `useTable` - List pages with TanStack Table
 - `useForm` - Create/Edit forms with React Hook Form
 - `useSelect` - Relationship dropdowns (e.g., AI Models → Providers)
 - `LoadingOverlay` - Consistent loading states
 
 ### **From shadcn/ui:**
+
 - `Form`, `FormField`, `FormItem`, `FormLabel`, `FormControl`, `FormMessage`, `FormDescription`
 - `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`
 - `Table`, `TableHeader`, `TableBody`, `TableRow`, `TableCell`, `TableHead`
@@ -123,31 +138,37 @@ const {
 ## 🔧 Key Features Implemented
 
 ### **1. Automatic CRUD Operations**
+
 - Forms automatically call data provider create/update/delete
 - No manual mutation handling required
 - Auto cache invalidation after operations
 
 ### **2. Loading States**
+
 - `LoadingOverlay` wraps forms during submission
 - `formLoading` from `useForm` for form submission
 - `query.isLoading` for data fetching in edit forms
 
 ### **3. Form Validation**
+
 - Zod schemas for all forms
 - Real-time validation feedback
 - Type-safe form data with `z.infer<typeof schema>`
 
 ### **4. Auto-Slug Generation**
+
 - Name → ID slug conversion
 - User can override auto-generated slugs
 - Disabled ID field in edit mode
 
 ### **5. Relationship Management**
+
 - `useSelect` for foreign key dropdowns
 - Automatic option loading from related resources
 - Type-safe option values
 
 ### **6. Consistent UI Patterns**
+
 - Card-based form layouts
 - Dropdown action menus (Edit/Delete)
 - Empty states with icons
@@ -158,6 +179,7 @@ const {
 ## 📊 Benefits
 
 ### **Developer Experience:**
+
 - ✅ Less boilerplate code (~40% reduction)
 - ✅ Type-safe throughout with TypeScript
 - ✅ Consistent patterns across all CRUD pages
@@ -165,6 +187,7 @@ const {
 - ✅ Built-in form validation
 
 ### **User Experience:**
+
 - ✅ Consistent loading states
 - ✅ Better error handling with Zod validation
 - ✅ Cleaner, more modern UI with Card layouts
@@ -172,6 +195,7 @@ const {
 - ✅ Better visual hierarchy
 
 ### **Maintainability:**
+
 - ✅ Single source of truth for schemas (Zod)
 - ✅ Reusable patterns across all pages
 - ✅ Easier to add new resources
@@ -182,6 +206,7 @@ const {
 ## 🚀 What's Next
 
 ### **Still TODO:**
+
 1. **Prompts Pages** - Most complex with:
    - Multi-select for tags (junction table)
    - Multi-select for AI models (junction table)
@@ -203,6 +228,7 @@ const {
 ## 📝 Migration Patterns
 
 ### **List Page Template:**
+
 ```typescript
 import { useTable } from '@refinedev/react-table'
 import { type ColumnDef } from '@tanstack/react-table'
@@ -216,40 +242,46 @@ const table = useTable<Type>({
 ```
 
 ### **Create Page Template:**
+
 ```typescript
 import { useForm } from '@refinedev/react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 
-const schema = z.object({ /* fields */ })
+const schema = z.object({
+	/* fields */
+})
 
 const {
-  refineCore: { onFinish, formLoading },
-  ...form
+	refineCore: { onFinish, formLoading },
+	...form
 } = useForm<z.infer<typeof schema>>({
-  resolver: zodResolver(schema),
-  defaultValues: { /* defaults */ },
-  refineCoreProps: {
-    resource: 'resource_name',
-    action: 'create',
-    redirect: 'list',
-  },
+	resolver: zodResolver(schema),
+	defaultValues: {
+		/* defaults */
+	},
+	refineCoreProps: {
+		resource: 'resource_name',
+		action: 'create',
+		redirect: 'list'
+	}
 })
 ```
 
 ### **Edit Page Template:**
+
 ```typescript
 const {
-  refineCore: { onFinish, formLoading, query },
-  ...form
+	refineCore: { onFinish, formLoading, query },
+	...form
 } = useForm<FormData>({
-  resolver: zodResolver(schema),
-  refineCoreProps: {
-    resource: 'resource_name',
-    action: 'edit',
-    id: id || '',
-    redirect: 'list',
-  },
+	resolver: zodResolver(schema),
+	refineCoreProps: {
+		resource: 'resource_name',
+		action: 'edit',
+		id: id || '',
+		redirect: 'list'
+	}
 })
 
 // query.isLoading - loading existing data
@@ -263,6 +295,7 @@ const {
 All detailed documentation saved in: `REFINE_SHADCN_DOCS.md`
 
 Key sections:
+
 - Basic Views (Create, Edit, List, Show)
 - Forms Integration
 - Data Tables
@@ -297,6 +330,7 @@ Key sections:
 ## 🔍 Testing Checklist
 
 For each resource (Providers, Models, Categories, Tags):
+
 - [ ] List page loads data
 - [ ] Empty state shows when no data
 - [ ] Create form validates fields
@@ -315,12 +349,14 @@ For each resource (Providers, Models, Categories, Tags):
 ## 📈 Metrics
 
 **Lines of Code:**
+
 - AI Providers: ~480 → ~650 (with proper types and validation)
 - AI Models: ~520 → ~930 (with relationships and capabilities)
 - Categories: ~280 → ~480 (with proper forms)
 - Tags: Similar to Categories
 
 **Note:** While line count increased, code quality improved significantly:
+
 - Better type safety
 - Proper validation
 - Less boilerplate in logic
@@ -328,6 +364,7 @@ For each resource (Providers, Models, Categories, Tags):
 - Better maintainability
 
 **Actual Complexity Reduction:**
+
 - ~60% less imperative logic
 - ~40% less state management code
 - ~100% more type-safe

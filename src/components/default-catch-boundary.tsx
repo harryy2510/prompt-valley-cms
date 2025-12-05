@@ -1,6 +1,6 @@
 import { ErrorComponent, Link, rootRouteId, useMatch, useRouter } from '@tanstack/react-router'
 import type { ErrorComponentProps } from '@tanstack/react-router'
-import { Bug, ArrowLeft, Home, RefreshCw, Skull } from 'lucide-react'
+import { ArrowLeft, Bug, Home, RefreshCw, Skull } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 
@@ -37,20 +37,25 @@ export function DefaultCatchBoundary({ error }: ErrorComponentProps) {
 
 			{/* Action Buttons */}
 			<div className="flex flex-wrap gap-3 justify-center">
-				<Button onClick={() => router.invalidate()} size="lg" variant="default" className="gap-2">
+				<Button className="gap-2" onClick={() => router.invalidate()} size="lg" variant="default">
 					<RefreshCw className="size-4" />
 					Smash that retry button
 				</Button>
 
 				{isRoot ? (
-					<Button asChild size="lg" variant="outline" className="gap-2">
+					<Button asChild className="gap-2" size="lg" variant="outline">
 						<Link to="/">
 							<Home className="size-4" />
 							Take me home
 						</Link>
 					</Button>
 				) : (
-					<Button onClick={() => window.history.back()} size="lg" variant="outline" className="gap-2">
+					<Button
+						className="gap-2"
+						onClick={() => window.history.back()}
+						size="lg"
+						variant="outline"
+					>
 						<ArrowLeft className="size-4" />
 						Nope, go back
 					</Button>

@@ -1,19 +1,19 @@
 import type {
-  DataProvider,
-  BaseRecord,
-  GetListParams,
-  GetOneParams,
-  CreateParams,
-  UpdateParams,
-  DeleteOneParams,
+	BaseRecord,
+	CreateParams,
+	DataProvider,
+	DeleteOneParams,
+	GetListParams,
+	GetOneParams,
+	UpdateParams
 } from '@refinedev/core'
 
 import {
-  getListServer,
-  getOneServer,
-  createServer,
-  updateServer,
-  deleteOneServer,
+	createServer,
+	deleteOneServer,
+	getListServer,
+	getOneServer,
+	updateServer
 } from '@/actions/crud'
 
 /**
@@ -21,62 +21,58 @@ import {
  * No client-side Supabase client needed for data operations
  */
 export const serverDataProvider: DataProvider = {
-  getList: async <TData extends BaseRecord = BaseRecord>({
-    resource,
-    pagination,
-    filters,
-    sorters,
-    meta,
-  }: GetListParams) => {
-    const result = await getListServer({
-      data: { resource, pagination, filters, sorters, meta },
-    })
-    return result as { data: TData[]; total: number }
-  },
+	create: async <TData extends BaseRecord = BaseRecord, TVariables = object>({
+		meta,
+		resource,
+		variables
+	}: CreateParams<TVariables>) => {
+		const result = await createServer({
+			data: { meta, resource, variables }
+		})
+		return result as { data: TData }
+	},
 
-  getOne: async <TData extends BaseRecord = BaseRecord>({
-    resource,
-    id,
-    meta,
-  }: GetOneParams) => {
-    const result = await getOneServer({
-      data: { resource, id: String(id), meta },
-    })
-    return result as { data: TData }
-  },
+	deleteOne: async <TData extends BaseRecord = BaseRecord, TVariables = object>({
+		id,
+		resource
+	}: DeleteOneParams<TVariables>) => {
+		const result = await deleteOneServer({
+			data: { id: String(id), resource }
+		})
+		return result as { data: TData }
+	},
 
-  create: async <TData extends BaseRecord = BaseRecord, TVariables = object>({
-    resource,
-    variables,
-    meta,
-  }: CreateParams<TVariables>) => {
-    const result = await createServer({
-      data: { resource, variables, meta },
-    })
-    return result as { data: TData }
-  },
+	getApiUrl: () => process.env.VITE_SUPABASE_URL || '',
 
-  update: async <TData extends BaseRecord = BaseRecord, TVariables = object>({
-    resource,
-    id,
-    variables,
-    meta,
-  }: UpdateParams<TVariables>) => {
-    const result = await updateServer({
-      data: { resource, id: String(id), variables, meta },
-    })
-    return result as { data: TData }
-  },
+	getList: async <TData extends BaseRecord = BaseRecord>({
+		filters,
+		meta,
+		pagination,
+		resource,
+		sorters
+	}: GetListParams) => {
+		const result = await getListServer({
+			data: { filters, meta, pagination, resource, sorters }
+		})
+		return result as { data: Array<TData>; total: number }
+	},
 
-  deleteOne: async <TData extends BaseRecord = BaseRecord, TVariables = object>({
-    resource,
-    id,
-  }: DeleteOneParams<TVariables>) => {
-    const result = await deleteOneServer({
-      data: { resource, id: String(id) },
-    })
-    return result as { data: TData }
-  },
+	getOne: async <TData extends BaseRecord = BaseRecord>({ id, meta, resource }: GetOneParams) => {
+		const result = await getOneServer({
+			data: { id: String(id), meta, resource }
+		})
+		return result as { data: TData }
+	},
 
-  getApiUrl: () => process.env.VITE_SUPABASE_URL || '',
+	update: async <TData extends BaseRecord = BaseRecord, TVariables = object>({
+		id,
+		meta,
+		resource,
+		variables
+	}: UpdateParams<TVariables>) => {
+		const result = await updateServer({
+			data: { id: String(id), meta, resource, variables }
+		})
+		return result as { data: TData }
+	}
 }

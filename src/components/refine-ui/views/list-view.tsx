@@ -1,81 +1,75 @@
+import { useResourceParams, useUserFriendlyName } from '@refinedev/core'
+import type { BaseRecord, HttpError } from '@refinedev/core'
+import type { UseTableReturnType } from '@refinedev/react-table'
 import type { PropsWithChildren, ReactNode } from 'react'
 
-import {
-  type BaseRecord,
-  type HttpError,
-  useResourceParams,
-  useUserFriendlyName,
-} from '@refinedev/core'
-import { Breadcrumb } from '@/components/refine-ui/layout/breadcrumb'
-import { Separator } from '@/components/ui/separator'
 import { CreateButton } from '@/components/refine-ui/buttons/create'
-import { cn } from '@/libs/cn'
+import { Breadcrumb } from '@/components/refine-ui/layout/breadcrumb'
 import { TableColumnButton } from '@/components/table-column-button'
-import { UseTableReturnType } from '@refinedev/react-table'
+import { Separator } from '@/components/ui/separator'
+import { cn } from '@/libs/cn'
+
+type ListHeaderProps<TData extends BaseRecord> = PropsWithChildren<{
+	action?: ReactNode
+	canCreate?: boolean
+	headerClassName?: string
+	resource?: string
+	table?: UseTableReturnType<TData, HttpError>
+	title?: ReactNode
+	wrapperClassName?: string
+}>
 
 type ListViewProps = PropsWithChildren<{
-  className?: string
+	className?: string
 }>
 
 export function ListView({ children, className }: ListViewProps) {
-  return (
-    <div className={cn('flex flex-col', 'gap-4', className)}>{children}</div>
-  )
+	return <div className={cn('flex flex-col', 'gap-4', className)}>{children}</div>
 }
 
-type ListHeaderProps<TData extends BaseRecord> = PropsWithChildren<{
-  resource?: string
-  title?: ReactNode
-  action?: ReactNode
-  canCreate?: boolean
-  headerClassName?: string
-  wrapperClassName?: string
-  table?: UseTableReturnType<TData, HttpError>
-}>
-
 export function ListViewHeader<TData extends BaseRecord>({
-  canCreate,
-  action,
-  resource: resourceFromProps,
-  title: titleFromProps,
-  wrapperClassName,
-  headerClassName,
-  table,
+	action,
+	canCreate,
+	headerClassName,
+	resource: resourceFromProps,
+	table,
+	title: titleFromProps,
+	wrapperClassName
 }: ListHeaderProps<TData>) {
-  const getUserFriendlyName = useUserFriendlyName()
+	const getUserFriendlyName = useUserFriendlyName()
 
-  const { resource, identifier } = useResourceParams({
-    resource: resourceFromProps,
-  })
-  const resourceName = identifier ?? resource?.name
+	const { identifier, resource } = useResourceParams({
+		resource: resourceFromProps
+	})
+	const resourceName = identifier ?? resource?.name
 
-  const isCreateButtonVisible = canCreate ?? !!resource?.create
+	const isCreateButtonVisible = canCreate ?? !!resource?.create
 
-  const title =
-    titleFromProps ??
-    resource?.meta?.label ??
-    getUserFriendlyName(identifier ?? resource?.name, 'plural')
+	const title =
+		titleFromProps ??
+		resource?.meta?.label ??
+		getUserFriendlyName(identifier ?? resource?.name, 'plural')
 
-  return (
-    <div className={cn('flex flex-col', 'gap-4', wrapperClassName)}>
-      <div className="flex items-center relative gap-2">
-        <div className="bg-background z-[2] pr-4">
-          <Breadcrumb />
-        </div>
-        <Separator className={cn('absolute', 'left-0', 'right-0', 'z-[1]')} />
-      </div>
-      <div className={cn('flex', 'justify-between', 'gap-4', headerClassName)}>
-        <h2 className="text-2xl font-bold">{title}</h2>
-        {(isCreateButtonVisible || table || action) && (
-          <div className="flex items-center gap-2">
-            {action}
-            {table && <TableColumnButton table={table} />}
-            <CreateButton resource={resourceName} />
-          </div>
-        )}
-      </div>
-    </div>
-  )
+	return (
+		<div className={cn('flex flex-col', 'gap-4', wrapperClassName)}>
+			<div className="flex items-center relative gap-2">
+				<div className="bg-background z-[2] pr-4">
+					<Breadcrumb />
+				</div>
+				<Separator className={cn('absolute', 'left-0', 'right-0', 'z-[1]')} />
+			</div>
+			<div className={cn('flex', 'justify-between', 'gap-4', headerClassName)}>
+				<h2 className="text-2xl font-bold">{title}</h2>
+				{(isCreateButtonVisible || table || action) && (
+					<div className="flex items-center gap-2">
+						{action}
+						{table && <TableColumnButton table={table} />}
+						<CreateButton resource={resourceName} />
+					</div>
+				)}
+			</div>
+		</div>
+	)
 }
 
 ListView.displayName = 'ListView'

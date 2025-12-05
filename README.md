@@ -15,18 +15,22 @@ Admin CMS for managing PromptValley content - AI prompts, providers, models, cat
 ## Getting Started
 
 ### 1. Install Dependencies
+
 ```bash
 pnpm install
 ```
 
 ### 2. Environment Variables
+
 Already configured in `.env`:
+
 ```env
 VITE_SUPABASE_URL=https://uguvrytefzvyjypcbngo.supabase.co
 VITE_SUPABASE_ANON_KEY=...
 ```
 
 ### 3. Run Development Server
+
 ```bash
 pnpm dev
 ```
@@ -79,12 +83,14 @@ See `REFINE_AI_PROMPT.md` for complete schema details.
 ## Next Steps
 
 ### Option 1: Use Refine AI (Recommended)
+
 1. Use the prompt in `REFINE_AI_PROMPT.md` with Refine AI
 2. Generate the complete CMS
 3. Copy code into this project
 4. Run `pnpm dev`
 
 ### Option 2: Manual Development
+
 1. Create `src/utility/supabaseClient.ts`
 2. Set up App.tsx with Refine configuration
 3. Create pages for each resource
@@ -99,6 +105,7 @@ pnpm dlx shadcn-ui@latest init
 ```
 
 Then add components as needed:
+
 ```bash
 pnpm dlx shadcn-ui@latest add button
 pnpm dlx shadcn-ui@latest add form
