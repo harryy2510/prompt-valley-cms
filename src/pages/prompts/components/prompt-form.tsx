@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react'
 import * as z from 'zod'
-import { Plus, X } from 'lucide-react'
 import { startCase } from 'lodash-es'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Switch } from '@/components/ui/switch'
 import {
   Card,
   CardContent,
@@ -37,6 +35,7 @@ import {
   MultiSelectTrigger,
   MultiSelectValue,
 } from '@/components/ui/multi-select'
+import { ImagesUpload } from '@/components/ui/image-upload'
 import { LoadingOverlay } from '@/components/refine-ui/layout/loading-overlay'
 import { Enums, Tables } from '@/types/database.types'
 import { FormAction, HttpError, useBack, useSelect } from '@refinedev/core'
@@ -46,7 +45,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { slug } from '@/utils/validations'
 import { SlugField } from '@/components/forms/slug-field'
 import { supabase } from '@/libs/supabase'
-import { getImageUrl, uploadImage } from '@/libs/storage'
+import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning'
 
 type Prompt = Tables<'prompts'>
 type Category = Tables<'categories'>
@@ -78,7 +77,6 @@ interface PromptFormProps {
 export function PromptForm({ mode }: PromptFormProps) {
   const isCreate = mode === 'create'
   const back = useBack()
-  const [isUploadingImage, setIsUploadingImage] = useState(false)
   const [isLoadingRelations, setIsLoadingRelations] = useState(!isCreate)
 
   const {
@@ -155,6 +153,10 @@ export function PromptForm({ mode }: PromptFormProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, query?.data?.data, isCreate])
 
+  useUnsavedChangesWarning({
+    isDirty: form.formState.isDirty,
+  })
+
   const handleSubmit = async (data: PromptFormValues) => {
     const { tags, models, ...promptData } = data
 
@@ -206,33 +208,6 @@ export function PromptForm({ mode }: PromptFormProps) {
     }
   }
 
-  const handleImageUpload = async (files: FileList) => {
-    setIsUploadingImage(true)
-    const uploadedPaths: string[] = []
-
-    for (const file of Array.from(files)) {
-      const filePath = await uploadImage(file, 'images/prompts')
-      if (filePath) {
-        uploadedPaths.push(filePath)
-      }
-    }
-
-    setIsUploadingImage(false)
-
-    if (uploadedPaths.length > 0) {
-      const current = form.getValues('images') || []
-      form.setValue('images', [...current, ...uploadedPaths])
-    }
-  }
-
-  const removeImage = (image: string) => {
-    const current = form.getValues('images') || []
-    form.setValue(
-      'images',
-      current.filter((img) => img !== image),
-    )
-  }
-
   const isLoading = formLoading || isLoadingRelations
 
   return (
@@ -241,122 +216,62 @@ export function PromptForm({ mode }: PromptFormProps) {
         onSubmit={form.handleSubmit(handleSubmit)}
         className="space-y-6 w-full max-w-4xl mx-auto"
       >
-        <LoadingOverlay containerClassName="space-y-6" loading={isLoading}>
-          <Card>
-            <CardHeader>
-              <CardTitle>Prompt Details</CardTitle>
-              <CardDescription>
-                {isCreate
-                  ? 'Enter the information for the new prompt'
-                  : 'Update the prompt information'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Title *</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Write a compelling product description"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <SlugField
-                name="id"
-                sourceValue={form.watch('title')}
-                resource="prompts"
-                label="Prompt ID *"
-                description={
-                  isCreate
-                    ? 'Unique identifier for the prompt'
-                    : 'The ID cannot be changed after creation'
-                }
-                placeholder="e.g. write-product-description"
-                disabled={!isCreate}
-              />
-
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Brief description of what this prompt does"
-                        rows={2}
-                        {...field}
-                        value={field.value ?? ''}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="content"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Prompt Content *</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Enter the full prompt content here..."
-                        rows={8}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Content Settings</CardTitle>
-              <CardDescription>
-                Configure category, tier, and publishing settings
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
+          <LoadingOverlay containerClassName="space-y-6" loading={isLoading}>
+            <Card>
+              <CardHeader>
+                <CardTitle>Prompt Details</CardTitle>
+                <CardDescription>
+                  {isCreate
+                    ? 'Enter the information for the new prompt'
+                    : 'Update the prompt information'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <FormField
                   control={form.control}
-                  name="category_id"
+                  name="title"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Category *</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a category" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {categoryOptions?.map((option) => (
-                            <SelectItem
-                              key={option.value}
-                              value={String(option.value)}
-                            >
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <FormLabel>Title *</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Write a compelling product description"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <SlugField
+                  name="id"
+                  sourceValue={form.watch('title')}
+                  resource="prompts"
+                  label="Prompt ID *"
+                  description={
+                    isCreate
+                      ? 'Unique identifier for the prompt'
+                      : 'The ID cannot be changed after creation'
+                  }
+                  placeholder="e.g. write-product-description"
+                  disabled={!isCreate}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Brief description of what this prompt does"
+                          rows={2}
+                          {...field}
+                          value={field.value ?? ''}
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -364,203 +279,212 @@ export function PromptForm({ mode }: PromptFormProps) {
 
                 <FormField
                   control={form.control}
-                  name="tier"
+                  name="content"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Tier *</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {TIER_OPTIONS.map((tier) => (
-                            <SelectItem key={tier} value={tier}>
-                              {startCase(tier)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <FormLabel>Prompt Content *</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Enter the full prompt content here..."
+                          rows={8}
+                          {...field}
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Relationships</CardTitle>
-              <CardDescription>
-                Associate tags and compatible models with this prompt
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <FormField
-                control={form.control}
-                name="tags"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tags</FormLabel>
-                    <MultiSelect
-                      values={field.value}
-                      onValuesChange={field.onChange}
-                    >
-                      <MultiSelectTrigger className="w-full">
-                        <MultiSelectValue placeholder="Select tags..." />
-                      </MultiSelectTrigger>
-                      <MultiSelectContent>
-                        <MultiSelectGroup>
-                          {tagOptions?.map((tag) => (
-                            <MultiSelectItem
-                              key={tag.value}
-                              value={String(tag.value)}
-                            >
-                              {tag.label}
-                            </MultiSelectItem>
-                          ))}
-                        </MultiSelectGroup>
-                      </MultiSelectContent>
-                    </MultiSelect>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="models"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Compatible Models</FormLabel>
-                    <MultiSelect
-                      values={field.value}
-                      onValuesChange={field.onChange}
-                    >
-                      <MultiSelectTrigger className="w-full">
-                        <MultiSelectValue placeholder="Select compatible models..." />
-                      </MultiSelectTrigger>
-                      <MultiSelectContent>
-                        <MultiSelectGroup>
-                          {modelOptions?.map((model) => (
-                            <MultiSelectItem
-                              key={model.value}
-                              value={String(model.value)}
-                            >
-                              {model.label}
-                            </MultiSelectItem>
-                          ))}
-                        </MultiSelectGroup>
-                      </MultiSelectContent>
-                    </MultiSelect>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Images</CardTitle>
-              <CardDescription>
-                Add images to illustrate the prompt
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={isUploadingImage}
-                    onClick={() =>
-                      document.getElementById('prompt-image-upload')?.click()
-                    }
-                  >
-                    {isUploadingImage ? (
-                      'Uploading...'
-                    ) : (
-                      <>
-                        <Plus className="mr-2 size-4" />
-                        Add Images
-                      </>
+            <Card>
+              <CardHeader>
+                <CardTitle>Content Settings</CardTitle>
+                <CardDescription>
+                  Configure category, tier, and publishing settings
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="category_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Category *</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a category" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {categoryOptions?.map((option) => (
+                              <SelectItem
+                                key={option.value}
+                                value={String(option.value)}
+                              >
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
                     )}
-                  </Button>
-                  <input
-                    id="prompt-image-upload"
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={(e) => {
-                      const files = e.target.files
-                      if (files && files.length > 0) handleImageUpload(files)
-                      e.target.value = ''
-                    }}
-                    disabled={isUploadingImage}
-                    className="hidden"
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="tier"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Tier *</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a tier" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {TIER_OPTIONS.map((tier) => (
+                              <SelectItem key={tier} value={tier}>
+                                {startCase(tier)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
                 </div>
+              </CardContent>
+            </Card>
 
-                {(form.watch('images') || []).length > 0 && (
-                  <div className="space-y-2">
-                    {form.watch('images').map((image: string) => {
-                      const imageUrl = getImageUrl(image)
-                      return (
-                        <div
-                          key={image}
-                          className="flex items-center gap-3 rounded-md border p-3"
-                        >
-                          {imageUrl && (
-                            <img
-                              src={imageUrl}
-                              alt="Prompt image"
-                              className="size-16 rounded border object-cover"
-                            />
-                          )}
-                          <div className="flex-1">
-                            <p className="text-xs text-muted-foreground break-all">
-                              {image}
-                            </p>
-                          </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeImage(image)}
-                          >
-                            <X className="size-4" />
-                          </Button>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Relationships</CardTitle>
+                <CardDescription>
+                  Associate tags and compatible models with this prompt
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="tags"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tags</FormLabel>
+                      <MultiSelect
+                        values={field.value}
+                        onValuesChange={field.onChange}
+                      >
+                        <MultiSelectTrigger className="w-full">
+                          <MultiSelectValue placeholder="Select tags..." />
+                        </MultiSelectTrigger>
+                        <MultiSelectContent>
+                          <MultiSelectGroup>
+                            {tagOptions?.map((tag) => (
+                              <MultiSelectItem
+                                key={tag.value}
+                                value={String(tag.value)}
+                              >
+                                {tag.label}
+                              </MultiSelectItem>
+                            ))}
+                          </MultiSelectGroup>
+                        </MultiSelectContent>
+                      </MultiSelect>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-          <div className="flex justify-end space-x-2">
-            <Button type="button" variant="outline" onClick={back}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending
-                ? isCreate
-                  ? 'Creating...'
-                  : 'Saving...'
-                : isCreate
-                  ? 'Create Prompt'
-                  : 'Save'}
-            </Button>
-          </div>
-        </LoadingOverlay>
-      </form>
-    </Form>
+                <FormField
+                  control={form.control}
+                  name="models"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Compatible Models</FormLabel>
+                      <MultiSelect
+                        values={field.value}
+                        onValuesChange={field.onChange}
+                      >
+                        <MultiSelectTrigger className="w-full">
+                          <MultiSelectValue placeholder="Select compatible models..." />
+                        </MultiSelectTrigger>
+                        <MultiSelectContent>
+                          <MultiSelectGroup>
+                            {modelOptions?.map((model) => (
+                              <MultiSelectItem
+                                key={model.value}
+                                value={String(model.value)}
+                              >
+                                {model.label}
+                              </MultiSelectItem>
+                            ))}
+                          </MultiSelectGroup>
+                        </MultiSelectContent>
+                      </MultiSelect>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Images</CardTitle>
+                <CardDescription>
+                  Add images to illustrate the prompt
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <FormField
+                  control={form.control}
+                  name="images"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <ImagesUpload
+                          value={field.value}
+                          onChange={field.onChange}
+                          folder="images/prompts"
+                          label="Add Images"
+                          mode={isCreate ? 'create' : 'edit'}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
+
+            <div className="flex justify-end space-x-2">
+              <Button type="button" variant="outline" onClick={back}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={mutation.isPending}>
+                {mutation.isPending
+                  ? isCreate
+                    ? 'Creating...'
+                    : 'Saving...'
+                  : isCreate
+                    ? 'Create Prompt'
+                    : 'Save'}
+              </Button>
+            </div>
+          </LoadingOverlay>
+        </form>
+      </Form>
   )
 }

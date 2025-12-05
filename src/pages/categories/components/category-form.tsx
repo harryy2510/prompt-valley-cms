@@ -33,6 +33,7 @@ import { getDefaultsForSchema } from 'zod-defaults'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { slug } from '@/utils/validations'
 import { SlugField } from '@/components/forms/slug-field'
+import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning'
 
 type Category = Tables<'categories'>
 
@@ -90,6 +91,10 @@ export function CategoryForm({ mode }: CategoryFormProps) {
         : []),
     ],
     pagination: { pageSize: 1000 },
+  })
+
+  useUnsavedChangesWarning({
+    isDirty: form.formState.isDirty,
   })
 
   return (

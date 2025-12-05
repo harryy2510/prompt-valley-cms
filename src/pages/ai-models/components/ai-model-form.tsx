@@ -42,6 +42,7 @@ import { getDefaultsForSchema } from 'zod-defaults'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { nullableNonNegativeNumber, slug } from '@/utils/validations'
 import { SlugField } from '@/components/forms/slug-field'
+import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning'
 
 type ModelCapability = Enums<'model_capability'>
 type AIModel = Tables<'ai_models'>
@@ -93,6 +94,10 @@ export function AIModelForm({ mode }: AIModelFormProps) {
     optionLabel: 'name',
     optionValue: 'id',
     pagination: { pageSize: 1000 },
+  })
+
+  useUnsavedChangesWarning({
+    isDirty: form.formState.isDirty,
   })
 
   return (

@@ -26,6 +26,7 @@ import { getDefaultsForSchema } from 'zod-defaults'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { slug } from '@/utils/validations'
 import { SlugField } from '@/components/forms/slug-field'
+import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning'
 
 type AIProvider = Tables<'ai_providers'>
 
@@ -57,6 +58,10 @@ export function AIProviderForm({ mode }: AIProviderFormProps) {
       action: mode,
       redirect: 'list',
     },
+  })
+
+  useUnsavedChangesWarning({
+    isDirty: form.formState.isDirty,
   })
 
   return (
@@ -131,6 +136,7 @@ export function AIProviderForm({ mode }: AIProviderFormProps) {
                         onChange={field.onChange}
                         folder="ai-providers"
                         label="Upload Logo"
+                        mode={isCreate ? 'create' : 'edit'}
                       />
                     </FormControl>
                     <FormMessage />

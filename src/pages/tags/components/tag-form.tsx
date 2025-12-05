@@ -25,6 +25,7 @@ import { getDefaultsForSchema } from 'zod-defaults'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { slug } from '@/utils/validations'
 import { SlugField } from '@/components/forms/slug-field'
+import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning'
 
 type Tag = Tables<'tags'>
 
@@ -54,6 +55,10 @@ export function TagForm({ mode }: TagFormProps) {
       action: mode,
       redirect: 'list',
     },
+  })
+
+  useUnsavedChangesWarning({
+    isDirty: form.formState.isDirty,
   })
 
   return (

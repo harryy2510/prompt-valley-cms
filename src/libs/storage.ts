@@ -1,15 +1,36 @@
 import { supabase } from './supabase'
 
 /**
- * Get the full public URL for an image in the content-bucket
- * @param path - The path/filename within the content-bucket
- * @returns The full public URL or null if path is empty
+ * Check if a string is a full URL (http/https)
  */
-export function getImageUrl(path: string | null | undefined): string | null {
-  if (!path) return null
+export function isFullUrl(value: string | null | undefined): boolean {
+  if (!value) return false
+  return value.startsWith('http://') || value.startsWith('https://')
+}
 
-  const { data } = supabase.storage.from('content-bucket').getPublicUrl(path)
+/**
+ * Check if a string is a bucket path (not a full URL)
+ */
+export function isBucketPath(value: string | null | undefined): boolean {
+  if (!value) return false
+  return !isFullUrl(value)
+}
 
+/**
+ * Get the display URL for an image - handles both full URLs and bucket paths
+ * @param value - Either a full URL or a path within the content-bucket
+ * @returns The full public URL or null if value is empty
+ */
+export function getImageUrl(value: string | null | undefined): string | null {
+  if (!value) return null
+
+  // If it's already a full URL, return as-is
+  if (isFullUrl(value)) {
+    return value
+  }
+
+  // Otherwise, treat it as a bucket path
+  const { data } = supabase.storage.from('content-bucket').getPublicUrl(value)
   return data.publicUrl
 }
 

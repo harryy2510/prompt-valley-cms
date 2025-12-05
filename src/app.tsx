@@ -1,6 +1,9 @@
 import { Refine } from '@refinedev/core'
 import { liveProvider } from '@refinedev/supabase'
-import routerProvider, { NavigateToResource } from '@refinedev/react-router'
+import routerProvider, {
+  NavigateToResource,
+  UnsavedChangesNotifier,
+} from '@refinedev/react-router'
 import { BrowserRouter, Routes, Route, Outlet } from 'react-router'
 import { ErrorComponent } from '@/components/refine-ui/layout/error-component'
 
@@ -214,6 +217,7 @@ export function App() {
 
             <Route path="*" element={<ErrorComponent />} />
           </Routes>
+          <UnsavedChangesNotifier />
         </Refine>
         <Toaster />
       </BrowserRouter>
