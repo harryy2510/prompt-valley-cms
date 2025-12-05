@@ -17,6 +17,7 @@ import { Tables } from '@/types/database.types'
 import { startCase } from 'lodash-es'
 import {
   DataTableExport,
+  DataTableImport,
   ColumnMapping,
 } from '@/components/refine-ui/data-table/data-table-export-import'
 import {
@@ -347,16 +348,44 @@ export function AiModelsList() {
   const tableData = table.refineCore.tableQuery.data?.data ?? []
   const exportData = transformModelsForExport(tableData)
 
+  const handleImportSuccess = () => {
+    table.refineCore.tableQuery.refetch()
+  }
+
   return (
     <ListView>
       <ListViewHeader
         table={table}
         action={
-          <DataTableExport
-            data={exportData}
-            filename="ai-models"
-            columns={EXPORT_COLUMNS}
-          />
+          <div className="flex items-center gap-2">
+            <DataTableImport<ExportAiModel>
+              resource="ai_models"
+              columns={EXPORT_COLUMNS}
+              templateFilename="ai-models-template"
+              onSuccess={handleImportSuccess}
+              relationships={[
+                {
+                  field: 'provider_id',
+                  resource: 'ai_providers',
+                },
+              ]}
+              excludeFields={['provider_name', 'created_at']}
+              transformBeforeInsert={(row) => ({
+                ...row,
+                capabilities: row.capabilities
+                  ? String(row.capabilities).split(',').map((s) => s.trim())
+                  : [],
+              })}
+            />
+            <DataTableExport
+              data={exportData}
+              filename="ai-models"
+              columns={EXPORT_COLUMNS}
+              resource="ai_models"
+              select="*, ai_providers(id, name)"
+              transformData={(data) => transformModelsForExport(data as AiModel[])}
+            />
+          </div>
         }
       />
       <DataTable table={table} />

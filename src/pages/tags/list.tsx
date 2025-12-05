@@ -19,6 +19,7 @@ import { Tables } from '@/types/database.types'
 import { fShortenNumber } from '@/utils/format'
 import {
   DataTableExport,
+  DataTableImport,
   ColumnMapping,
 } from '@/components/refine-ui/data-table/data-table-export-import'
 
@@ -188,16 +189,31 @@ export function TagsList() {
 
   const tableData = table.refineCore.tableQuery.data?.data ?? []
 
+  const handleImportSuccess = () => {
+    table.refineCore.tableQuery.refetch()
+  }
+
   return (
     <ListView>
       <ListViewHeader
         table={table}
         action={
-          <DataTableExport
-            data={tableData}
-            filename="tags"
-            columns={EXPORT_COLUMNS}
-          />
+          <div className="flex items-center gap-2">
+            <DataTableImport<Tag>
+              resource="tags"
+              columns={EXPORT_COLUMNS}
+              templateFilename="tags-template"
+              onSuccess={handleImportSuccess}
+              excludeFields={['created_at']}
+            />
+            <DataTableExport
+              data={tableData}
+              filename="tags"
+              columns={EXPORT_COLUMNS}
+              resource="tags"
+              select="*"
+            />
+          </div>
         }
       />
       <DataTable table={table} />

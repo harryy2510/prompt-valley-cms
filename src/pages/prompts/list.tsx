@@ -28,6 +28,7 @@ import { ActionButton } from '@/components/ui/action-button'
 import {
   ColumnMapping,
   DataTableExport,
+  DataTableImport,
 } from '@/components/refine-ui/data-table/data-table-export-import'
 import { Tables } from '@/types/database.types'
 import { fShortenNumber } from '@/utils/format'
@@ -492,16 +493,54 @@ export function PromptsList() {
   const tableData = table.refineCore.tableQuery.data?.data ?? []
   const exportData = transformPromptsForExport(tableData)
 
+  const handleImportSuccess = () => {
+    table.refineCore.tableQuery.refetch()
+  }
+
   return (
     <ListView>
       <ListViewHeader
         table={table}
         action={
-          <DataTableExport
-            data={exportData}
-            filename="prompts"
-            columns={EXPORT_COLUMNS}
-          />
+          <div className="flex items-center gap-2">
+            <DataTableImport<ExportPrompt>
+              resource="prompts"
+              columns={EXPORT_COLUMNS}
+              templateFilename="prompts-template"
+              onSuccess={handleImportSuccess}
+              relationships={[
+                {
+                  field: 'tag_ids',
+                  resource: 'tags',
+                  isMany: true,
+                  junctionTable: 'prompt_tags',
+                  junctionFk: 'prompt_id',
+                  junctionRelatedFk: 'tag_id',
+                },
+                {
+                  field: 'model_ids',
+                  resource: 'ai_models',
+                  isMany: true,
+                  junctionTable: 'prompt_models',
+                  junctionFk: 'prompt_id',
+                  junctionRelatedFk: 'model_id',
+                },
+                {
+                  field: 'category_id',
+                  resource: 'categories',
+                },
+              ]}
+              excludeFields={['created_at']}
+            />
+            <DataTableExport
+              data={exportData}
+              filename="prompts"
+              columns={EXPORT_COLUMNS}
+              resource="prompts"
+              select="*, categories(id, name), prompt_tags(tags(id, name)), prompt_models(ai_models(id, name))"
+              transformData={(data) => transformPromptsForExport(data as Prompt[])}
+            />
+          </div>
         }
       />
       <DataTable table={table} />

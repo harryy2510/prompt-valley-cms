@@ -24,6 +24,7 @@ import { Tables } from '@/types/database.types'
 import { getImageUrl } from '@/libs/storage'
 import {
   DataTableExport,
+  DataTableImport,
   ColumnMapping,
 } from '@/components/refine-ui/data-table/data-table-export-import'
 
@@ -251,16 +252,31 @@ export function AiProvidersList() {
 
   const tableData = table.refineCore.tableQuery.data?.data ?? []
 
+  const handleImportSuccess = () => {
+    table.refineCore.tableQuery.refetch()
+  }
+
   return (
     <ListView>
       <ListViewHeader
         table={table}
         action={
-          <DataTableExport
-            data={tableData}
-            filename="ai-providers"
-            columns={EXPORT_COLUMNS}
-          />
+          <div className="flex items-center gap-2">
+            <DataTableImport<AiProvider>
+              resource="ai_providers"
+              columns={EXPORT_COLUMNS}
+              templateFilename="ai-providers-template"
+              onSuccess={handleImportSuccess}
+              excludeFields={['created_at', 'logo_url']}
+            />
+            <DataTableExport
+              data={tableData}
+              filename="ai-providers"
+              columns={EXPORT_COLUMNS}
+              resource="ai_providers"
+              select="*"
+            />
+          </div>
         }
       />
       <DataTable table={table} />

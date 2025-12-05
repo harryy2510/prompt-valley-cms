@@ -26,6 +26,7 @@ import { cn } from '@/libs/cn'
 import { fShortenNumber } from '@/utils/format'
 import {
   DataTableExport,
+  DataTableImport,
   ColumnMapping,
 } from '@/components/refine-ui/data-table/data-table-export-import'
 
@@ -294,16 +295,38 @@ export function CategoriesList() {
   const tableData = table.refineCore.tableQuery.data?.data ?? []
   const exportData = transformCategoriesForExport(tableData)
 
+  const handleImportSuccess = () => {
+    table.refineCore.tableQuery.refetch()
+  }
+
   return (
     <ListView>
       <ListViewHeader
         table={table}
         action={
-          <DataTableExport
-            data={exportData}
-            filename="categories"
-            columns={EXPORT_COLUMNS}
-          />
+          <div className="flex items-center gap-2">
+            <DataTableImport<ExportCategory>
+              resource="categories"
+              columns={EXPORT_COLUMNS}
+              templateFilename="categories-template"
+              onSuccess={handleImportSuccess}
+              relationships={[
+                {
+                  field: 'parent_id',
+                  resource: 'categories',
+                },
+              ]}
+              excludeFields={['created_at']}
+            />
+            <DataTableExport
+              data={exportData}
+              filename="categories"
+              columns={EXPORT_COLUMNS}
+              resource="categories"
+              select="*, parent:parent_id(id, name), children:categories(id, name)"
+              transformData={(data) => transformCategoriesForExport(data as Category[])}
+            />
+          </div>
         }
       />
       <DataTable table={table} />
