@@ -16,6 +16,8 @@ import { Tables } from '@/types/database.types'
 import { startCase } from 'lodash-es'
 import { DataTableFilterCombobox } from '@/components/refine-ui/data-table/data-table-filter'
 import { useLocalStorage } from 'usehooks-ts'
+import dayjs from 'dayjs'
+import { fCurrency, fShortenNumber } from '@/utils/format'
 
 type AiModel = Tables<'ai_models'> & {
   ai_providers: Pick<Tables<'ai_providers'>, 'id' | 'name'>
@@ -117,9 +119,7 @@ export function AiModelsList() {
           if (!value) return <span className="text-muted-foreground">—</span>
           return (
             <span className="text-sm tabular-nums">
-              {value >= 1000
-                ? `${(value / 1000).toLocaleString()}K`
-                : value.toLocaleString()}
+              {fShortenNumber(value)}
             </span>
           )
         },
@@ -138,9 +138,7 @@ export function AiModelsList() {
           if (!value) return <span className="text-muted-foreground">—</span>
           return (
             <span className="text-sm tabular-nums">
-              {value >= 1000
-                ? `${(value / 1000).toLocaleString()}K`
-                : value.toLocaleString()}
+              {fShortenNumber(value)}
             </span>
           )
         },
@@ -159,11 +157,11 @@ export function AiModelsList() {
             <div className="text-sm tabular-nums">
               <div className="flex items-center gap-1">
                 <span className="text-muted-foreground text-xs">In:</span>
-                <span>{input ? `$${input.toFixed(2)}` : '—'}</span>
+                <span>{input ? fCurrency(input) : '—'}</span>
               </div>
               <div className="flex items-center gap-1">
                 <span className="text-muted-foreground text-xs">Out:</span>
-                <span>{output ? `$${output.toFixed(2)}` : '—'}</span>
+                <span>{output ? fCurrency(output) : '—'}</span>
               </div>
             </div>
           )
@@ -182,7 +180,7 @@ export function AiModelsList() {
           const value = getValue() as string
           return (
             <span className="text-sm text-muted-foreground">
-              {new Date(value).toLocaleDateString()}
+              {dayjs(value).format('DD MMM, YYYY')}
             </span>
           )
         },
@@ -200,7 +198,7 @@ export function AiModelsList() {
           const value = getValue() as string
           return (
             <span className="text-sm text-muted-foreground">
-              {new Date(value).toLocaleDateString()}
+              {dayjs(value).format('DD MMM, YYYY')}
             </span>
           )
         },
