@@ -21,6 +21,7 @@ import { fCurrency, fShortenNumber } from '@/utils/format'
 
 type AiModel = Tables<'ai_models'> & {
   ai_providers: Pick<Tables<'ai_providers'>, 'id' | 'name'>
+  prompt_models: { count: number }[]
 }
 
 const STORAGE_KEY = 'ai-models-column-visibility'
@@ -168,6 +169,21 @@ export function AiModelsList() {
         },
       },
       {
+        id: 'prompts',
+        header: 'Prompts',
+        enableSorting: false,
+        cell: ({ row }) => {
+          const count = row.original.prompt_models?.[0]?.count ?? 0
+          return (
+            <span
+              className={count === 0 ? 'text-muted-foreground' : 'text-sm'}
+            >
+              {fShortenNumber(count)} {count === 1 ? 'prompt' : 'prompts'}
+            </span>
+          )
+        },
+      },
+      {
         id: 'created_at',
         accessorKey: 'created_at',
         header: ({ column }) => (
@@ -261,7 +277,7 @@ export function AiModelsList() {
     refineCoreProps: {
       resource: 'ai_models',
       meta: {
-        select: '*, ai_providers(id, name)',
+        select: '*, ai_providers(id, name), prompt_models(count)',
       },
       sorters: {
         initial: [{ field: 'created_at', order: 'desc' }],

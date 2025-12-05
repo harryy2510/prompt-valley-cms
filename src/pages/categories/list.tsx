@@ -23,10 +23,12 @@ import {
 } from '@/components/ui/tooltip'
 import { Tables } from '@/types/database.types'
 import { cn } from '@/libs/cn'
+import { fShortenNumber } from '@/utils/format'
 
 type Category = Tables<'categories'> & {
   parent: Pick<Tables<'categories'>, 'id' | 'name'> | null
   children: Pick<Tables<'categories'>, 'id' | 'name'>[]
+  prompts: { count: number }[]
 }
 
 const STORAGE_KEY = 'categories-column-visibility'
@@ -107,6 +109,30 @@ export function CategoriesList() {
                 {parent.id}
               </div>
             </div>
+          )
+        },
+      },
+      {
+        id: 'prompts',
+        header: 'Prompts',
+        enableSorting: false,
+        cell: ({ row }) => {
+          const count = row.original.prompts?.[0]?.count ?? 0
+          if (count === 0) {
+            return <span className="text-muted-foreground">0 prompts</span>
+          }
+          const filterParams = new URLSearchParams({
+            'filters[0][field]': 'category_id',
+            'filters[0][operator]': 'eq',
+            'filters[0][value]': row.original.id,
+          })
+          return (
+            <Link
+              to={`/prompts?${filterParams.toString()}`}
+              className="text-sm font-medium text-primary hover:underline"
+            >
+              {fShortenNumber(count)} {count === 1 ? 'prompt' : 'prompts'}
+            </Link>
           )
         },
       },
@@ -227,7 +253,7 @@ export function CategoriesList() {
     refineCoreProps: {
       resource: 'categories',
       meta: {
-        select: '*, parent:parent_id(id, name), children:categories(id, name)',
+        select: '*, parent:parent_id(id, name), children:categories(id, name), prompts(count)',
       },
       sorters: {
         initial: [{ field: 'created_at', order: 'desc' }],

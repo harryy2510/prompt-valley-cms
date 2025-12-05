@@ -15,8 +15,11 @@ import { DataTableSorter } from '@/components/refine-ui/data-table/data-table-so
 import { Button } from '@/components/ui/button'
 import { ActionButton } from '@/components/ui/action-button'
 import { Tables } from '@/types/database.types'
+import { fShortenNumber } from '@/utils/format'
 
-type Tag = Tables<'tags'>
+type Tag = Tables<'tags'> & {
+  prompt_tags: { count: number }[]
+}
 
 const STORAGE_KEY = 'tags-column-visibility'
 
@@ -45,6 +48,21 @@ export function TagsList() {
             </div>
           </>
         ),
+      },
+      {
+        id: 'prompts',
+        header: 'Prompts',
+        enableSorting: false,
+        cell: ({ row }) => {
+          const count = row.original.prompt_tags?.[0]?.count ?? 0
+          return (
+            <span
+              className={count === 0 ? 'text-muted-foreground' : 'text-sm'}
+            >
+              {fShortenNumber(count)} {count === 1 ? 'prompt' : 'prompts'}
+            </span>
+          )
+        },
       },
       {
         id: 'created_at',
@@ -139,6 +157,9 @@ export function TagsList() {
     onColumnVisibilityChange: setColumnVisibility,
     refineCoreProps: {
       resource: 'tags',
+      meta: {
+        select: '*, prompt_tags(count)',
+      },
       sorters: {
         initial: [{ field: 'created_at', order: 'desc' }],
       },

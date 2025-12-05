@@ -106,6 +106,15 @@ export function App() {
               icon: <LogoWithText className="h-8 w-auto" />,
               text: '',
             },
+            reactQuery: {
+              clientConfig: {
+                defaultOptions: {
+                  queries: {
+                    retry: false,
+                  },
+                },
+              },
+            },
           }}
         >
           <Routes>

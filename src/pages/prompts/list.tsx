@@ -7,6 +7,11 @@ import { useLocalStorage } from 'usehooks-ts'
 import dayjs from 'dayjs'
 
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import {
   ListView,
   ListViewHeader,
 } from '@/components/refine-ui/views/list-view'
@@ -21,6 +26,8 @@ import { fShortenNumber } from '@/utils/format'
 
 type Prompt = Tables<'prompts'> & {
   categories: Pick<Tables<'categories'>, 'id' | 'name'> | null
+  prompt_tags: { tags: Pick<Tables<'tags'>, 'id' | 'name'> }[]
+  prompt_models: { ai_models: Pick<Tables<'ai_models'>, 'id' | 'name'> }[]
 }
 
 const STORAGE_KEY = 'prompts-column-visibility'
@@ -90,6 +97,89 @@ export function PromptsList() {
             return <span className="text-muted-foreground">—</span>
           }
           return <span className="text-sm">{category.name}</span>
+        },
+      },
+      {
+        id: 'tags',
+        header: 'Tags',
+        enableSorting: false,
+        cell: ({ row }) => {
+          const tags = row.original.prompt_tags?.map((pt) => pt.tags) ?? []
+          if (tags.length === 0) {
+            return <span className="text-muted-foreground">—</span>
+          }
+          const displayTags = tags.slice(0, 2)
+          const remaining = tags.length - 2
+          return (
+            <div className="flex flex-wrap gap-1">
+              {displayTags.map((tag) => (
+                <Badge key={tag.id} variant="secondary" className="text-xs">
+                  {tag.name}
+                </Badge>
+              ))}
+              {remaining > 0 && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge
+                      variant="outline"
+                      className="text-xs cursor-default"
+                    >
+                      +{remaining}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <ul className="text-xs">
+                      {tags.slice(2).map((tag) => (
+                        <li key={tag.id}>{tag.name}</li>
+                      ))}
+                    </ul>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </div>
+          )
+        },
+      },
+      {
+        id: 'models',
+        header: 'Models',
+        enableSorting: false,
+        cell: ({ row }) => {
+          const models =
+            row.original.prompt_models?.map((pm) => pm.ai_models) ?? []
+          if (models.length === 0) {
+            return <span className="text-muted-foreground">—</span>
+          }
+          const displayModels = models.slice(0, 2)
+          const remaining = models.length - 2
+          return (
+            <div className="flex flex-wrap gap-1">
+              {displayModels.map((model) => (
+                <Badge key={model.id} variant="outline" className="text-xs">
+                  {model.name}
+                </Badge>
+              ))}
+              {remaining > 0 && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge
+                      variant="outline"
+                      className="text-xs cursor-default"
+                    >
+                      +{remaining}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <ul className="text-xs">
+                      {models.slice(2).map((model) => (
+                        <li key={model.id}>{model.name}</li>
+                      ))}
+                    </ul>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </div>
+          )
         },
       },
       {
@@ -291,7 +381,8 @@ export function PromptsList() {
     refineCoreProps: {
       resource: 'prompts',
       meta: {
-        select: '*, categories(id, name)',
+        select:
+          '*, categories(id, name), prompt_tags(tags(id, name)), prompt_models(ai_models(id, name))',
       },
       sorters: {
         initial: [{ field: 'created_at', order: 'desc' }],
