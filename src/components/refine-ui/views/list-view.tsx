@@ -1,10 +1,17 @@
-import type { PropsWithChildren } from 'react'
+import type { PropsWithChildren, ReactNode } from 'react'
 
-import { useResourceParams, useUserFriendlyName } from '@refinedev/core'
+import {
+  type BaseRecord,
+  type HttpError,
+  useResourceParams,
+  useUserFriendlyName,
+} from '@refinedev/core'
 import { Breadcrumb } from '@/components/refine-ui/layout/breadcrumb'
 import { Separator } from '@/components/ui/separator'
 import { CreateButton } from '@/components/refine-ui/buttons/create'
 import { cn } from '@/libs/cn'
+import { TableColumnButton } from '@/components/table-column-button'
+import { UseTableReturnType } from '@refinedev/react-table'
 
 type ListViewProps = PropsWithChildren<{
   className?: string
@@ -16,21 +23,25 @@ export function ListView({ children, className }: ListViewProps) {
   )
 }
 
-type ListHeaderProps = PropsWithChildren<{
+type ListHeaderProps<TData extends BaseRecord> = PropsWithChildren<{
   resource?: string
-  title?: string
+  title?: ReactNode
+  action?: ReactNode
   canCreate?: boolean
   headerClassName?: string
   wrapperClassName?: string
+  table?: UseTableReturnType<TData, HttpError>
 }>
 
-export const ListViewHeader = ({
+export function ListViewHeader<TData extends BaseRecord>({
   canCreate,
+  action,
   resource: resourceFromProps,
   title: titleFromProps,
   wrapperClassName,
   headerClassName,
-}: ListHeaderProps) => {
+  table,
+}: ListHeaderProps<TData>) {
   const getUserFriendlyName = useUserFriendlyName()
 
   const { resource, identifier } = useResourceParams({
@@ -55,8 +66,10 @@ export const ListViewHeader = ({
       </div>
       <div className={cn('flex', 'justify-between', 'gap-4', headerClassName)}>
         <h2 className="text-2xl font-bold">{title}</h2>
-        {isCreateButtonVisible && (
+        {(isCreateButtonVisible || table || action) && (
           <div className="flex items-center gap-2">
+            {action}
+            {table && <TableColumnButton table={table} />}
             <CreateButton resource={resourceName} />
           </div>
         )}

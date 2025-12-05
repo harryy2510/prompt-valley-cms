@@ -27,7 +27,10 @@ export function ThemeProvider({
   storageKey = 'refine-ui-theme',
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useLocalStorage(storageKey, defaultTheme)
+  const [theme, setTheme] = useLocalStorage(storageKey, defaultTheme, {
+    serializer: (v) => v,
+    deserializer: (v) => v as Theme,
+  })
 
   useEffect(() => {
     const root = window.document.documentElement

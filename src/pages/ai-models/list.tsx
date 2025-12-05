@@ -1,33 +1,53 @@
-import { useTable } from '@refinedev/react-table'
-import { type ColumnDef } from '@tanstack/react-table'
 import { useMemo } from 'react'
+import { useTable } from '@refinedev/react-table'
+import { type ColumnDef, type VisibilityState } from '@tanstack/react-table'
 import { Pencil, Trash2 } from 'lucide-react'
-import { useDelete, useNavigation } from '@refinedev/core'
+import { useDelete, useNavigation, useSelect } from '@refinedev/core'
 import {
   ListView,
   ListViewHeader,
 } from '@/components/refine-ui/views/list-view'
 import { DataTable } from '@/components/refine-ui/data-table/data-table'
+import { DataTableSorter } from '@/components/refine-ui/data-table/data-table-sorter'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ActionButton } from '@/components/ui/action-button'
 import { Tables } from '@/types/database.types'
 import { startCase } from 'lodash-es'
+import { DataTableFilterCombobox } from '@/components/refine-ui/data-table/data-table-filter'
+import { useLocalStorage } from 'usehooks-ts'
 
 type AiModel = Tables<'ai_models'> & {
   ai_providers: Pick<Tables<'ai_providers'>, 'id' | 'name'>
 }
 
+const STORAGE_KEY = 'ai-models-column-visibility'
+
 export function AiModelsList() {
   const { edit } = useNavigation()
   const { mutateAsync: deleteModel } = useDelete()
+  const [columnVisibility, setColumnVisibility] =
+    useLocalStorage<VisibilityState>(STORAGE_KEY, {})
+
+  // Fetch providers for filter dropdown
+  const { options: providerOptions } = useSelect<Tables<'ai_providers'>>({
+    resource: 'ai_providers',
+    optionLabel: 'name',
+    optionValue: 'id',
+    pagination: { pageSize: 1000 },
+  })
 
   const columns = useMemo<ColumnDef<AiModel>[]>(
     () => [
       {
         id: 'name',
-        header: 'Model',
         accessorKey: 'name',
+        header: ({ column, table }) => (
+          <div className="flex items-center gap-1">
+            <span>Model</span>
+            <DataTableSorter column={column} />
+          </div>
+        ),
         cell: ({ row }) => (
           <>
             <div className="font-medium">{row.original.name}</div>
@@ -38,9 +58,21 @@ export function AiModelsList() {
         ),
       },
       {
-        id: 'provider',
-        header: 'Provider',
-        accessorKey: 'ai_providers.name',
+        id: 'provider_id',
+        accessorKey: 'provider_id',
+        header: ({ column, table }) => (
+          <div className="flex items-center gap-1">
+            <span>Provider</span>
+            <DataTableSorter column={column} />
+            <DataTableFilterCombobox
+              column={column}
+              options={providerOptions}
+              table={table}
+              operators={['eq']}
+              defaultOperator="eq"
+            />
+          </div>
+        ),
         cell: ({ row }) => (
           <>
             <div className="font-medium">{row.original.ai_providers.name}</div>
@@ -52,8 +84,9 @@ export function AiModelsList() {
       },
       {
         id: 'capabilities',
-        header: 'Capabilities',
         accessorKey: 'capabilities',
+        header: 'Capabilities',
+        enableSorting: false,
         cell: ({ getValue }) => {
           const caps = getValue() as string[]
           if (!caps?.length) {
@@ -69,12 +102,16 @@ export function AiModelsList() {
             </div>
           )
         },
-        enableSorting: false,
       },
       {
         id: 'context_window',
-        header: 'Context Window',
         accessorKey: 'context_window',
+        header: ({ column }) => (
+          <div className="flex items-center gap-1">
+            <span>Context Window</span>
+            <DataTableSorter column={column} />
+          </div>
+        ),
         cell: ({ getValue }) => {
           const value = getValue() as number | null
           if (!value) return <span className="text-muted-foreground">—</span>
@@ -89,8 +126,13 @@ export function AiModelsList() {
       },
       {
         id: 'max_output_tokens',
-        header: 'Max Output',
         accessorKey: 'max_output_tokens',
+        header: ({ column }) => (
+          <div className="flex items-center gap-1">
+            <span>Max Output</span>
+            <DataTableSorter column={column} />
+          </div>
+        ),
         cell: ({ getValue }) => {
           const value = getValue() as number | null
           if (!value) return <span className="text-muted-foreground">—</span>
@@ -106,6 +148,7 @@ export function AiModelsList() {
       {
         id: 'cost',
         header: 'Cost / 1M tokens',
+        enableSorting: false,
         cell: ({ row }) => {
           const input = row.original.cost_input_per_million
           const output = row.original.cost_output_per_million
@@ -125,12 +168,16 @@ export function AiModelsList() {
             </div>
           )
         },
-        enableSorting: false,
       },
       {
         id: 'created_at',
-        header: 'Created At',
         accessorKey: 'created_at',
+        header: ({ column }) => (
+          <div className="flex items-center gap-1">
+            <span>Created</span>
+            <DataTableSorter column={column} />
+          </div>
+        ),
         cell: ({ getValue }) => {
           const value = getValue() as string
           return (
@@ -142,8 +189,13 @@ export function AiModelsList() {
       },
       {
         id: 'updated_at',
-        header: 'Updated At',
         accessorKey: 'updated_at',
+        header: ({ column }) => (
+          <div className="flex items-center gap-1">
+            <span>Updated</span>
+            <DataTableSorter column={column} />
+          </div>
+        ),
         cell: ({ getValue }) => {
           const value = getValue() as string
           return (
@@ -156,6 +208,9 @@ export function AiModelsList() {
       {
         id: 'actions',
         header: '',
+        enableSorting: false,
+        enableHiding: false,
+        size: 80,
         cell: ({ row }) => (
           <div className="flex items-center justify-end gap-1">
             <Button
@@ -193,26 +248,31 @@ export function AiModelsList() {
             </ActionButton>
           </div>
         ),
-        enableSorting: false,
-        size: 80,
       },
     ],
-    [edit, deleteModel],
+    [edit, deleteModel, providerOptions],
   )
 
   const table = useTable<AiModel>({
     columns,
+    state: {
+      columnVisibility,
+    },
+    onColumnVisibilityChange: setColumnVisibility,
     refineCoreProps: {
       resource: 'ai_models',
       meta: {
         select: '*, ai_providers(id, name)',
+      },
+      sorters: {
+        initial: [{ field: 'created_at', order: 'desc' }],
       },
     },
   })
 
   return (
     <ListView>
-      <ListViewHeader />
+      <ListViewHeader table={table} />
       <DataTable table={table} />
     </ListView>
   )
