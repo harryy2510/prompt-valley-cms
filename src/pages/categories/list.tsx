@@ -15,6 +15,11 @@ import { DataTableSorter } from '@/components/refine-ui/data-table/data-table-so
 import { Button } from '@/components/ui/button'
 import { ActionButton } from '@/components/ui/action-button'
 import { Badge } from '@/components/ui/badge'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { Tables } from '@/types/database.types'
 import { cn } from '@/libs/cn'
 
@@ -44,7 +49,8 @@ export function CategoriesList() {
         ),
         cell: ({ row }) => {
           const hasParent = !!row.original.parent
-          const childCount = row.original.children?.length ?? 0
+          const children = row.original.children ?? []
+          const childCount = children.length
 
           return (
             <div className={cn('flex items-center gap-2', hasParent && 'pl-6')}>
@@ -55,9 +61,24 @@ export function CategoriesList() {
                 <div className="flex items-center gap-2">
                   <span className="font-medium">{row.original.name}</span>
                   {!hasParent && childCount > 0 && (
-                    <Badge variant="secondary" className="font-normal text-xs">
-                      {childCount}
-                    </Badge>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge
+                          variant="secondary"
+                          className="font-normal text-xs cursor-default"
+                        >
+                          {childCount}
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-64">
+                        <p className="font-medium mb-1">Sub-categories:</p>
+                        <ul className="text-xs">
+                          {children.map((child) => (
+                            <li key={child.id}>{child.name}</li>
+                          ))}
+                        </ul>
+                      </TooltipContent>
+                    </Tooltip>
                   )}
                 </div>
                 <div className="text-xs text-muted-foreground font-mono">
