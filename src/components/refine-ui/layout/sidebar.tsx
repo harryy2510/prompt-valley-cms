@@ -133,6 +133,11 @@ function SidebarItemGroup({ item, selectedKey }: MenuItemProps) {
 function SidebarItemCollapsible({ item, selectedKey }: MenuItemProps) {
   const { name, children } = item
 
+  // Check if any child is selected to determine if we should default to open
+  const hasSelectedChild = children?.some(
+    (child: TreeMenuItem) => child.key === selectedKey,
+  )
+
   const chevronIcon = (
     <ChevronRight
       className={cn(
@@ -148,7 +153,11 @@ function SidebarItemCollapsible({ item, selectedKey }: MenuItemProps) {
   )
 
   return (
-    <Collapsible key={`collapsible-${name}`} className={cn('w-full', 'group')}>
+    <Collapsible
+      key={`collapsible-${name}`}
+      className={cn('w-full', 'group')}
+      defaultOpen={hasSelectedChild || true}
+    >
       <CollapsibleTrigger asChild>
         <SidebarButton item={item} rightIcon={chevronIcon} />
       </CollapsibleTrigger>

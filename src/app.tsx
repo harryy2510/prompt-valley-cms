@@ -33,7 +33,14 @@ import {
 } from './pages/prompts'
 import { Layout } from '@/components/refine-ui/layout/layout'
 import { ThemeProvider } from '@/components/refine-ui/theme/theme-provider'
-import { Bot, FileText, FolderTree, Package, Tags } from 'lucide-react'
+import {
+  Bot,
+  Database,
+  FileText,
+  FolderTree,
+  Package,
+  Tags,
+} from 'lucide-react'
 
 export function App() {
   return (
@@ -47,43 +54,10 @@ export function App() {
           notificationProvider={useNotificationProvider}
           resources={[
             {
-              name: 'ai_providers',
-              list: '/ai-providers',
-              create: '/ai-providers/create',
-              edit: '/ai-providers/edit/:id',
+              name: 'content',
               meta: {
-                label: 'AI Providers',
-                icon: <Bot />,
-              },
-            },
-            {
-              name: 'ai_models',
-              list: '/ai-models',
-              create: '/ai-models/create',
-              edit: '/ai-models/edit/:id',
-              meta: {
-                label: 'AI Models',
-                icon: <Package />,
-              },
-            },
-            {
-              name: 'categories',
-              list: '/categories',
-              create: '/categories/create',
-              edit: '/categories/edit/:id',
-              meta: {
-                label: 'Categories',
-                icon: <FolderTree />,
-              },
-            },
-            {
-              name: 'tags',
-              list: '/tags',
-              create: '/tags/create',
-              edit: '/tags/edit/:id',
-              meta: {
-                label: 'Tags',
-                icon: <Tags />,
+                label: 'Content',
+                icon: <Database />,
               },
             },
             {
@@ -95,6 +69,51 @@ export function App() {
               meta: {
                 label: 'Prompts',
                 icon: <FileText />,
+                parent: 'content',
+              },
+            },
+            {
+              name: 'categories',
+              list: '/categories',
+              create: '/categories/create',
+              edit: '/categories/edit/:id',
+              meta: {
+                label: 'Categories',
+                icon: <FolderTree />,
+                parent: 'content',
+              },
+            },
+            {
+              name: 'tags',
+              list: '/tags',
+              create: '/tags/create',
+              edit: '/tags/edit/:id',
+              meta: {
+                label: 'Tags',
+                icon: <Tags />,
+                parent: 'content',
+              },
+            },
+            {
+              name: 'ai_providers',
+              list: '/ai-providers',
+              create: '/ai-providers/create',
+              edit: '/ai-providers/edit/:id',
+              meta: {
+                label: 'AI Providers',
+                icon: <Bot />,
+                parent: 'content',
+              },
+            },
+            {
+              name: 'ai_models',
+              list: '/ai-models',
+              create: '/ai-models/create',
+              edit: '/ai-models/edit/:id',
+              meta: {
+                label: 'AI Models',
+                icon: <Package />,
+                parent: 'content',
               },
             },
           ]}
