@@ -94,7 +94,7 @@ export function CategoryForm({ mode }: CategoryFormProps) {
   })
 
   useUnsavedChangesWarning({
-    isDirty: form.formState.isDirty,
+    formState: form.formState,
   })
 
   return (

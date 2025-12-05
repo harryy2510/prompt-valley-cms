@@ -97,7 +97,7 @@ export function AIModelForm({ mode }: AIModelFormProps) {
   })
 
   useUnsavedChangesWarning({
-    isDirty: form.formState.isDirty,
+    formState: form.formState,
   })
 
   return (

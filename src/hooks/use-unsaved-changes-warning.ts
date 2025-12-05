@@ -1,9 +1,10 @@
 import { useEffect } from 'react'
 import { useWarnAboutChange } from '@refinedev/core'
+import type { FieldValues, FormState } from 'react-hook-form'
 
-interface UseUnsavedChangesWarningOptions {
-  /** Whether there are unsaved changes */
-  isDirty: boolean
+interface UseUnsavedChangesWarningOptions<T extends FieldValues> {
+  /** The form state from react-hook-form */
+  formState: FormState<T>
 }
 
 /**
@@ -13,23 +14,29 @@ interface UseUnsavedChangesWarningOptions {
  * 1. Blocks in-app navigation with a confirmation dialog
  * 2. Shows browser's native "Leave site?" dialog on tab close/refresh
  *
+ * Uses dirtyFields instead of isDirty to only warn when user has actually
+ * modified fields (not when data is loaded into form).
+ *
  * @example
  * ```tsx
  * const form = useForm()
  * useUnsavedChangesWarning({
- *   isDirty: form.formState.isDirty,
+ *   formState: form.formState,
  * })
  * ```
  */
-export function useUnsavedChangesWarning({
-  isDirty,
-}: UseUnsavedChangesWarningOptions) {
+export function useUnsavedChangesWarning<T extends FieldValues>({
+  formState,
+}: UseUnsavedChangesWarningOptions<T>) {
   const { setWarnWhen } = useWarnAboutChange()
+
+  // Check if any fields have been modified by the user
+  const hasDirtyFields = Object.keys(formState.dirtyFields).length > 0
 
   // Sync form dirty state with Refine's warning system
   useEffect(() => {
-    setWarnWhen(isDirty)
-  }, [isDirty, setWarnWhen])
+    setWarnWhen(hasDirtyFields)
+  }, [hasDirtyFields, setWarnWhen])
 
   // Clean up on unmount
   useEffect(() => {

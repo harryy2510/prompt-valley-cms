@@ -61,7 +61,7 @@ export function AIProviderForm({ mode }: AIProviderFormProps) {
   })
 
   useUnsavedChangesWarning({
-    isDirty: form.formState.isDirty,
+    formState: form.formState,
   })
 
   return (

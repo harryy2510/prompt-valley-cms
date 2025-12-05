@@ -58,7 +58,7 @@ export function TagForm({ mode }: TagFormProps) {
   })
 
   useUnsavedChangesWarning({
-    isDirty: form.formState.isDirty,
+    formState: form.formState,
   })
 
   return (

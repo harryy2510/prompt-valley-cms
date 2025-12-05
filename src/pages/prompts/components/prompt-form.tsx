@@ -154,7 +154,7 @@ export function PromptForm({ mode }: PromptFormProps) {
   }, [id, query?.data?.data, isCreate])
 
   useUnsavedChangesWarning({
-    isDirty: form.formState.isDirty,
+    formState: form.formState,
   })
 
   const handleSubmit = async (data: PromptFormValues) => {
