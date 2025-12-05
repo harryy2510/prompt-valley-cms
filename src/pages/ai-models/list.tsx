@@ -34,17 +34,46 @@ type AiModel = Tables<'ai_models'> & {
 
 const STORAGE_KEY = 'ai-models-column-visibility'
 
-const EXPORT_COLUMNS: ColumnMapping<AiModel>[] = [
+type ExportAiModel = {
+  id: string
+  name: string
+  provider_id: string
+  provider_name: string
+  capabilities: string
+  context_window: number | null
+  max_output_tokens: number | null
+  cost_input_per_million: number | null
+  cost_output_per_million: number | null
+  created_at: string
+}
+
+const EXPORT_COLUMNS: ColumnMapping<ExportAiModel>[] = [
   { key: 'id', header: 'ID', example: 'gpt-4o' },
   { key: 'name', header: 'Name', example: 'GPT-4o' },
   { key: 'provider_id', header: 'Provider ID', example: 'openai' },
-  { key: 'capabilities', header: 'Capabilities', example: 'text,vision,function' },
+  { key: 'provider_name', header: 'Provider Name', example: 'OpenAI' },
+  { key: 'capabilities', header: 'Capabilities', example: 'text, vision, function' },
   { key: 'context_window', header: 'Context Window', example: '128000' },
   { key: 'max_output_tokens', header: 'Max Output', example: '4096' },
   { key: 'cost_input_per_million', header: 'Cost Input/1M', example: '2.50' },
   { key: 'cost_output_per_million', header: 'Cost Output/1M', example: '10.00' },
   { key: 'created_at', header: 'Created At', example: '' },
 ]
+
+function transformModelsForExport(models: AiModel[]): ExportAiModel[] {
+  return models.map((m) => ({
+    id: m.id,
+    name: m.name,
+    provider_id: m.provider_id,
+    provider_name: m.ai_providers?.name || '',
+    capabilities: m.capabilities?.join(', ') || '',
+    context_window: m.context_window,
+    max_output_tokens: m.max_output_tokens,
+    cost_input_per_million: m.cost_input_per_million,
+    cost_output_per_million: m.cost_output_per_million,
+    created_at: m.created_at,
+  }))
+}
 
 export function AiModelsList() {
   const { edit } = useNavigation()
@@ -316,6 +345,7 @@ export function AiModelsList() {
   })
 
   const tableData = table.refineCore.tableQuery.data?.data ?? []
+  const exportData = transformModelsForExport(tableData)
 
   return (
     <ListView>
@@ -323,7 +353,7 @@ export function AiModelsList() {
         table={table}
         action={
           <DataTableExport
-            data={tableData}
+            data={exportData}
             filename="ai-models"
             columns={EXPORT_COLUMNS}
           />

@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { useTable } from '@refinedev/react-table'
 import { type ColumnDef, type VisibilityState } from '@tanstack/react-table'
-import { Check, Eye, Pencil, Trash2, X } from 'lucide-react'
+import { Eye, Pencil, Trash2 } from 'lucide-react'
 import { useDelete, useNavigation, useSelect, useUpdate } from '@refinedev/core'
 import { useLocalStorage } from 'usehooks-ts'
 import dayjs from 'dayjs'
@@ -18,17 +18,16 @@ import {
 import { DataTable } from '@/components/refine-ui/data-table/data-table'
 import { DataTableSorter } from '@/components/refine-ui/data-table/data-table-sorter'
 import {
-  DataTableFilterCombobox,
   DataTableFilterClearButton,
+  DataTableFilterCombobox,
 } from '@/components/refine-ui/data-table/data-table-filter'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { ActionButton } from '@/components/ui/action-button'
 import {
-  DataTableExport,
-  DataTableImport,
   ColumnMapping,
+  DataTableExport,
 } from '@/components/refine-ui/data-table/data-table-export-import'
 import { Tables } from '@/types/database.types'
 import { fShortenNumber } from '@/utils/format'
@@ -41,17 +40,50 @@ type Prompt = Tables<'prompts'> & {
 
 const STORAGE_KEY = 'prompts-column-visibility'
 
-const EXPORT_COLUMNS: ColumnMapping<Prompt>[] = [
+type ExportPrompt = {
+  id: string
+  title: string
+  description: string | null
+  content: string
+  category_id: string | null
+  tier: string
+  is_published: boolean
+  is_featured: boolean
+  tag_ids: string
+  model_ids: string
+  views_count: number
+  created_at: string
+}
+
+const EXPORT_COLUMNS: ColumnMapping<ExportPrompt>[] = [
   { key: 'id', header: 'ID', example: 'my-prompt-slug' },
   { key: 'title', header: 'Title', example: 'My Prompt' },
   { key: 'description', header: 'Description', example: 'A useful prompt' },
   { key: 'content', header: 'Content', example: 'Prompt content here...' },
+  { key: 'category_id', header: 'Category ID', example: 'marketing' },
   { key: 'tier', header: 'Tier', example: 'free' },
   { key: 'is_published', header: 'Published', example: 'true' },
   { key: 'is_featured', header: 'Featured', example: 'false' },
-  { key: 'views_count', header: 'Views', example: '0' },
+  { key: 'tag_ids', header: 'Tag IDs', example: 'seo,copywriting' },
+  { key: 'model_ids', header: 'Model IDs', example: 'gpt-4o,claude-3' },
   { key: 'created_at', header: 'Created At', example: '' },
 ]
+
+function transformPromptsForExport(prompts: Prompt[]): ExportPrompt[] {
+  return prompts.map((p) => ({
+    id: p.id,
+    title: p.title,
+    description: p.description,
+    content: p.content,
+    category_id: p.category_id,
+    tier: p.tier,
+    is_published: p.is_published,
+    is_featured: p.is_featured,
+    tag_ids: p.prompt_tags?.map((pt) => pt.tags.id).join(', ') || '',
+    model_ids: p.prompt_models?.map((pm) => pm.ai_models.id).join(', ') || '',
+    created_at: p.created_at,
+  }))
+}
 
 const TIER_OPTIONS = [
   { label: 'Free', value: 'free' },
@@ -459,19 +491,18 @@ export function PromptsList() {
   })
 
   const tableData = table.refineCore.tableQuery.data?.data ?? []
+  const exportData = transformPromptsForExport(tableData)
 
   return (
     <ListView>
       <ListViewHeader
         table={table}
         action={
-          <>
-            <DataTableExport
-              data={tableData}
-              filename="prompts"
-              columns={EXPORT_COLUMNS}
-            />
-          </>
+          <DataTableExport
+            data={exportData}
+            filename="prompts"
+            columns={EXPORT_COLUMNS}
+          />
         }
       />
       <DataTable table={table} />

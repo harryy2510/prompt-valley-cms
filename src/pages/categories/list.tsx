@@ -37,12 +37,30 @@ type Category = Tables<'categories'> & {
 
 const STORAGE_KEY = 'categories-column-visibility'
 
-const EXPORT_COLUMNS: ColumnMapping<Category>[] = [
+type ExportCategory = {
+  id: string
+  name: string
+  parent_id: string | null
+  created_at: string
+}
+
+const EXPORT_COLUMNS: ColumnMapping<ExportCategory>[] = [
   { key: 'id', header: 'ID', example: 'category-slug' },
   { key: 'name', header: 'Name', example: 'My Category' },
   { key: 'parent_id', header: 'Parent ID', example: 'parent-category-slug' },
   { key: 'created_at', header: 'Created At', example: '' },
 ]
+
+function transformCategoriesForExport(
+  categories: Category[],
+): ExportCategory[] {
+  return categories.map((c) => ({
+    id: c.id,
+    name: c.name,
+    parent_id: c.parent_id,
+    created_at: c.created_at,
+  }))
+}
 
 export function CategoriesList() {
   const { edit } = useNavigation()
@@ -264,7 +282,8 @@ export function CategoriesList() {
     refineCoreProps: {
       resource: 'categories',
       meta: {
-        select: '*, parent:parent_id(id, name), children:categories(id, name), prompts(count)',
+        select:
+          '*, parent:parent_id(id, name), children:categories(id, name), prompts(count)',
       },
       sorters: {
         initial: [{ field: 'created_at', order: 'desc' }],
@@ -273,6 +292,7 @@ export function CategoriesList() {
   })
 
   const tableData = table.refineCore.tableQuery.data?.data ?? []
+  const exportData = transformCategoriesForExport(tableData)
 
   return (
     <ListView>
@@ -280,7 +300,7 @@ export function CategoriesList() {
         table={table}
         action={
           <DataTableExport
-            data={tableData}
+            data={exportData}
             filename="categories"
             columns={EXPORT_COLUMNS}
           />
