@@ -34,7 +34,7 @@ import {
   PromptsEdit,
   PromptsShow,
 } from './pages/prompts'
-import { AssetsManager } from './pages/assets'
+import { BucketList, FileBrowser } from './pages/media-library'
 import { Layout } from '@/components/refine-ui/layout/layout'
 import { ThemeProvider } from '@/components/refine-ui/theme/theme-provider'
 import {
@@ -122,10 +122,10 @@ export function App() {
               },
             },
             {
-              name: 'assets',
-              list: '/assets',
+              name: 'media-library',
+              list: '/media-library',
               meta: {
-                label: 'Assets',
+                label: 'Media Library',
                 icon: <FolderOpen />,
               },
             },
@@ -211,8 +211,11 @@ export function App() {
                 <Route path="show/:id" element={<PromptsShow />} />
               </Route>
 
-              {/* Assets */}
-              <Route path="/assets" element={<AssetsManager />} />
+              {/* Media Library */}
+              <Route path="/media-library">
+                <Route index element={<BucketList />} />
+                <Route path=":bucketId" element={<FileBrowser />} />
+              </Route>
             </Route>
 
             <Route path="*" element={<ErrorComponent />} />

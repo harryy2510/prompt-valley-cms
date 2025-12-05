@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useParams, useNavigate } from 'react-router'
 import Selecto from 'react-selecto'
 import {
   ChevronRight,
+  ChevronLeft,
   File,
   FileImage,
   FileText,
@@ -75,8 +77,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { useNotification } from '@refinedev/core'
 
-const BUCKET_NAME = 'content-bucket'
-
 type FileObject = {
   name: string
   id: string | null
@@ -124,7 +124,15 @@ function isImageFile(name: string): boolean {
   return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(ext || '')
 }
 
-export function AssetsManager() {
+interface FileBrowserProps {
+  bucketId?: string
+}
+
+export function FileBrowser({ bucketId: propBucketId }: FileBrowserProps = {}) {
+  const { bucketId: paramBucketId } = useParams<{ bucketId: string }>()
+  const navigate = useNavigate()
+  const bucketId = propBucketId || paramBucketId || ''
+
   const [currentPath, setCurrentPath] = useState<string[]>([])
   const [files, setFiles] = useState<FileObject[]>([])
   const [folders, setFolders] = useState<string[]>([])
@@ -160,7 +168,7 @@ export function AssetsManager() {
     setIsLoading(true)
     try {
       const { data, error } = await supabase.storage
-        .from(BUCKET_NAME)
+        .from(bucketId)
         .list(pathString, {
           limit: 1000,
           sortBy: { column: 'name', order: 'asc' },
@@ -217,7 +225,7 @@ export function AssetsManager() {
 
   const getPublicUrl = (fileName: string): string => {
     const fullPath = pathString ? `${pathString}/${fileName}` : fileName
-    const { data } = supabase.storage.from(BUCKET_NAME).getPublicUrl(fullPath)
+    const { data } = supabase.storage.from(bucketId).getPublicUrl(fullPath)
     return data.publicUrl
   }
 
@@ -233,7 +241,7 @@ export function AssetsManager() {
       const filePath = pathString ? `${pathString}/${file.name}` : file.name
 
       const { error } = await supabase.storage
-        .from(BUCKET_NAME)
+        .from(bucketId)
         .upload(filePath, file, { upsert: true })
 
       if (error) {
@@ -271,7 +279,7 @@ export function AssetsManager() {
       : `${newFolderName}/.keep`
 
     const { error } = await supabase.storage
-      .from(BUCKET_NAME)
+      .from(bucketId)
       .upload(folderPath, new Blob(['']), { upsert: true })
 
     if (error) {
@@ -301,16 +309,16 @@ export function AssetsManager() {
     if (itemToDelete.isFolder) {
       // For folders, we need to delete all contents recursively
       const { data: folderContents } = await supabase.storage
-        .from(BUCKET_NAME)
+        .from(bucketId)
         .list(fullPath, { limit: 1000 })
 
       if (folderContents && folderContents.length > 0) {
         const filesToDelete = folderContents.map((f) => `${fullPath}/${f.name}`)
-        await supabase.storage.from(BUCKET_NAME).remove(filesToDelete)
+        await supabase.storage.from(bucketId).remove(filesToDelete)
       }
     } else {
       const { error } = await supabase.storage
-        .from(BUCKET_NAME)
+        .from(bucketId)
         .remove([fullPath])
 
       if (error) {
@@ -347,7 +355,7 @@ export function AssetsManager() {
       if (item.isFolder) {
         // For folders, delete all contents recursively
         const { data: folderContents } = await supabase.storage
-          .from(BUCKET_NAME)
+          .from(bucketId)
           .list(fullPath, { limit: 1000 })
 
         if (folderContents && folderContents.length > 0) {
@@ -355,7 +363,7 @@ export function AssetsManager() {
             (f) => `${fullPath}/${f.name}`,
           )
           const { error } = await supabase.storage
-            .from(BUCKET_NAME)
+            .from(bucketId)
             .remove(filesToDelete)
           if (error) errorCount++
           else successCount++
@@ -364,7 +372,7 @@ export function AssetsManager() {
         }
       } else {
         const { error } = await supabase.storage
-          .from(BUCKET_NAME)
+          .from(bucketId)
           .remove([fullPath])
         if (error) errorCount++
         else successCount++
@@ -394,7 +402,7 @@ export function AssetsManager() {
   const handleDownload = async (fileName: string) => {
     const fullPath = pathString ? `${pathString}/${fileName}` : fileName
     const { data, error } = await supabase.storage
-      .from(BUCKET_NAME)
+      .from(bucketId)
       .download(fullPath)
 
     if (error) {
@@ -458,11 +466,20 @@ export function AssetsManager() {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between gap-4 pb-4">
-        <div>
-          <h1 className="text-2xl font-bold">Assets</h1>
-          <p className="text-sm text-muted-foreground">
-            Manage files and folders in your storage bucket
-          </p>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate('/media-library')}
+          >
+            <ChevronLeft className="size-5" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold">{bucketId}</h1>
+            <p className="text-sm text-muted-foreground">
+              Manage files and folders in this bucket
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -565,7 +582,7 @@ export function AssetsManager() {
                 onClick={navigateHome}
                 className="cursor-pointer hover:text-foreground"
               >
-                {BUCKET_NAME}
+                {bucketId}
               </BreadcrumbLink>
             </BreadcrumbItem>
             {currentPath.map((segment, index) => (
