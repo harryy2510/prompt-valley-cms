@@ -22,12 +22,24 @@ import {
 } from '@/components/ui/tooltip'
 import { Tables } from '@/types/database.types'
 import { getImageUrl } from '@/libs/storage'
+import {
+  DataTableExport,
+  ColumnMapping,
+} from '@/components/refine-ui/data-table/data-table-export-import'
 
 type AiProvider = Tables<'ai_providers'> & {
   ai_models: Pick<Tables<'ai_models'>, 'id' | 'name'>[]
 }
 
 const STORAGE_KEY = 'ai-providers-column-visibility'
+
+const EXPORT_COLUMNS: ColumnMapping<AiProvider>[] = [
+  { key: 'id', header: 'ID', example: 'openai' },
+  { key: 'name', header: 'Name', example: 'OpenAI' },
+  { key: 'website_url', header: 'Website URL', example: 'https://openai.com' },
+  { key: 'logo_url', header: 'Logo URL', example: '' },
+  { key: 'created_at', header: 'Created At', example: '' },
+]
 
 export function AiProvidersList() {
   const { edit } = useNavigation()
@@ -237,9 +249,20 @@ export function AiProvidersList() {
     },
   })
 
+  const tableData = table.refineCore.tableQuery.data?.data ?? []
+
   return (
     <ListView>
-      <ListViewHeader table={table} />
+      <ListViewHeader
+        table={table}
+        action={
+          <DataTableExport
+            data={tableData}
+            filename="ai-providers"
+            columns={EXPORT_COLUMNS}
+          />
+        }
+      />
       <DataTable table={table} />
     </ListView>
   )

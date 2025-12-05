@@ -40,7 +40,6 @@ const STORAGE_KEY = 'categories-column-visibility'
 const EXPORT_COLUMNS: ColumnMapping<Category>[] = [
   { key: 'id', header: 'ID', example: 'category-slug' },
   { key: 'name', header: 'Name', example: 'My Category' },
-  { key: 'description', header: 'Description', example: 'Category description' },
   { key: 'parent_id', header: 'Parent ID', example: 'parent-category-slug' },
   { key: 'created_at', header: 'Created At', example: '' },
 ]
