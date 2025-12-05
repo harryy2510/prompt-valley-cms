@@ -60,7 +60,7 @@ export function TagForm({ mode }: TagFormProps) {
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onFinish)}
-        className="space-y-6 max-w-2xl"
+        className="space-y-6 w-full max-w-4xl mx-auto"
       >
         <LoadingOverlay containerClassName="space-y-6" loading={formLoading}>
           <Card>

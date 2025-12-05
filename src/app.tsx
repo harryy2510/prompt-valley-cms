@@ -113,7 +113,7 @@ export function App() {
             <Route
               path="/login"
               element={
-                <AuthGuard requireAuth={false}>
+                <AuthGuard mode="guest">
                   <LoginPage />
                 </AuthGuard>
               }
@@ -121,7 +121,7 @@ export function App() {
 
             <Route
               element={
-                <AuthGuard requireAuth>
+                <AuthGuard mode="protected">
                   <Layout>
                     <Outlet />
                   </Layout>

@@ -1,63 +1,55 @@
-import { useEffect, useState } from 'react'
-import { Navigate } from 'react-router'
-import { supabase } from '@/libs/supabase'
+import { ReactNode } from 'react'
+import { Navigate, useLocation } from 'react-router'
 import { Loader2 } from 'lucide-react'
+import { useIsAuthenticated } from '@refinedev/core'
+
+type AuthGuardMode = 'protected' | 'guest'
 
 interface AuthGuardProps {
-  children: React.ReactNode
-  requireAuth?: boolean
+  children: ReactNode
+  /**
+   * 'protected' - requires authentication, redirects to login if not authenticated
+   * 'guest' - for login/register pages, redirects to app if already authenticated
+   */
+  mode?: AuthGuardMode
+  /** Custom redirect path (defaults: '/login' for protected, '/' for guest) */
+  redirectTo?: string
+  /** Custom loading component */
+  fallback?: ReactNode
 }
 
-export function AuthGuard({ children, requireAuth = true }: AuthGuardProps) {
-  const [loading, setLoading] = useState(true)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+const DefaultFallback = () => (
+  <div className="flex min-h-screen items-center justify-center">
+    <Loader2 className="size-8 animate-spin text-muted-foreground" />
+  </div>
+)
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession()
-        setIsAuthenticated(!!session)
-      } catch (error) {
-        console.error('Auth check failed:', error)
-        setIsAuthenticated(false)
-      } finally {
-        setLoading(false)
-      }
-    }
+export function AuthGuard({
+  children,
+  mode = 'protected',
+  redirectTo,
+  fallback = <DefaultFallback />,
+}: AuthGuardProps) {
+  const location = useLocation()
+  const { data, isLoading } = useIsAuthenticated()
 
-    checkAuth()
+  if (isLoading) return fallback
 
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(!!session)
-      setLoading(false)
-    })
+  const isAuthenticated = data?.authenticated ?? false
 
-    return () => {
-      subscription.unsubscribe()
-    }
-  }, [])
-
-  if (loading) {
+  if (mode === 'protected' && !isAuthenticated) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="size-8 animate-spin text-muted-foreground" />
-      </div>
+      <Navigate
+        to={redirectTo ?? '/login'}
+        state={{ from: location.pathname }}
+        replace
+      />
     )
   }
 
-  // If requireAuth is true and user is not authenticated, redirect to login
-  if (requireAuth && !isAuthenticated) {
-    return <Navigate to="/login" replace />
-  }
-
-  // If requireAuth is false (login page) and user is authenticated, redirect to dashboard
-  if (!requireAuth && isAuthenticated) {
-    return <Navigate to="/" replace />
+  if (mode === 'guest' && isAuthenticated) {
+    const from = (location.state as { from?: string })?.from
+    return <Navigate to={redirectTo ?? from ?? '/'} replace />
   }
 
   return <>{children}</>

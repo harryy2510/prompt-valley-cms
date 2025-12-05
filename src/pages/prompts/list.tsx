@@ -1,82 +1,113 @@
+import { useMemo } from 'react'
 import { useTable } from '@refinedev/react-table'
-import { type ColumnDef } from '@tanstack/react-table'
-import { useState, useMemo } from 'react'
-import { Eye, Pencil, Trash2 } from 'lucide-react'
-import { useDelete, useNavigation } from '@refinedev/core'
+import { type ColumnDef, type VisibilityState } from '@tanstack/react-table'
+import { Check, Eye, Pencil, Trash2, X } from 'lucide-react'
+import { useDelete, useNavigation, useSelect } from '@refinedev/core'
+import { useLocalStorage } from 'usehooks-ts'
+import dayjs from 'dayjs'
 
-import { ListView, ListViewHeader } from '@/components/refine-ui/views/list-view'
+import {
+  ListView,
+  ListViewHeader,
+} from '@/components/refine-ui/views/list-view'
 import { DataTable } from '@/components/refine-ui/data-table/data-table'
+import { DataTableSorter } from '@/components/refine-ui/data-table/data-table-sorter'
+import { DataTableFilterCombobox } from '@/components/refine-ui/data-table/data-table-filter'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
+import { ActionButton } from '@/components/ui/action-button'
+import { Tables } from '@/types/database.types'
+import { fShortenNumber } from '@/utils/format'
 
-type Prompt = {
-  id: string
-  title: string
-  description: string | null
-  content: string
-  category_id: string | null
-  categories?: {
-    id: string
-    name: string
-  }
-  tier: 'free' | 'pro'
-  is_published: boolean
-  is_featured: boolean
-  views_count: number
-  images: string[] | null
-  created_at: string
-  updated_at: string
+type Prompt = Tables<'prompts'> & {
+  categories: Pick<Tables<'categories'>, 'id' | 'name'> | null
 }
+
+const STORAGE_KEY = 'prompts-column-visibility'
+
+const TIER_OPTIONS = [
+  { label: 'Free', value: 'free' },
+  { label: 'Pro', value: 'pro' },
+]
+
+const STATUS_OPTIONS = [
+  { label: 'Published', value: 'true' },
+  { label: 'Draft', value: 'false' },
+]
 
 export function PromptsList() {
   const { edit, show } = useNavigation()
-  const { mutate: deletePrompt } = useDelete()
-  const [deleteDialog, setDeleteDialog] = useState<{
-    open: boolean
-    id: string
-    title: string
-  } | null>(null)
+  const { mutateAsync: deletePrompt } = useDelete()
+  const [columnVisibility, setColumnVisibility] =
+    useLocalStorage<VisibilityState>(STORAGE_KEY, {})
+
+  const { options: categoryOptions } = useSelect<Tables<'categories'>>({
+    resource: 'categories',
+    optionLabel: 'name',
+    optionValue: 'id',
+    pagination: { pageSize: 1000 },
+  })
 
   const columns = useMemo<ColumnDef<Prompt>[]>(
     () => [
       {
         id: 'title',
-        header: 'Title',
         accessorKey: 'title',
-        cell: ({ row }) => (
-          <div className="space-y-1">
-            <div className="font-medium">{row.original.title}</div>
-            {row.original.description && (
-              <div className="text-xs text-muted-foreground line-clamp-1">
-                {row.original.description}
-              </div>
-            )}
+        header: ({ column }) => (
+          <div className="flex items-center gap-1">
+            <span>Title</span>
+            <DataTableSorter column={column} />
           </div>
+        ),
+        cell: ({ row }) => (
+          <>
+            <div className="font-medium">{row.original.title}</div>
+            <div className="text-xs text-muted-foreground font-mono">
+              {row.original.id}
+            </div>
+          </>
         ),
       },
       {
-        id: 'category',
-        header: 'Category',
-        accessorKey: 'categories.name',
+        id: 'category_id',
+        accessorKey: 'category_id',
+        header: ({ column, table }) => (
+          <div className="flex items-center gap-1">
+            <span>Category</span>
+            <DataTableSorter column={column} />
+            <DataTableFilterCombobox
+              column={column}
+              options={categoryOptions}
+              table={table}
+              operators={['eq']}
+              defaultOperator="eq"
+            />
+          </div>
+        ),
         cell: ({ row }) => {
           const category = row.original.categories
-          return <span className="text-sm">{category?.name || '—'}</span>
+          if (!category) {
+            return <span className="text-muted-foreground">—</span>
+          }
+          return <span className="text-sm">{category.name}</span>
         },
       },
       {
         id: 'tier',
-        header: 'Tier',
         accessorKey: 'tier',
+        header: ({ column, table }) => (
+          <div className="flex items-center gap-1">
+            <span>Tier</span>
+            <DataTableSorter column={column} />
+            <DataTableFilterCombobox
+              column={column}
+              options={TIER_OPTIONS}
+              table={table}
+              operators={['eq']}
+              defaultOperator="eq"
+            />
+          </div>
+        ),
         cell: ({ getValue }) => {
           const tier = getValue() as 'free' | 'pro'
           return (
@@ -90,9 +121,21 @@ export function PromptsList() {
         },
       },
       {
-        id: 'status',
-        header: 'Status',
+        id: 'is_published',
         accessorKey: 'is_published',
+        header: ({ column, table }) => (
+          <div className="flex items-center gap-1">
+            <span>Status</span>
+            <DataTableSorter column={column} />
+            <DataTableFilterCombobox
+              column={column}
+              options={STATUS_OPTIONS}
+              table={table}
+              operators={['eq']}
+              defaultOperator="eq"
+            />
+          </div>
+        ),
         cell: ({ getValue }) => {
           const isPublished = getValue() as boolean
           return (
@@ -110,17 +153,83 @@ export function PromptsList() {
         },
       },
       {
-        id: 'views',
-        header: 'Views',
+        id: 'is_featured',
+        accessorKey: 'is_featured',
+        header: ({ column }) => (
+          <div className="flex items-center gap-1">
+            <span>Featured</span>
+            <DataTableSorter column={column} />
+          </div>
+        ),
+        cell: ({ getValue }) => {
+          const isFeatured = getValue() as boolean
+          return isFeatured ? (
+            <Check className="size-4 text-green-600" />
+          ) : (
+            <X className="size-4 text-muted-foreground" />
+          )
+        },
+      },
+      {
+        id: 'views_count',
         accessorKey: 'views_count',
+        header: ({ column }) => (
+          <div className="flex items-center gap-1">
+            <span>Views</span>
+            <DataTableSorter column={column} />
+          </div>
+        ),
         cell: ({ getValue }) => {
           const count = getValue() as number
-          return <span className="text-sm tabular-nums">{count || 0}</span>
+          return (
+            <span className="text-sm tabular-nums">
+              {fShortenNumber(count || 0)}
+            </span>
+          )
+        },
+      },
+      {
+        id: 'created_at',
+        accessorKey: 'created_at',
+        header: ({ column }) => (
+          <div className="flex items-center gap-1">
+            <span>Created</span>
+            <DataTableSorter column={column} />
+          </div>
+        ),
+        cell: ({ getValue }) => {
+          const value = getValue() as string
+          return (
+            <span className="text-sm text-muted-foreground">
+              {dayjs(value).format('DD MMM, YYYY')}
+            </span>
+          )
+        },
+      },
+      {
+        id: 'updated_at',
+        accessorKey: 'updated_at',
+        header: ({ column }) => (
+          <div className="flex items-center gap-1">
+            <span>Updated</span>
+            <DataTableSorter column={column} />
+          </div>
+        ),
+        cell: ({ getValue }) => {
+          const value = getValue() as string
+          return (
+            <span className="text-sm text-muted-foreground">
+              {dayjs(value).format('DD MMM, YYYY')}
+            </span>
+          )
         },
       },
       {
         id: 'actions',
-        header: () => <div className="text-right">Actions</div>,
+        header: '',
+        enableSorting: false,
+        enableHiding: false,
+        size: 120,
         cell: ({ row }) => (
           <div className="flex items-center justify-end gap-1">
             <Button
@@ -141,83 +250,59 @@ export function PromptsList() {
               <Pencil className="size-4" />
               <span className="sr-only">Edit</span>
             </Button>
-            <Button
+            <ActionButton
               variant="ghost"
               size="icon"
               className="size-8 text-destructive"
-              onClick={() =>
-                setDeleteDialog({
-                  open: true,
-                  id: row.original.id,
-                  title: row.original.title,
-                })
+              requireAreYouSure
+              areYouSureTitle="Delete Prompt?"
+              areYouSureDescription={
+                <>
+                  This will permanently delete the prompt "
+                  {row.original.title}". This action cannot be undone.
+                </>
               }
+              confirmLabel="Delete"
+              action={async () => {
+                await deletePrompt({
+                  resource: 'prompts',
+                  id: row.original.id,
+                })
+                return { error: false }
+              }}
             >
               <Trash2 className="size-4" />
               <span className="sr-only">Delete</span>
-            </Button>
+            </ActionButton>
           </div>
         ),
-        enableSorting: false,
       },
     ],
-    [edit, show],
+    [edit, show, deletePrompt, categoryOptions],
   )
 
   const table = useTable<Prompt>({
+    enableMultiSort: false,
     columns,
+    state: {
+      columnVisibility,
+    },
+    onColumnVisibilityChange: setColumnVisibility,
     refineCoreProps: {
       resource: 'prompts',
       meta: {
         select: '*, categories(id, name)',
       },
+      sorters: {
+        initial: [{ field: 'created_at', order: 'desc' }],
+      },
     },
   })
 
-  const handleDelete = () => {
-    if (!deleteDialog) return
-    deletePrompt(
-      {
-        resource: 'prompts',
-        id: deleteDialog.id,
-      },
-      {
-        onSuccess: () => {
-          table.refineCore.tableQuery.refetch()
-          setDeleteDialog(null)
-        },
-      },
-    )
-  }
-
   return (
     <ListView>
-      <ListViewHeader />
+      <ListViewHeader table={table} />
       <DataTable table={table} />
-
-      <AlertDialog
-        open={deleteDialog?.open}
-        onOpenChange={(open) => !open && setDeleteDialog(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Prompt</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete &quot;{deleteDialog?.title}&quot;?
-              This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </ListView>
   )
 }

@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react'
-import { useParams } from 'react-router'
 import { useOne } from '@refinedev/core'
+import { useParams } from 'react-router'
 
 import {
   ShowView,
   ShowViewHeader,
 } from '@/components/refine-ui/views/show-view'
 import { LoadingOverlay } from '@/components/refine-ui/layout/loading-overlay'
-import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import {
   Card,
@@ -16,26 +15,37 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { Tables } from '@/types/database.types'
 import { getImageUrl } from '@/libs/storage'
 import { supabase } from '@/libs/supabase'
+import { fShortenNumber } from '@/utils/format'
+
+type Prompt = Tables<'prompts'> & {
+  categories: Pick<Tables<'categories'>, 'id' | 'name'> | null
+}
+
+type Tag = Tables<'tags'>
+type AIModel = Tables<'ai_models'>
 
 export function PromptsShow() {
   const { id } = useParams()
-  const { result, query } = useOne({
+  const [tags, setTags] = useState<Tag[]>([])
+  const [models, setModels] = useState<AIModel[]>([])
+
+  const { query } = useOne<Prompt>({
     resource: 'prompts',
     id: id || '',
     meta: {
       select: '*, categories(id, name)',
     },
   })
-  const { isLoading } = query
-  const [tags, setTags] = useState<any[]>([])
-  const [models, setModels] = useState<any[]>([])
+
+  const prompt = query.data?.data
+  const isLoading = query.isLoading
 
   useEffect(() => {
     const loadRelations = async () => {
       if (id) {
-        // Load tags
         const { data: promptTags } = await supabase
           .from('prompt_tags')
           .select('tags(*)')
@@ -45,7 +55,6 @@ export function PromptsShow() {
           setTags(promptTags.map((pt: any) => pt.tags))
         }
 
-        // Load models
         const { data: promptModels } = await supabase
           .from('prompt_models')
           .select('ai_models(*)')
@@ -60,47 +69,42 @@ export function PromptsShow() {
     loadRelations()
   }, [id])
 
-  const prompt = result
-
   return (
     <ShowView>
       <ShowViewHeader title={prompt?.title || 'Prompt Details'} />
       <LoadingOverlay loading={isLoading}>
-        {!isLoading && prompt && (
-          <div className="space-y-6">
+        {prompt && (
+          <div className="space-y-6 w-full max-w-4xl mx-auto">
             <Card>
               <CardHeader>
                 <CardTitle>Prompt Content</CardTitle>
-                <CardDescription>{prompt?.description || ''}</CardDescription>
+                {prompt.description && (
+                  <CardDescription>{prompt.description}</CardDescription>
+                )}
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
+              <CardContent className="space-y-4">
+                <div className="whitespace-pre-wrap rounded-md border bg-muted/30 p-4 text-sm">
+                  {prompt.content}
+                </div>
+
+                {prompt.images && prompt.images.length > 0 && (
                   <div>
-                    <Label className="text-base font-medium">Content</Label>
-                    <div className="mt-2 whitespace-pre-wrap rounded-md border p-4 bg-muted/30 text-sm">
-                      {prompt?.content}
+                    <p className="text-sm font-medium mb-2">Images</p>
+                    <div className="flex flex-wrap gap-2">
+                      {prompt.images.map((image: string, index: number) => {
+                        const imageUrl = getImageUrl(image)
+                        return (
+                          <img
+                            key={index}
+                            src={imageUrl || ''}
+                            alt={`Prompt image ${index + 1}`}
+                            className="size-24 rounded-md border object-cover"
+                          />
+                        )
+                      })}
                     </div>
                   </div>
-
-                  {prompt?.images && prompt.images.length > 0 && (
-                    <div>
-                      <Label className="text-base font-medium">Images</Label>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {prompt.images.map((image: string, index: number) => {
-                          const imageUrl = getImageUrl(image)
-                          return (
-                            <img
-                              key={index}
-                              src={imageUrl || ''}
-                              alt={`Prompt image ${index + 1}`}
-                              className="h-24 w-24 rounded-md border object-cover"
-                            />
-                          )
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                )}
               </CardContent>
             </Card>
 
@@ -112,38 +116,48 @@ export function PromptsShow() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">Status:</span>
+                <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Status</p>
+                    <div className="mt-1 flex items-center gap-2">
+                      <Badge
+                        variant={prompt.is_published ? 'default' : 'outline'}
+                        className={
+                          prompt.is_published
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100'
+                            : ''
+                        }
+                      >
+                        {prompt.is_published ? 'Published' : 'Draft'}
+                      </Badge>
+                      {prompt.is_featured && (
+                        <Badge variant="secondary">Featured</Badge>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-sm text-muted-foreground">Tier</p>
                     <Badge
-                      variant={prompt?.is_published ? 'default' : 'outline'}
+                      variant={prompt.tier === 'pro' ? 'default' : 'secondary'}
+                      className="mt-1 capitalize"
                     >
-                      {prompt?.is_published ? 'Published' : 'Draft'}
-                    </Badge>
-                    {prompt?.is_featured && <Badge>Featured</Badge>}
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">Tier:</span>
-                    <Badge
-                      variant={prompt?.tier === 'pro' ? 'default' : 'secondary'}
-                    >
-                      {prompt?.tier}
+                      {prompt.tier}
                     </Badge>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">Views:</span>
-                    <span className="text-sm font-medium">
-                      {prompt?.views_count || 0}
-                    </span>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Category</p>
+                    <p className="mt-1 text-sm font-medium">
+                      {prompt.categories?.name || '—'}
+                    </p>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">Category:</span>
-                    <span className="text-sm">
-                      {(prompt as any)?.categories?.name || '—'}
-                    </span>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Views</p>
+                    <p className="mt-1 text-sm font-medium tabular-nums">
+                      {fShortenNumber(prompt.views_count || 0)}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -159,7 +173,7 @@ export function PromptsShow() {
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2">
-                    {tags.map((tag: any) => (
+                    {tags.map((tag) => (
                       <Badge key={tag.id} variant="secondary">
                         {tag.name}
                       </Badge>
@@ -178,19 +192,11 @@ export function PromptsShow() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2">
-                    {models.map((model: any) => (
-                      <div
-                        key={model.id}
-                        className="flex items-center justify-between rounded-md border p-2"
-                      >
-                        <span className="text-sm font-medium">
-                          {model.name}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {model.provider_id}
-                        </span>
-                      </div>
+                  <div className="flex flex-wrap gap-2">
+                    {models.map((model) => (
+                      <Badge key={model.id} variant="outline">
+                        {model.name}
+                      </Badge>
                     ))}
                   </div>
                 </CardContent>
