@@ -1,7 +1,8 @@
 import { ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router'
 import { Loader2 } from 'lucide-react'
-import { useIsAuthenticated } from '@refinedev/core'
+import { useIsAuthenticated, usePermissions } from '@refinedev/core'
+import { Forbidden } from '@/components/forbidden'
 
 type AuthGuardMode = 'protected' | 'guest'
 
@@ -32,19 +33,26 @@ export function AuthGuard({
 }: AuthGuardProps) {
   const location = useLocation()
   const { data, isLoading } = useIsAuthenticated()
+  const { data: role, isLoading: isLoadingPermissions } = usePermissions({})
 
-  if (isLoading) return fallback
+  if (isLoading || isLoadingPermissions) return fallback
 
   const isAuthenticated = data?.authenticated ?? false
 
-  if (mode === 'protected' && !isAuthenticated) {
-    return (
-      <Navigate
-        to={redirectTo ?? '/login'}
-        state={{ from: location.pathname }}
-        replace
-      />
-    )
+  if (mode === 'protected') {
+    if (!isAuthenticated) {
+      return (
+        <Navigate
+          to={redirectTo ?? '/login'}
+          state={{ from: location.pathname }}
+          replace
+        />
+      )
+    }
+
+    if (role !== 'admin') {
+      return <Forbidden />
+    }
   }
 
   if (mode === 'guest' && isAuthenticated) {
