@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { useParams, useNavigate } from 'react-router'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useParams, useNavigate, useLocation } from 'react-router'
 import Selecto from 'react-selecto'
 import {
   ChevronRight,
@@ -129,11 +129,19 @@ interface FileBrowserProps {
 }
 
 export function FileBrowser({ bucketId: propBucketId }: FileBrowserProps = {}) {
-  const { bucketId: paramBucketId } = useParams<{ bucketId: string }>()
+  const { bucketId: paramBucketId, '*': splat } = useParams<{
+    bucketId: string
+    '*': string
+  }>()
   const navigate = useNavigate()
+  const location = useLocation()
   const bucketId = propBucketId || paramBucketId || ''
 
-  const [currentPath, setCurrentPath] = useState<string[]>([])
+  // Derive current path from URL
+  const currentPath = useMemo(() => {
+    if (!splat) return []
+    return splat.split('/').filter(Boolean)
+  }, [splat])
   const [files, setFiles] = useState<FileObject[]>([])
   const [folders, setFolders] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -200,7 +208,7 @@ export function FileBrowser({ bucketId: propBucketId }: FileBrowserProps = {}) {
     } finally {
       setIsLoading(false)
     }
-  }, [pathString, notify])
+  }, [bucketId, pathString, notify])
 
   useEffect(() => {
     loadFiles()
@@ -212,15 +220,17 @@ export function FileBrowser({ bucketId: propBucketId }: FileBrowserProps = {}) {
   }, [currentPath])
 
   const navigateToFolder = (folderName: string) => {
-    setCurrentPath([...currentPath, folderName])
+    const newPath = [...currentPath, folderName].join('/')
+    navigate(`/media-library/${bucketId}/${newPath}`)
   }
 
   const navigateToPath = (index: number) => {
-    setCurrentPath(currentPath.slice(0, index))
+    const newPath = currentPath.slice(0, index).join('/')
+    navigate(`/media-library/${bucketId}${newPath ? `/${newPath}` : ''}`)
   }
 
   const navigateHome = () => {
-    setCurrentPath([])
+    navigate(`/media-library/${bucketId}`)
   }
 
   const getPublicUrl = (fileName: string): string => {
@@ -317,9 +327,7 @@ export function FileBrowser({ bucketId: propBucketId }: FileBrowserProps = {}) {
         await supabase.storage.from(bucketId).remove(filesToDelete)
       }
     } else {
-      const { error } = await supabase.storage
-        .from(bucketId)
-        .remove([fullPath])
+      const { error } = await supabase.storage.from(bucketId).remove([fullPath])
 
       if (error) {
         notify?.({
@@ -566,40 +574,40 @@ export function FileBrowser({ bucketId: propBucketId }: FileBrowserProps = {}) {
 
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 pb-4">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-8"
-          onClick={navigateHome}
-        >
-          <Home className="size-4" />
-        </Button>
-        <Separator orientation="vertical" className="h-6" />
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink
-                onClick={navigateHome}
-                className="cursor-pointer hover:text-foreground"
-              >
-                {bucketId}
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            {currentPath.map((segment, index) => (
-              <BreadcrumbItem key={index}>
-                <BreadcrumbSeparator>
-                  <ChevronRight className="size-4" />
-                </BreadcrumbSeparator>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            onClick={() => navigate('/media-library')}
+          >
+            <Home className="size-4" />
+          </Button>
+          <Separator orientation="vertical" className="h-6" />
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
                 <BreadcrumbLink
-                  onClick={() => navigateToPath(index + 1)}
+                  onClick={navigateHome}
                   className="cursor-pointer hover:text-foreground"
                 >
-                  {segment}
+                  {bucketId}
                 </BreadcrumbLink>
               </BreadcrumbItem>
-            ))}
-          </BreadcrumbList>
-        </Breadcrumb>
+              {currentPath.map((segment, index) => (
+                <BreadcrumbItem key={index}>
+                  <BreadcrumbSeparator>
+                    <ChevronRight className="size-4" />
+                  </BreadcrumbSeparator>
+                  <BreadcrumbLink
+                    onClick={() => navigateToPath(index + 1)}
+                    className="cursor-pointer hover:text-foreground"
+                  >
+                    {segment}
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+              ))}
+            </BreadcrumbList>
+          </Breadcrumb>
         </div>
       </div>
 
@@ -809,7 +817,9 @@ export function FileBrowser({ bucketId: propBucketId }: FileBrowserProps = {}) {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete {selectedItems.size} items?</AlertDialogTitle>
+            <AlertDialogTitle>
+              Delete {selectedItems.size} items?
+            </AlertDialogTitle>
             <AlertDialogDescription>
               This will permanently delete all selected files and folders. This
               action cannot be undone.
@@ -822,7 +832,9 @@ export function FileBrowser({ bucketId: propBucketId }: FileBrowserProps = {}) {
               disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isDeleting ? 'Deleting...' : `Delete ${selectedItems.size} items`}
+              {isDeleting
+                ? 'Deleting...'
+                : `Delete ${selectedItems.size} items`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1035,7 +1047,9 @@ function FileGridItem({
 
           {/* Size */}
           {!isFolder && size && (
-            <p className="text-xs text-muted-foreground">{formatFileSize(size)}</p>
+            <p className="text-xs text-muted-foreground">
+              {formatFileSize(size)}
+            </p>
           )}
         </div>
       </ContextMenuTrigger>

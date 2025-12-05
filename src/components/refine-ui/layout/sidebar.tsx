@@ -1,10 +1,13 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   useMenu,
   useLink,
   useRefineOptions,
   TreeMenuItem,
 } from '@refinedev/core'
+import { useLocation } from 'react-router'
+import { supabase } from '@/libs/supabase'
+import { FolderOpen } from 'lucide-react'
 import {
   SidebarRail as ShadcnSidebarRail,
   Sidebar as ShadcnSidebar,
@@ -75,6 +78,16 @@ function SidebarItem({ item, selectedKey }: MenuItemProps) {
 
   if (item.meta?.group) {
     return <SidebarItemGroup item={item} selectedKey={selectedKey} />
+  }
+
+  // Special handling for media-library to show buckets as children
+  if (item.name === 'media-library') {
+    if (open) {
+      return (
+        <MediaLibrarySidebarItem item={item} selectedKey={selectedKey} />
+      )
+    }
+    return <MediaLibrarySidebarItemDropdown item={item} selectedKey={selectedKey} />
   }
 
   if (item.children && item.children.length > 0) {
@@ -211,9 +224,245 @@ function SidebarItemDropdown({ item, selectedKey }: MenuItemProps) {
 }
 
 function SidebarItemLink({ item, selectedKey }: MenuItemProps) {
-  const isSelected = item.key === selectedKey
+  const location = useLocation()
+  // Check both exact match and path-based match for nested routes
+  const isSelected =
+    item.key === selectedKey ||
+    !!(item.route && location.pathname.startsWith(item.route + '/'))
 
   return <SidebarButton item={item} isSelected={isSelected} asLink={true} />
+}
+
+type Bucket = {
+  id: string
+  name: string
+  public: boolean
+  created_at: string
+}
+
+function MediaLibrarySidebarItem({ item, selectedKey }: MenuItemProps) {
+  const [buckets, setBuckets] = useState<Bucket[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const location = useLocation()
+  const Link = useLink()
+
+  useEffect(() => {
+    const loadBuckets = async () => {
+      try {
+        const { data } = await supabase.storage.listBuckets()
+        setBuckets(data || [])
+      } catch (error) {
+        console.error('Failed to load buckets:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    loadBuckets()
+  }, [])
+
+  const isParentSelected = location.pathname === '/media-library'
+  const isAnyBucketSelected = location.pathname.startsWith('/media-library/')
+
+  const chevronIcon = (
+    <ChevronRight
+      className={cn(
+        'h-4',
+        'w-4',
+        'shrink-0',
+        'text-muted-foreground',
+        'transition-transform',
+        'duration-200',
+        'group-data-[state=open]:rotate-90',
+      )}
+    />
+  )
+
+  return (
+    <Collapsible
+      className={cn('w-full', 'group')}
+      defaultOpen={isParentSelected || isAnyBucketSelected}
+    >
+      <div className="flex items-center">
+        <Button
+          asChild
+          variant="ghost"
+          size="lg"
+          className={cn(
+            'flex flex-1 items-center justify-start gap-2 py-2 !px-3 text-sm',
+            {
+              'bg-sidebar-primary': isParentSelected,
+              'hover:!bg-sidebar-primary/90': isParentSelected,
+              'text-sidebar-primary-foreground': isParentSelected,
+              'hover:text-sidebar-primary-foreground': isParentSelected,
+            },
+          )}
+        >
+          <Link to="/media-library" className="flex w-full items-center gap-2">
+            <ItemIcon
+              icon={item.meta?.icon ?? item.icon}
+              isSelected={isParentSelected}
+            />
+            <span
+              className={cn('flex-1 text-left tracking-[-0.00875rem]', {
+                'font-normal': !isParentSelected,
+                'font-semibold': isParentSelected,
+                'text-sidebar-primary-foreground': isParentSelected,
+                'text-foreground': !isParentSelected,
+              })}
+            >
+              {getDisplayName(item)}
+            </span>
+          </Link>
+        </Button>
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0">
+            {chevronIcon}
+          </Button>
+        </CollapsibleTrigger>
+      </div>
+      <CollapsibleContent className={cn('ml-6', 'flex', 'flex-col', 'gap-1')}>
+        {isLoading ? (
+          <span className="text-xs text-muted-foreground px-3 py-2">
+            Loading...
+          </span>
+        ) : buckets.length === 0 ? (
+          <span className="text-xs text-muted-foreground px-3 py-2">
+            No buckets
+          </span>
+        ) : (
+          buckets.map((bucket) => {
+            const bucketPath = `/media-library/${bucket.id}`
+            const isBucketSelected = location.pathname.startsWith(bucketPath)
+
+            return (
+              <Button
+                key={bucket.id}
+                asChild
+                variant="ghost"
+                size="lg"
+                className={cn(
+                  'flex w-full items-center justify-start gap-2 py-2 !px-3 text-sm',
+                  {
+                    'bg-sidebar-primary': isBucketSelected,
+                    'hover:!bg-sidebar-primary/90': isBucketSelected,
+                    'text-sidebar-primary-foreground': isBucketSelected,
+                    'hover:text-sidebar-primary-foreground': isBucketSelected,
+                  },
+                )}
+              >
+                <Link
+                  to={bucketPath}
+                  className="flex w-full items-center gap-2"
+                >
+                  <ItemIcon
+                    icon={<FolderOpen className="size-4" />}
+                    isSelected={isBucketSelected}
+                  />
+                  <span
+                    className={cn('truncate tracking-[-0.00875rem]', {
+                      'font-normal': !isBucketSelected,
+                      'font-semibold': isBucketSelected,
+                      'text-sidebar-primary-foreground': isBucketSelected,
+                      'text-foreground': !isBucketSelected,
+                    })}
+                  >
+                    {bucket.name}
+                  </span>
+                </Link>
+              </Button>
+            )
+          })
+        )}
+      </CollapsibleContent>
+    </Collapsible>
+  )
+}
+
+function MediaLibrarySidebarItemDropdown({ item, selectedKey }: MenuItemProps) {
+  const [buckets, setBuckets] = useState<Bucket[]>([])
+  const location = useLocation()
+  const Link = useLink()
+
+  useEffect(() => {
+    const loadBuckets = async () => {
+      try {
+        const { data } = await supabase.storage.listBuckets()
+        setBuckets(data || [])
+      } catch (error) {
+        console.error('Failed to load buckets:', error)
+      }
+    }
+    loadBuckets()
+  }, [])
+
+  const isParentSelected = location.pathname === '/media-library'
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="lg"
+          className={cn(
+            'flex w-full items-center justify-start gap-2 py-2 !px-3 text-sm',
+            {
+              'bg-sidebar-primary': isParentSelected,
+              'hover:!bg-sidebar-primary/90': isParentSelected,
+              'text-sidebar-primary-foreground': isParentSelected,
+              'hover:text-sidebar-primary-foreground': isParentSelected,
+            },
+          )}
+        >
+          <ItemIcon
+            icon={item.meta?.icon ?? item.icon}
+            isSelected={isParentSelected}
+          />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent side="right" align="start">
+        <DropdownMenuItem asChild>
+          <Link
+            to="/media-library"
+            className={cn('flex w-full items-center gap-2', {
+              'bg-accent text-accent-foreground': isParentSelected,
+            })}
+          >
+            <ItemIcon
+              icon={item.meta?.icon ?? item.icon}
+              isSelected={isParentSelected}
+            />
+            <span>{getDisplayName(item)}</span>
+          </Link>
+        </DropdownMenuItem>
+        {buckets.length > 0 && (
+          <>
+            <div className="h-px bg-border my-1" />
+            {buckets.map((bucket) => {
+              const bucketPath = `/media-library/${bucket.id}`
+              const isBucketSelected = location.pathname.startsWith(bucketPath)
+
+              return (
+                <DropdownMenuItem key={bucket.id} asChild>
+                  <Link
+                    to={bucketPath}
+                    className={cn('flex w-full items-center gap-2', {
+                      'bg-accent text-accent-foreground': isBucketSelected,
+                    })}
+                  >
+                    <ItemIcon
+                      icon={<FolderOpen className="size-4" />}
+                      isSelected={isBucketSelected}
+                    />
+                    <span>{bucket.name}</span>
+                  </Link>
+                </DropdownMenuItem>
+              )
+            })}
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
 }
 
 function SidebarHeader() {

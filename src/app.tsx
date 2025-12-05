@@ -214,7 +214,7 @@ export function App() {
               {/* Media Library */}
               <Route path="/media-library">
                 <Route index element={<BucketList />} />
-                <Route path=":bucketId" element={<FileBrowser />} />
+                <Route path=":bucketId/*" element={<FileBrowser />} />
               </Route>
             </Route>
 
