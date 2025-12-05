@@ -51,7 +51,6 @@ type ExportPrompt = {
   is_featured: boolean
   tag_ids: string
   model_ids: string
-  views_count: number
   created_at: string
 }
 
