@@ -7,6 +7,9 @@ import {
   Loader2,
   AlertCircle,
   CheckCircle2,
+  XCircle,
+  Check,
+  Info,
 } from 'lucide-react'
 import { useCreate, useNotification } from '@refinedev/core'
 
@@ -156,10 +159,18 @@ export function DataTableExport<T extends Record<string, unknown>>({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {isExporting && exportProgress > 0 && (
-        <div className="fixed bottom-4 right-4 bg-background border rounded-lg p-4 shadow-lg w-64">
-          <p className="text-sm mb-2">Fetching data...</p>
-          <Progress value={exportProgress} />
+      {isExporting && (
+        <div className="fixed bottom-4 right-4 bg-background border rounded-lg p-4 shadow-lg w-72 z-50">
+          <div className="flex items-center gap-2 mb-2">
+            <Loader2 className="size-4 animate-spin text-primary" />
+            <p className="text-sm font-medium">
+              {exportProgress > 0 ? 'Fetching data...' : 'Preparing export...'}
+            </p>
+          </div>
+          <Progress value={exportProgress} className="h-2" />
+          <p className="text-xs text-muted-foreground mt-2">
+            {exportProgress > 0 ? `${Math.round(exportProgress)}% complete` : 'Starting...'}
+          </p>
         </div>
       )}
     </>
@@ -195,10 +206,18 @@ export type DataTableImportProps<T extends Record<string, unknown>> = {
   transformBeforeInsert?: (row: Record<string, unknown>) => Record<string, unknown>
 }
 
+type RowResult = {
+  rowIndex: number
+  status: 'success' | 'failed'
+  error?: string
+  data: Record<string, unknown>
+}
+
 type ImportResult = {
   success: number
   failed: number
   errors: string[]
+  rowResults: RowResult[]
 }
 
 export function DataTableImport<T extends Record<string, unknown>>({
@@ -212,12 +231,14 @@ export function DataTableImport<T extends Record<string, unknown>>({
   transformBeforeInsert,
 }: DataTableImportProps<T>) {
   const [isOpen, setIsOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
   const [previewData, setPreviewData] = useState<Record<string, unknown>[]>([])
   const [error, setError] = useState<string | null>(null)
   const [importProgress, setImportProgress] = useState(0)
   const [importResult, setImportResult] = useState<ImportResult | null>(null)
   const [validationErrors, setValidationErrors] = useState<string[]>([])
+  const [isValidating, setIsValidating] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const { mutateAsync: createRecord } = useCreate()
@@ -273,19 +294,25 @@ export function DataTableImport<T extends Record<string, unknown>>({
       setError(null)
       setValidationErrors([])
       setImportResult(null)
+      setIsLoading(true)
+
       const data = await parseFile(file)
       setPreviewData(data)
       setIsOpen(true)
+      setIsLoading(false)
 
       // Validate relationships
       if (relationships.length > 0) {
+        setIsValidating(true)
         const { errors } = await validateRelationships(data)
         setValidationErrors(errors)
+        setIsValidating(false)
       }
     } catch (err) {
       setError(
         'Failed to parse file. Please ensure it is a valid Excel or CSV file.'
       )
+      setIsLoading(false)
     }
 
     // Reset file input
@@ -294,11 +321,36 @@ export function DataTableImport<T extends Record<string, unknown>>({
     }
   }
 
+  // Parse error message from various error formats
+  const parseErrorMessage = (err: unknown): string => {
+    if (err && typeof err === 'object') {
+      // Supabase/PostgreSQL error
+      if ('message' in err && typeof (err as { message: string }).message === 'string') {
+        const msg = (err as { message: string }).message
+        const code = 'code' in err ? (err as { code: string }).code : ''
+
+        // Make common errors more readable
+        if (code === '23505') return 'Duplicate ID - record already exists'
+        if (code === '23502') {
+          const match = msg.match(/column "(\w+)"/)
+          return match ? `Missing required field: ${match[1]}` : 'Missing required field'
+        }
+        if (code === '23503') {
+          const match = msg.match(/Key \((\w+)\)=\(([^)]+)\)/)
+          return match ? `Invalid reference: ${match[1]}="${match[2]}" not found` : 'Invalid foreign key reference'
+        }
+        return msg
+      }
+      if (err instanceof Error) return err.message
+    }
+    return 'Unknown error'
+  }
+
   const handleImport = async () => {
     setIsImporting(true)
     setImportProgress(0)
 
-    const result: ImportResult = { success: 0, failed: 0, errors: [] }
+    const result: ImportResult = { success: 0, failed: 0, errors: [], rowResults: [] }
 
     // Create a mapping from header to key
     const headerToKey: Record<string, keyof T> = {}
@@ -306,9 +358,11 @@ export function DataTableImport<T extends Record<string, unknown>>({
       headerToKey[header] = key
     })
 
-    // Get relationship field names for exclusion
-    const relationshipFields = new Set(relationships.map((r) => r.field))
-    const fieldsToExclude = new Set([...excludeFields, ...relationshipFields])
+    // Get many-to-many relationship field names for exclusion (only those with junction tables)
+    const manyToManyFields = new Set(
+      relationships.filter((r) => r.isMany && r.junctionTable).map((r) => r.field)
+    )
+    const fieldsToExclude = new Set([...excludeFields, ...manyToManyFields])
 
     for (let i = 0; i < previewData.length; i++) {
       const row = previewData[i]
@@ -326,8 +380,8 @@ export function DataTableImport<T extends Record<string, unknown>>({
             if (key) {
               const keyStr = key as string
 
-              // Check if this is a relationship field
-              if (relationshipFields.has(keyStr)) {
+              // Check if this is a many-to-many relationship field
+              if (manyToManyFields.has(keyStr)) {
                 if (value) {
                   const ids =
                     typeof value === 'string'
@@ -336,7 +390,7 @@ export function DataTableImport<T extends Record<string, unknown>>({
                   relationshipData[keyStr] = ids.filter(Boolean)
                 }
               } else if (!fieldsToExclude.has(keyStr)) {
-                // Handle regular fields
+                // Handle regular fields (including simple foreign keys)
                 if (
                   typeof value === 'string' &&
                   (value.toLowerCase() === 'true' ||
@@ -352,6 +406,9 @@ export function DataTableImport<T extends Record<string, unknown>>({
           })
         }
 
+        // Check if we have an ID for upsert
+        const hasId = 'id' in transformedRow && transformedRow.id
+
         // Remove id if it's empty (for new records)
         if ('id' in transformedRow && !transformedRow.id) {
           delete transformedRow.id
@@ -362,15 +419,27 @@ export function DataTableImport<T extends Record<string, unknown>>({
           ? transformBeforeInsert(transformedRow as Record<string, unknown>)
           : transformedRow
 
-        // Create main record
-        const createResult = await createRecord({
-          resource,
-          values: finalRow,
-          successNotification: false,
-          errorNotification: false,
-        })
+        let newId: string | number | undefined
 
-        const newId = createResult.data?.id
+        // Use upsert if ID exists, otherwise create
+        if (hasId) {
+          const { data: upsertData, error: upsertError } = await supabase
+            .from(resource)
+            .upsert(finalRow as Record<string, unknown>)
+            .select('id')
+            .single()
+
+          if (upsertError) throw upsertError
+          newId = upsertData?.id
+        } else {
+          const createResult = await createRecord({
+            resource,
+            values: finalRow,
+            successNotification: false,
+            errorNotification: false,
+          })
+          newId = createResult.data?.id as string | number | undefined
+        }
 
         // Handle many-to-many relationships
         if (newId) {
@@ -380,6 +449,14 @@ export function DataTableImport<T extends Record<string, unknown>>({
               rel.junctionTable &&
               relationshipData[rel.field]?.length
             ) {
+              // Delete existing junction records first (for upsert case)
+              if (hasId) {
+                await supabase
+                  .from(rel.junctionTable)
+                  .delete()
+                  .eq(rel.junctionFk || `${resource.slice(0, -1)}_id`, newId)
+              }
+
               const junctionRecords = relationshipData[rel.field].map((relatedId) => ({
                 [rel.junctionFk || `${resource.slice(0, -1)}_id`]: newId,
                 [rel.junctionRelatedFk || `${rel.resource.slice(0, -1)}_id`]: relatedId,
@@ -391,13 +468,12 @@ export function DataTableImport<T extends Record<string, unknown>>({
         }
 
         result.success++
+        result.rowResults.push({ rowIndex: i, status: 'success', data: row })
       } catch (err) {
         result.failed++
-        const errorMsg =
-          err instanceof Error ? err.message : 'Unknown error'
-        if (result.errors.length < 10) {
-          result.errors.push(`Row ${i + 1}: ${errorMsg}`)
-        }
+        const errorMsg = parseErrorMessage(err)
+        result.errors.push(`Row ${i + 1}: ${errorMsg}`)
+        result.rowResults.push({ rowIndex: i, status: 'failed', error: errorMsg, data: row })
       }
 
       setImportProgress(((i + 1) / previewData.length) * 100)
@@ -450,9 +526,13 @@ export function DataTableImport<T extends Record<string, unknown>>({
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm">
-            <Upload className="mr-2 size-4" />
-            Import
+          <Button variant="outline" size="sm" disabled={isLoading}>
+            {isLoading ? (
+              <Loader2 className="mr-2 size-4 animate-spin" />
+            ) : (
+              <Upload className="mr-2 size-4" />
+            )}
+            {isLoading ? 'Loading...' : 'Import'}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
@@ -481,12 +561,19 @@ export function DataTableImport<T extends Record<string, unknown>>({
       />
 
       <Dialog open={isOpen} onOpenChange={handleClose}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+        <DialogContent className="!max-w-[90vw] w-full min-h-[60vh] max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>Import Data</DialogTitle>
-            <DialogDescription>
-              Preview and import data. {previewData.length} record
-              {previewData.length !== 1 ? 's' : ''} found.
+            <DialogDescription className="space-y-1">
+              <span>
+                {previewData.length} record{previewData.length !== 1 ? 's' : ''} found.
+              </span>
+              {!importResult && (
+                <span className="flex items-center gap-1.5 text-xs">
+                  <Info className="size-3" />
+                  Records with existing IDs will be <strong>updated</strong>, new IDs will be <strong>created</strong>.
+                </span>
+              )}
             </DialogDescription>
           </DialogHeader>
 
@@ -494,6 +581,13 @@ export function DataTableImport<T extends Record<string, unknown>>({
             <div className="rounded-md bg-destructive/10 p-3 text-destructive text-sm flex items-start gap-2">
               <AlertCircle className="size-4 mt-0.5 shrink-0" />
               {error}
+            </div>
+          )}
+
+          {isValidating && (
+            <div className="rounded-md bg-muted p-3 text-sm flex items-center gap-2">
+              <Loader2 className="size-4 animate-spin text-primary" />
+              <span>Validating relationships...</span>
             </div>
           )}
 
@@ -519,42 +613,80 @@ export function DataTableImport<T extends Record<string, unknown>>({
 
           {importResult && (
             <div
-              className={`rounded-md p-3 text-sm flex items-start gap-2 ${
+              className={`rounded-md p-4 text-sm ${
                 importResult.failed > 0
-                  ? 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400'
-                  : 'bg-green-500/10 text-green-600 dark:text-green-400'
+                  ? 'bg-yellow-500/10 border border-yellow-500/20'
+                  : 'bg-green-500/10 border border-green-500/20'
               }`}
             >
-              <CheckCircle2 className="size-4 mt-0.5 shrink-0" />
-              <div>
-                <p>
-                  Import complete: {importResult.success} succeeded,{' '}
-                  {importResult.failed} failed
-                </p>
-                {importResult.errors.length > 0 && (
-                  <ul className="list-disc list-inside mt-2 text-xs">
-                    {importResult.errors.map((err, i) => (
-                      <li key={i}>{err}</li>
-                    ))}
-                  </ul>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-2">
+                  {importResult.failed > 0 ? (
+                    <AlertCircle className="size-5 mt-0.5 shrink-0 text-yellow-600 dark:text-yellow-400" />
+                  ) : (
+                    <CheckCircle2 className="size-5 mt-0.5 shrink-0 text-green-600 dark:text-green-400" />
+                  )}
+                  <div>
+                    <p className="font-medium">
+                      Import complete
+                    </p>
+                    <div className="flex items-center gap-4 mt-1 text-sm">
+                      <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                        <Check className="size-3.5" />
+                        {importResult.success} succeeded
+                      </span>
+                      {importResult.failed > 0 && (
+                        <span className="flex items-center gap-1 text-red-600 dark:text-red-400">
+                          <XCircle className="size-3.5" />
+                          {importResult.failed} failed
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                {importResult.failed > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const failedRows = importResult.rowResults
+                        .filter((r) => r.status === 'failed')
+                        .map((r) => ({ ...r.data, _error: r.error }))
+                      exportToFile(failedRows, `${resource}-failed-imports`, 'xlsx')
+                    }}
+                  >
+                    <Download className="mr-2 size-4" />
+                    Download failed rows
+                  </Button>
                 )}
               </div>
             </div>
           )}
 
           {isImporting && (
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
-                Importing records...
+            <div className="rounded-md bg-primary/5 border border-primary/20 p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <Loader2 className="size-4 animate-spin text-primary" />
+                <p className="text-sm font-medium">
+                  Importing records...
+                </p>
+              </div>
+              <Progress value={importProgress} className="h-2" />
+              <p className="text-xs text-muted-foreground">
+                {Math.round(importProgress)}% complete ({Math.round((importProgress / 100) * previewData.length)} of {previewData.length} records)
               </p>
-              <Progress value={importProgress} />
             </div>
           )}
 
           <div className="flex-1 overflow-auto border rounded-md">
             <table className="w-full text-sm">
-              <thead className="bg-muted sticky top-0">
+              <thead className="bg-muted sticky top-0 z-10">
                 <tr>
+                  {importResult && (
+                    <th className="px-3 py-2 text-left font-medium border-b whitespace-nowrap w-24">
+                      Status
+                    </th>
+                  )}
                   {previewData[0] &&
                     Object.keys(previewData[0]).map((key) => (
                       <th
@@ -567,15 +699,50 @@ export function DataTableImport<T extends Record<string, unknown>>({
                 </tr>
               </thead>
               <tbody>
-                {previewData.slice(0, 100).map((row, index) => (
-                  <tr key={index} className="border-b last:border-0">
-                    {Object.values(row).map((value, i) => (
-                      <td key={i} className="px-3 py-2 max-w-xs truncate">
-                        {String(value ?? '')}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
+                {previewData.slice(0, 100).map((row, index) => {
+                  const rowResult = importResult?.rowResults.find((r) => r.rowIndex === index)
+                  const isSuccess = rowResult?.status === 'success'
+                  const isFailed = rowResult?.status === 'failed'
+
+                  return (
+                    <tr
+                      key={index}
+                      className={`border-b last:border-0 ${
+                        isSuccess
+                          ? 'bg-green-500/5'
+                          : isFailed
+                          ? 'bg-red-500/10'
+                          : ''
+                      }`}
+                    >
+                      {importResult && (
+                        <td className="px-3 py-2">
+                          {isSuccess ? (
+                            <span className="inline-flex items-center gap-1 text-green-600 dark:text-green-400 text-xs font-medium">
+                              <Check className="size-3.5" />
+                              Success
+                            </span>
+                          ) : isFailed ? (
+                            <span
+                              className="inline-flex items-center gap-1 text-red-600 dark:text-red-400 text-xs font-medium cursor-help"
+                              title={rowResult?.error}
+                            >
+                              <XCircle className="size-3.5" />
+                              Failed
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">—</span>
+                          )}
+                        </td>
+                      )}
+                      {Object.values(row).map((value, i) => (
+                        <td key={i} className="px-3 py-2 max-w-xs truncate">
+                          {String(value ?? '')}
+                        </td>
+                      ))}
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
             {previewData.length > 100 && (
@@ -592,12 +759,17 @@ export function DataTableImport<T extends Record<string, unknown>>({
             {!importResult && (
               <Button
                 onClick={handleImport}
-                disabled={isImporting || validationErrors.length > 0}
+                disabled={isImporting || isValidating || validationErrors.length > 0}
               >
                 {isImporting ? (
                   <>
                     <Loader2 className="mr-2 size-4 animate-spin" />
                     Importing...
+                  </>
+                ) : isValidating ? (
+                  <>
+                    <Loader2 className="mr-2 size-4 animate-spin" />
+                    Validating...
                   </>
                 ) : (
                   `Import ${previewData.length} records`
