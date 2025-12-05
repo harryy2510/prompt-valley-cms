@@ -16,6 +16,10 @@ import { ActionButton } from '@/components/ui/action-button'
 import { Tables } from '@/types/database.types'
 import { startCase } from 'lodash-es'
 import {
+  DataTableExport,
+  ColumnMapping,
+} from '@/components/refine-ui/data-table/data-table-export-import'
+import {
   DataTableFilterClearButton,
   DataTableFilterCombobox,
 } from '@/components/refine-ui/data-table/data-table-filter'
@@ -29,6 +33,18 @@ type AiModel = Tables<'ai_models'> & {
 }
 
 const STORAGE_KEY = 'ai-models-column-visibility'
+
+const EXPORT_COLUMNS: ColumnMapping<AiModel>[] = [
+  { key: 'id', header: 'ID', example: 'gpt-4o' },
+  { key: 'name', header: 'Name', example: 'GPT-4o' },
+  { key: 'provider_id', header: 'Provider ID', example: 'openai' },
+  { key: 'capabilities', header: 'Capabilities', example: 'text,vision,function' },
+  { key: 'context_window', header: 'Context Window', example: '128000' },
+  { key: 'max_output_tokens', header: 'Max Output', example: '4096' },
+  { key: 'cost_input_per_million', header: 'Cost Input/1M', example: '2.50' },
+  { key: 'cost_output_per_million', header: 'Cost Output/1M', example: '10.00' },
+  { key: 'created_at', header: 'Created At', example: '' },
+]
 
 export function AiModelsList() {
   const { edit } = useNavigation()
@@ -299,9 +315,20 @@ export function AiModelsList() {
     },
   })
 
+  const tableData = table.refineCore.tableQuery.data?.data ?? []
+
   return (
     <ListView>
-      <ListViewHeader table={table} />
+      <ListViewHeader
+        table={table}
+        action={
+          <DataTableExport
+            data={tableData}
+            filename="ai-models"
+            columns={EXPORT_COLUMNS}
+          />
+        }
+      />
       <DataTable table={table} />
     </ListView>
   )

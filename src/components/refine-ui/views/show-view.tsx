@@ -1,4 +1,4 @@
-import type { PropsWithChildren } from 'react'
+import type { PropsWithChildren, ReactNode } from 'react'
 
 import { ArrowLeftIcon } from 'lucide-react'
 import {
@@ -28,6 +28,7 @@ type ShowViewHeaderProps = PropsWithChildren<{
   title?: string
   wrapperClassName?: string
   headerClassName?: string
+  actionsSlot?: ReactNode
 }>
 
 export const ShowViewHeader = ({
@@ -35,6 +36,7 @@ export const ShowViewHeader = ({
   title: titleFromProps,
   wrapperClassName,
   headerClassName,
+  actionsSlot,
 }: ShowViewHeaderProps) => {
   const back = useBack()
 
@@ -80,6 +82,7 @@ export const ShowViewHeader = ({
         </div>
 
         <div className="flex items-center gap-2">
+          {actionsSlot}
           <RefreshButton
             variant="outline"
             recordItemId={recordItemId}

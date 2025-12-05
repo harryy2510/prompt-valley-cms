@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { useTable } from '@refinedev/react-table'
 import { type ColumnDef, type VisibilityState } from '@tanstack/react-table'
 import { Check, Eye, Pencil, Trash2, X } from 'lucide-react'
-import { useDelete, useNavigation, useSelect } from '@refinedev/core'
+import { useDelete, useNavigation, useSelect, useUpdate } from '@refinedev/core'
 import { useLocalStorage } from 'usehooks-ts'
 import dayjs from 'dayjs'
 
@@ -23,7 +23,13 @@ import {
 } from '@/components/refine-ui/data-table/data-table-filter'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
 import { ActionButton } from '@/components/ui/action-button'
+import {
+  DataTableExport,
+  DataTableImport,
+  ColumnMapping,
+} from '@/components/refine-ui/data-table/data-table-export-import'
 import { Tables } from '@/types/database.types'
 import { fShortenNumber } from '@/utils/format'
 
@@ -34,6 +40,18 @@ type Prompt = Tables<'prompts'> & {
 }
 
 const STORAGE_KEY = 'prompts-column-visibility'
+
+const EXPORT_COLUMNS: ColumnMapping<Prompt>[] = [
+  { key: 'id', header: 'ID', example: 'my-prompt-slug' },
+  { key: 'title', header: 'Title', example: 'My Prompt' },
+  { key: 'description', header: 'Description', example: 'A useful prompt' },
+  { key: 'content', header: 'Content', example: 'Prompt content here...' },
+  { key: 'tier', header: 'Tier', example: 'free' },
+  { key: 'is_published', header: 'Published', example: 'true' },
+  { key: 'is_featured', header: 'Featured', example: 'false' },
+  { key: 'views_count', header: 'Views', example: '0' },
+  { key: 'created_at', header: 'Created At', example: '' },
+]
 
 const TIER_OPTIONS = [
   { label: 'Free', value: 'free' },
@@ -48,6 +66,7 @@ const STATUS_OPTIONS = [
 export function PromptsList() {
   const { edit, show } = useNavigation()
   const { mutateAsync: deletePrompt } = useDelete()
+  const { mutateAsync: updatePrompt } = useUpdate()
   const [columnVisibility, setColumnVisibility] =
     useLocalStorage<VisibilityState>(STORAGE_KEY, {})
 
@@ -254,7 +273,7 @@ export function PromptsList() {
         accessorKey: 'is_published',
         header: ({ column, table }) => (
           <div className="flex items-center gap-1">
-            <span>Status</span>
+            <span>Published</span>
             <DataTableSorter column={column} />
             <DataTableFilterCombobox
               column={column}
@@ -266,19 +285,20 @@ export function PromptsList() {
             <DataTableFilterClearButton column={column} />
           </div>
         ),
-        cell: ({ getValue }) => {
-          const isPublished = getValue() as boolean
+        cell: ({ row }) => {
+          const isPublished = row.original.is_published
           return (
-            <Badge
-              variant={isPublished ? 'default' : 'outline'}
-              className={
-                isPublished
-                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100'
-                  : ''
-              }
-            >
-              {isPublished ? 'Published' : 'Draft'}
-            </Badge>
+            <Switch
+              checked={isPublished}
+              onCheckedChange={async (checked) => {
+                await updatePrompt({
+                  resource: 'prompts',
+                  id: row.original.id,
+                  values: { is_published: checked },
+                  mutationMode: 'optimistic',
+                })
+              }}
+            />
           )
         },
       },
@@ -291,12 +311,20 @@ export function PromptsList() {
             <DataTableSorter column={column} />
           </div>
         ),
-        cell: ({ getValue }) => {
-          const isFeatured = getValue() as boolean
-          return isFeatured ? (
-            <Check className="size-4 text-green-600" />
-          ) : (
-            <X className="size-4 text-muted-foreground" />
+        cell: ({ row }) => {
+          const isFeatured = row.original.is_featured
+          return (
+            <Switch
+              checked={isFeatured}
+              onCheckedChange={async (checked) => {
+                await updatePrompt({
+                  resource: 'prompts',
+                  id: row.original.id,
+                  values: { is_featured: checked },
+                  mutationMode: 'optimistic',
+                })
+              }}
+            />
           )
         },
       },
@@ -430,9 +458,22 @@ export function PromptsList() {
     },
   })
 
+  const tableData = table.refineCore.tableQuery.data?.data ?? []
+
   return (
     <ListView>
-      <ListViewHeader table={table} />
+      <ListViewHeader
+        table={table}
+        action={
+          <>
+            <DataTableExport
+              data={tableData}
+              filename="prompts"
+              columns={EXPORT_COLUMNS}
+            />
+          </>
+        }
+      />
       <DataTable table={table} />
     </ListView>
   )

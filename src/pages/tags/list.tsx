@@ -17,12 +17,22 @@ import { Button } from '@/components/ui/button'
 import { ActionButton } from '@/components/ui/action-button'
 import { Tables } from '@/types/database.types'
 import { fShortenNumber } from '@/utils/format'
+import {
+  DataTableExport,
+  ColumnMapping,
+} from '@/components/refine-ui/data-table/data-table-export-import'
 
 type Tag = Tables<'tags'> & {
   prompt_tags: { count: number }[]
 }
 
 const STORAGE_KEY = 'tags-column-visibility'
+
+const EXPORT_COLUMNS: ColumnMapping<Tag>[] = [
+  { key: 'id', header: 'ID', example: 'tag-slug' },
+  { key: 'name', header: 'Name', example: 'My Tag' },
+  { key: 'created_at', header: 'Created At', example: '' },
+]
 
 export function TagsList() {
   const { edit } = useNavigation()
@@ -176,9 +186,20 @@ export function TagsList() {
     },
   })
 
+  const tableData = table.refineCore.tableQuery.data?.data ?? []
+
   return (
     <ListView>
-      <ListViewHeader table={table} />
+      <ListViewHeader
+        table={table}
+        action={
+          <DataTableExport
+            data={tableData}
+            filename="tags"
+            columns={EXPORT_COLUMNS}
+          />
+        }
+      />
       <DataTable table={table} />
     </ListView>
   )

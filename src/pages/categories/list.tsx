@@ -24,6 +24,10 @@ import {
 import { Tables } from '@/types/database.types'
 import { cn } from '@/libs/cn'
 import { fShortenNumber } from '@/utils/format'
+import {
+  DataTableExport,
+  ColumnMapping,
+} from '@/components/refine-ui/data-table/data-table-export-import'
 
 type Category = Tables<'categories'> & {
   parent: Pick<Tables<'categories'>, 'id' | 'name'> | null
@@ -32,6 +36,14 @@ type Category = Tables<'categories'> & {
 }
 
 const STORAGE_KEY = 'categories-column-visibility'
+
+const EXPORT_COLUMNS: ColumnMapping<Category>[] = [
+  { key: 'id', header: 'ID', example: 'category-slug' },
+  { key: 'name', header: 'Name', example: 'My Category' },
+  { key: 'description', header: 'Description', example: 'Category description' },
+  { key: 'parent_id', header: 'Parent ID', example: 'parent-category-slug' },
+  { key: 'created_at', header: 'Created At', example: '' },
+]
 
 export function CategoriesList() {
   const { edit } = useNavigation()
@@ -261,9 +273,20 @@ export function CategoriesList() {
     },
   })
 
+  const tableData = table.refineCore.tableQuery.data?.data ?? []
+
   return (
     <ListView>
-      <ListViewHeader table={table} />
+      <ListViewHeader
+        table={table}
+        action={
+          <DataTableExport
+            data={tableData}
+            filename="categories"
+            columns={EXPORT_COLUMNS}
+          />
+        }
+      />
       <DataTable table={table} />
     </ListView>
   )

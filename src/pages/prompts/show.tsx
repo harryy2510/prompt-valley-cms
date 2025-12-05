@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { useOne } from '@refinedev/core'
+import { useOne, useUpdate } from '@refinedev/core'
 import { useParams } from 'react-router'
+import { Eye, EyeOff, Star, StarOff } from 'lucide-react'
 
 import {
   ShowView,
@@ -8,6 +9,7 @@ import {
 } from '@/components/refine-ui/views/show-view'
 import { LoadingOverlay } from '@/components/refine-ui/layout/loading-overlay'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
@@ -31,8 +33,9 @@ export function PromptsShow() {
   const { id } = useParams()
   const [tags, setTags] = useState<Tag[]>([])
   const [models, setModels] = useState<AIModel[]>([])
+  const { mutateAsync: updatePrompt, mutation } = useUpdate()
 
-  const { query } = useOne<Prompt>({
+  const { query, result: prompt } = useOne<Prompt>({
     resource: 'prompts',
     id: id || '',
     meta: {
@@ -40,8 +43,27 @@ export function PromptsShow() {
     },
   })
 
-  const prompt = query.data?.data
   const isLoading = query.isLoading
+
+  const handleTogglePublished = async () => {
+    if (!id) return
+    await updatePrompt({
+      resource: 'prompts',
+      id,
+      values: { is_published: !prompt?.is_published },
+      mutationMode: 'optimistic',
+    })
+  }
+
+  const handleToggleFeatured = async () => {
+    if (!id) return
+    await updatePrompt({
+      resource: 'prompts',
+      id,
+      values: { is_featured: !prompt?.is_featured },
+      mutationMode: 'optimistic',
+    })
+  }
 
   useEffect(() => {
     const loadRelations = async () => {
@@ -71,7 +93,53 @@ export function PromptsShow() {
 
   return (
     <ShowView>
-      <ShowViewHeader title={prompt?.title || 'Prompt Details'} />
+      <ShowViewHeader
+        title={prompt?.title || 'Prompt Details'}
+        actionsSlot={
+          prompt && (
+            <>
+              <Button
+                variant={prompt.is_published ? 'default' : 'outline'}
+                size="sm"
+                onClick={handleTogglePublished}
+                disabled={mutation.isPending}
+                className="gap-2"
+              >
+                {prompt.is_published ? (
+                  <>
+                    <Eye className="size-4" />
+                    Published
+                  </>
+                ) : (
+                  <>
+                    <EyeOff className="size-4" />
+                    Draft
+                  </>
+                )}
+              </Button>
+              <Button
+                variant={prompt.is_featured ? 'default' : 'outline'}
+                size="sm"
+                onClick={handleToggleFeatured}
+                disabled={mutation.isPending}
+                className="gap-2"
+              >
+                {prompt.is_featured ? (
+                  <>
+                    <Star className="size-4 fill-current" />
+                    Featured
+                  </>
+                ) : (
+                  <>
+                    <StarOff className="size-4" />
+                    Not Featured
+                  </>
+                )}
+              </Button>
+            </>
+          )
+        }
+      />
       <LoadingOverlay loading={isLoading}>
         {prompt && (
           <div className="space-y-6 w-full max-w-4xl mx-auto">

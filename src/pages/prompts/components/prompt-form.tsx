@@ -63,8 +63,6 @@ export const promptFormSchema = z.object({
   content: z.string().min(1, 'Content is required'),
   category_id: z.string().min(1, 'Category is required'),
   tier: z.enum(TIER_OPTIONS),
-  is_published: z.boolean(),
-  is_featured: z.boolean(),
   images: z.array(z.string()),
   // Junction table fields (not in prompts table)
   tags: z.array(z.string()),
@@ -208,14 +206,22 @@ export function PromptForm({ mode }: PromptFormProps) {
     }
   }
 
-  const handleImageUpload = async (file: File) => {
+  const handleImageUpload = async (files: FileList) => {
     setIsUploadingImage(true)
-    const filePath = await uploadImage(file, 'images/prompts')
+    const uploadedPaths: string[] = []
+
+    for (const file of Array.from(files)) {
+      const filePath = await uploadImage(file, 'images/prompts')
+      if (filePath) {
+        uploadedPaths.push(filePath)
+      }
+    }
+
     setIsUploadingImage(false)
 
-    if (filePath) {
+    if (uploadedPaths.length > 0) {
       const current = form.getValues('images') || []
-      form.setValue('images', [...current, filePath])
+      form.setValue('images', [...current, ...uploadedPaths])
     }
   }
 
@@ -384,40 +390,6 @@ export function PromptForm({ mode }: PromptFormProps) {
                   )}
                 />
               </div>
-
-              <div className="flex items-center gap-6 pt-2 border-t">
-                <FormField
-                  control={form.control}
-                  name="is_published"
-                  render={({ field }) => (
-                    <FormItem className="flex items-center gap-2">
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <FormLabel className="!mt-0">Published</FormLabel>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="is_featured"
-                  render={({ field }) => (
-                    <FormItem className="flex items-center gap-2">
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <FormLabel className="!mt-0">Featured</FormLabel>
-                    </FormItem>
-                  )}
-                />
-              </div>
             </CardContent>
           </Card>
 
@@ -516,7 +488,7 @@ export function PromptForm({ mode }: PromptFormProps) {
                     ) : (
                       <>
                         <Plus className="mr-2 size-4" />
-                        Add Image
+                        Add Images
                       </>
                     )}
                   </Button>
@@ -524,9 +496,10 @@ export function PromptForm({ mode }: PromptFormProps) {
                     id="prompt-image-upload"
                     type="file"
                     accept="image/*"
+                    multiple
                     onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) handleImageUpload(file)
+                      const files = e.target.files
+                      if (files && files.length > 0) handleImageUpload(files)
                       e.target.value = ''
                     }}
                     disabled={isUploadingImage}
