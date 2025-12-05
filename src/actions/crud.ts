@@ -4,6 +4,18 @@ import { createServerFn } from '@tanstack/react-start'
 import { getSupabaseServerClient } from '@/libs/supabase/server'
 
 // ============================================
+// Helpers
+// ============================================
+
+/**
+ * Strips non-serializable properties (AbortSignal, functions, etc.) from Supabase responses
+ * Uses JSON parse/stringify to ensure only plain JSON data is returned
+ */
+function sanitizeResponse<T>(data: T): T {
+	return JSON.parse(JSON.stringify(data))
+}
+
+// ============================================
 // Types
 // ============================================
 
@@ -72,16 +84,6 @@ export const getListServer = createServerFn({ method: 'POST' })
 		}
 
 		const { count, data: records, error } = await query
-
-		console.log({
-			count,
-			filters,
-			meta,
-			pagination,
-			records,
-			resource,
-			sorters
-		})
 
 		if (error) {
 			throw new Error(error.message)

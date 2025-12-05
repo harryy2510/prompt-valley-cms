@@ -51,16 +51,9 @@ export const serverDataProvider: DataProvider = {
 		resource,
 		sorters
 	}: GetListParams) => {
+		// Strip signal and other non-serializable properties before sending to server
 		const result = await getListServer({
 			data: { filters, meta, pagination, resource, sorters }
-		})
-		console.log({
-			filters,
-			meta,
-			pagination,
-			resource,
-			result,
-			sorters
 		})
 		return result as { data: Array<TData>; total: number }
 	},
