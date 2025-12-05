@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useTable } from '@refinedev/react-table'
 import { type ColumnDef, type VisibilityState } from '@tanstack/react-table'
 import { Pencil, Trash2 } from 'lucide-react'
+import { Link } from 'react-router'
 import { useDelete, useNavigation, useSelect } from '@refinedev/core'
 import {
   ListView,
@@ -174,12 +175,21 @@ export function AiModelsList() {
         enableSorting: false,
         cell: ({ row }) => {
           const count = row.original.prompt_models?.[0]?.count ?? 0
+          if (count === 0) {
+            return <span className="text-muted-foreground">0 prompts</span>
+          }
+          const filterParams = new URLSearchParams({
+            'filters[0][field]': 'model_id',
+            'filters[0][operator]': 'eq',
+            'filters[0][value]': row.original.id,
+          })
           return (
-            <span
-              className={count === 0 ? 'text-muted-foreground' : 'text-sm'}
+            <Link
+              to={`/prompts?${filterParams.toString()}`}
+              className="text-sm font-medium text-primary hover:underline"
             >
               {fShortenNumber(count)} {count === 1 ? 'prompt' : 'prompts'}
-            </span>
+            </Link>
           )
         },
       },

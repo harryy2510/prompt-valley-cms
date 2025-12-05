@@ -1,10 +1,11 @@
 import { Refine } from '@refinedev/core'
-import { dataProvider, liveProvider } from '@refinedev/supabase'
+import { liveProvider } from '@refinedev/supabase'
 import routerProvider, { NavigateToResource } from '@refinedev/react-router'
 import { BrowserRouter, Routes, Route, Outlet } from 'react-router'
 import { ErrorComponent } from '@/components/refine-ui/layout/error-component'
 
 import { supabase } from '@/libs/supabase'
+import { dataProvider } from '@/libs/data-provider'
 import { authProvider } from '@/libs/auth-provider'
 import { LogoWithText } from './components/logo-with-text'
 import { AuthGuard } from './components/auth-guard'
@@ -39,7 +40,7 @@ export function App() {
     <ThemeProvider>
       <BrowserRouter>
         <Refine
-          dataProvider={dataProvider(supabase)}
+          dataProvider={dataProvider}
           liveProvider={liveProvider(supabase)}
           routerProvider={routerProvider}
           authProvider={authProvider}

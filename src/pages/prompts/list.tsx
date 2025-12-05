@@ -55,6 +55,20 @@ export function PromptsList() {
     pagination: { pageSize: 1000 },
   })
 
+  const { options: tagOptions } = useSelect<Tables<'tags'>>({
+    resource: 'tags',
+    optionLabel: 'name',
+    optionValue: 'id',
+    pagination: { pageSize: 1000 },
+  })
+
+  const { options: modelOptions } = useSelect<Tables<'ai_models'>>({
+    resource: 'ai_models',
+    optionLabel: 'name',
+    optionValue: 'id',
+    pagination: { pageSize: 1000 },
+  })
+
   const columns = useMemo<ColumnDef<Prompt>[]>(
     () => [
       {
@@ -100,8 +114,20 @@ export function PromptsList() {
         },
       },
       {
-        id: 'tags',
-        header: 'Tags',
+        id: 'tag_id',
+        accessorKey: 'tag_id',
+        header: ({ column, table }) => (
+          <div className="flex items-center gap-1">
+            <span>Tags</span>
+            <DataTableFilterCombobox
+              column={column}
+              options={tagOptions}
+              table={table}
+              operators={['eq']}
+              defaultOperator="eq"
+            />
+          </div>
+        ),
         enableSorting: false,
         cell: ({ row }) => {
           const tags = row.original.prompt_tags?.map((pt) => pt.tags) ?? []
@@ -141,8 +167,20 @@ export function PromptsList() {
         },
       },
       {
-        id: 'models',
-        header: 'Models',
+        id: 'model_id',
+        accessorKey: 'model_id',
+        header: ({ column, table }) => (
+          <div className="flex items-center gap-1">
+            <span>Models</span>
+            <DataTableFilterCombobox
+              column={column}
+              options={modelOptions}
+              table={table}
+              operators={['eq']}
+              defaultOperator="eq"
+            />
+          </div>
+        ),
         enableSorting: false,
         cell: ({ row }) => {
           const models =
@@ -368,7 +406,7 @@ export function PromptsList() {
         ),
       },
     ],
-    [edit, show, deletePrompt, categoryOptions],
+    [edit, show, deletePrompt, categoryOptions, tagOptions, modelOptions],
   )
 
   const table = useTable<Prompt>({
