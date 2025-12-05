@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { useParams, useNavigate, useLocation } from 'react-router'
+import { useGo, useParsed } from '@refinedev/core'
 import Selecto from 'react-selecto'
 import {
   ChevronRight,
@@ -122,12 +122,11 @@ interface FileBrowserProps {
 }
 
 export function FileBrowser({ bucketId: propBucketId }: FileBrowserProps = {}) {
-  const { bucketId: paramBucketId, '*': splat } = useParams<{
-    bucketId: string
-    '*': string
-  }>()
-  const navigate = useNavigate()
-  const location = useLocation()
+  const { params } = useParsed()
+  const go = useGo()
+
+  const paramBucketId = (params as Record<string, string>)?.bucketId
+  const splat = (params as Record<string, string>)?.['*']
   const bucketId = propBucketId || paramBucketId || ''
 
   // Derive current path from URL
@@ -214,16 +213,16 @@ export function FileBrowser({ bucketId: propBucketId }: FileBrowserProps = {}) {
 
   const navigateToFolder = (folderName: string) => {
     const newPath = [...currentPath, folderName].join('/')
-    navigate(`/media-library/${bucketId}/${newPath}`)
+    go({ to: `/media-library/${bucketId}/${newPath}` })
   }
 
   const navigateToPath = (index: number) => {
     const newPath = currentPath.slice(0, index).join('/')
-    navigate(`/media-library/${bucketId}${newPath ? `/${newPath}` : ''}`)
+    go({ to: `/media-library/${bucketId}${newPath ? `/${newPath}` : ''}` })
   }
 
   const navigateHome = () => {
-    navigate(`/media-library/${bucketId}`)
+    go({ to: `/media-library/${bucketId}` })
   }
 
   const getPublicUrl = (fileName: string): string => {
@@ -471,7 +470,7 @@ export function FileBrowser({ bucketId: propBucketId }: FileBrowserProps = {}) {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate('/media-library')}
+            onClick={() => go({ to: '/media-library' })}
           >
             <ChevronLeft className="size-5" />
           </Button>
@@ -571,7 +570,7 @@ export function FileBrowser({ bucketId: propBucketId }: FileBrowserProps = {}) {
             variant="ghost"
             size="icon"
             className="size-8"
-            onClick={() => navigate('/media-library')}
+            onClick={() => go({ to: '/media-library' })}
           >
             <Home className="size-4" />
           </Button>

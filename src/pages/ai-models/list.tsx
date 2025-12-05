@@ -2,8 +2,7 @@ import { useMemo } from 'react'
 import { useTable } from '@refinedev/react-table'
 import { type ColumnDef, type VisibilityState } from '@tanstack/react-table'
 import { Pencil, Trash2 } from 'lucide-react'
-import { Link } from 'react-router'
-import { useDelete, useNavigation, useSelect } from '@refinedev/core'
+import { useDelete, useNavigation, useSelect, Link } from '@refinedev/core'
 import {
   ListView,
   ListViewHeader,

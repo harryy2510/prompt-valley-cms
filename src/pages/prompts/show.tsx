@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useOne, useUpdate } from '@refinedev/core'
-import { useParams } from 'react-router'
+import { useOne, useUpdate, useParsed } from '@refinedev/core'
 import { Eye, EyeOff, Star, StarOff } from 'lucide-react'
 
 import {
@@ -30,7 +29,7 @@ type Tag = Tables<'tags'>
 type AIModel = Tables<'ai_models'>
 
 export function PromptsShow() {
-  const { id } = useParams()
+  const { id } = useParsed()
   const [tags, setTags] = useState<Tag[]>([])
   const [models, setModels] = useState<AIModel[]>([])
   const { mutateAsync: updatePrompt, mutation } = useUpdate()

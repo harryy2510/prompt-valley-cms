@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router'
+import { useGo } from '@refinedev/core'
 import {
   Database,
   Plus,
@@ -90,7 +90,7 @@ export function BucketList() {
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const navigate = useNavigate()
+  const go = useGo()
   const { open: notify } = useNotification()
 
   const loadBuckets = useCallback(async () => {
@@ -255,7 +255,7 @@ export function BucketList() {
   }
 
   const navigateToBucket = (bucketId: string) => {
-    navigate(`/media-library/${bucketId}`)
+    go({ to: `/media-library/${bucketId}` })
   }
 
   return (

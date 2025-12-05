@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router'
+import { useParsed, Link } from '@refinedev/core'
 import { Bot, FileText, FolderTree, Package, Tags } from 'lucide-react'
 
 import {
@@ -47,7 +47,7 @@ const menuItems = [
 ]
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
-  const location = useLocation()
+  const { pathname } = useParsed()
 
   return (
     <SidebarProvider>
@@ -65,7 +65,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton
                       asChild
-                      isActive={location.pathname.startsWith(item.url)}
+                      isActive={pathname?.startsWith(item.url)}
                     >
                       <Link to={item.url}>
                         <item.icon />

@@ -1,85 +1,44 @@
-import { AuthProvider } from '@refinedev/core'
-import { supabase } from './supabase'
+import type { AuthProvider } from '@refinedev/core'
+
+import {
+  fetchSessionServer,
+  getUserServer,
+  sendOtpServer,
+  signOutServer,
+  verifyOtpServer,
+} from '@/actions/auth'
 
 export const authProvider: AuthProvider = {
-  login: async ({ email, otp, providerName }) => {
+  login: async ({ email, otp }) => {
     try {
-      if (providerName === 'google') {
-        const { error } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: {
-            redirectTo: window.location.origin,
-          },
-        })
-        if (error) {
-          return {
-            success: false,
-            error: {
-              name: 'LoginError',
-              message: error.message,
-            },
-          }
-        }
-        return {
-          success: true,
-        }
-      }
-
-      if (providerName === 'github') {
-        const { error } = await supabase.auth.signInWithOAuth({
-          provider: 'github',
-          options: {
-            redirectTo: window.location.origin,
-          },
-        })
-        if (error) {
-          return {
-            success: false,
-            error: {
-              name: 'LoginError',
-              message: error.message,
-            },
-          }
-        }
-        return {
-          success: true,
-        }
-      }
-
+      // Step 1: Send OTP if no token provided
       if (!otp) {
-        const { error } = await supabase.auth.signInWithOtp({
-          email,
-          options: {
-            emailRedirectTo: window.location.origin,
-          },
-        })
+        const result = await sendOtpServer({ data: { email } })
 
-        if (error) {
+        if (!result.success) {
           return {
             success: false,
             error: {
               name: 'LoginError',
-              message: error.message,
+              message: result.error,
             },
           }
         }
+
         return {
           success: true,
         }
       }
 
-      const { error } = await supabase.auth.verifyOtp({
-        email,
-        token: otp,
-        type: 'email',
-      })
+      // Step 2: Verify OTP
+      const result = await verifyOtpServer({ data: { email, token: otp } })
 
-      if (error) {
+      if (!result.success) {
         return {
           success: false,
           error: {
             name: 'LoginError',
-            message: error.message,
+            message: result.error,
           },
         }
       }
@@ -98,15 +57,16 @@ export const authProvider: AuthProvider = {
       }
     }
   },
-  logout: async () => {
-    const { error } = await supabase.auth.signOut()
 
-    if (error) {
+  logout: async () => {
+    const result = await signOutServer()
+
+    if (!result.success) {
       return {
         success: false,
         error: {
           name: 'LogoutError',
-          message: error.message,
+          message: result.error,
         },
       }
     }
@@ -116,10 +76,11 @@ export const authProvider: AuthProvider = {
       redirectTo: '/login',
     }
   },
-  check: async () => {
-    const { data } = await supabase.auth.getSession()
 
-    if (data.session) {
+  check: async () => {
+    const session = await fetchSessionServer()
+
+    if (session) {
       return {
         authenticated: true,
       }
@@ -131,28 +92,32 @@ export const authProvider: AuthProvider = {
       logout: true,
     }
   },
-  getPermissions: async () => {
-    const { data } = await supabase.auth.getUser()
-    return (data?.user?.app_metadata?.role as 'admin' | 'user') || null
-  },
-  getIdentity: async () => {
-    const { data } = await supabase.auth.getUser()
 
-    if (data?.user) {
+  getPermissions: async () => {
+    const user = await getUserServer()
+    return (user?.app_metadata?.role as 'admin' | 'user') || null
+  },
+
+  getIdentity: async () => {
+    const user = await getUserServer()
+
+    if (user) {
       return {
-        id: data.user.id,
-        name: data.user.user_metadata?.full_name || data.user.email,
-        email: data.user.email,
-        avatar: data.user.user_metadata?.avatar_url,
+        id: user.id,
+        name: user.user_metadata?.full_name || user.email,
+        email: user.email,
+        avatar: user.user_metadata?.avatar_url,
       }
     }
 
     return null
   },
+
   onError: async (error) => {
     console.error(error)
     return { error }
   },
+
   register: async () => {
     return {
       success: false,
@@ -162,6 +127,7 @@ export const authProvider: AuthProvider = {
       },
     }
   },
+
   forgotPassword: async () => {
     return {
       success: false,
@@ -171,6 +137,7 @@ export const authProvider: AuthProvider = {
       },
     }
   },
+
   updatePassword: async () => {
     return {
       success: false,

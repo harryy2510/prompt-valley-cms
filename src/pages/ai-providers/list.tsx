@@ -2,9 +2,8 @@ import { useMemo } from 'react'
 import { useTable } from '@refinedev/react-table'
 import { type ColumnDef, type VisibilityState } from '@tanstack/react-table'
 import { ExternalLink, Pencil, Trash2 } from 'lucide-react'
-import { useDelete, useNavigation } from '@refinedev/core'
+import { useDelete, useNavigation, Link } from '@refinedev/core'
 import { useLocalStorage } from 'usehooks-ts'
-import { Link } from 'react-router'
 import dayjs from 'dayjs'
 
 import {

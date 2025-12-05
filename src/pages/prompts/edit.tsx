@@ -1,5 +1,4 @@
-import { useOne, useUpdate } from '@refinedev/core'
-import { useParams } from 'react-router'
+import { useOne, useUpdate, useParsed } from '@refinedev/core'
 import { Eye, EyeOff, Star, StarOff } from 'lucide-react'
 
 import {
@@ -13,7 +12,7 @@ import { Tables } from '@/types/database.types'
 type Prompt = Tables<'prompts'>
 
 export function PromptsEdit() {
-  const { id } = useParams()
+  const { id } = useParsed()
   const { mutateAsync: updatePrompt, mutation } = useUpdate()
 
   const { query } = useOne<Prompt>({

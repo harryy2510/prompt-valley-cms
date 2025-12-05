@@ -3,10 +3,10 @@ import {
   useMenu,
   useLink,
   useRefineOptions,
+  useParsed,
   TreeMenuItem,
 } from '@refinedev/core'
-import { useLocation } from 'react-router'
-import { supabase } from '@/libs/supabase'
+import { getSupabaseBrowserClient } from '@/libs/supabase/client'
 import { FolderOpen } from 'lucide-react'
 import {
   SidebarRail as ShadcnSidebarRail,
@@ -224,11 +224,11 @@ function SidebarItemDropdown({ item, selectedKey }: MenuItemProps) {
 }
 
 function SidebarItemLink({ item, selectedKey }: MenuItemProps) {
-  const location = useLocation()
+  const { pathname } = useParsed()
   // Check both exact match and path-based match for nested routes
   const isSelected =
     item.key === selectedKey ||
-    !!(item.route && location.pathname.startsWith(item.route + '/'))
+    !!(item.route && pathname?.startsWith(item.route + '/'))
 
   return <SidebarButton item={item} isSelected={isSelected} asLink={true} />
 }
@@ -243,7 +243,7 @@ type Bucket = {
 function MediaLibrarySidebarItem({ item, selectedKey }: MenuItemProps) {
   const [buckets, setBuckets] = useState<Bucket[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const location = useLocation()
+  const { pathname } = useParsed()
   const Link = useLink()
 
   useEffect(() => {
@@ -260,8 +260,8 @@ function MediaLibrarySidebarItem({ item, selectedKey }: MenuItemProps) {
     loadBuckets()
   }, [])
 
-  const isParentSelected = location.pathname === '/media-library'
-  const isAnyBucketSelected = location.pathname.startsWith('/media-library/')
+  const isParentSelected = pathname === '/media-library'
+  const isAnyBucketSelected = pathname?.startsWith('/media-library/') ?? false
 
   const chevronIcon = (
     <ChevronRight
@@ -332,7 +332,7 @@ function MediaLibrarySidebarItem({ item, selectedKey }: MenuItemProps) {
         ) : (
           buckets.map((bucket) => {
             const bucketPath = `/media-library/${bucket.id}`
-            const isBucketSelected = location.pathname.startsWith(bucketPath)
+            const isBucketSelected = pathname?.startsWith(bucketPath) ?? false
 
             return (
               <Button
@@ -380,7 +380,7 @@ function MediaLibrarySidebarItem({ item, selectedKey }: MenuItemProps) {
 
 function MediaLibrarySidebarItemDropdown({ item, selectedKey }: MenuItemProps) {
   const [buckets, setBuckets] = useState<Bucket[]>([])
-  const location = useLocation()
+  const { pathname } = useParsed()
   const Link = useLink()
 
   useEffect(() => {
@@ -395,7 +395,7 @@ function MediaLibrarySidebarItemDropdown({ item, selectedKey }: MenuItemProps) {
     loadBuckets()
   }, [])
 
-  const isParentSelected = location.pathname === '/media-library'
+  const isParentSelected = pathname === '/media-library'
 
   return (
     <DropdownMenu>
@@ -439,7 +439,7 @@ function MediaLibrarySidebarItemDropdown({ item, selectedKey }: MenuItemProps) {
             <div className="h-px bg-border my-1" />
             {buckets.map((bucket) => {
               const bucketPath = `/media-library/${bucket.id}`
-              const isBucketSelected = location.pathname.startsWith(bucketPath)
+              const isBucketSelected = pathname?.startsWith(bucketPath) ?? false
 
               return (
                 <DropdownMenuItem key={bucket.id} asChild>
