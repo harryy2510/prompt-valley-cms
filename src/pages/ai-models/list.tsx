@@ -15,7 +15,10 @@ import { Badge } from '@/components/ui/badge'
 import { ActionButton } from '@/components/ui/action-button'
 import { Tables } from '@/types/database.types'
 import { startCase } from 'lodash-es'
-import { DataTableFilterCombobox } from '@/components/refine-ui/data-table/data-table-filter'
+import {
+  DataTableFilterClearButton,
+  DataTableFilterCombobox,
+} from '@/components/refine-ui/data-table/data-table-filter'
 import { useLocalStorage } from 'usehooks-ts'
 import dayjs from 'dayjs'
 import { fCurrency, fShortenNumber } from '@/utils/format'
@@ -75,6 +78,7 @@ export function AiModelsList() {
               operators={['eq']}
               defaultOperator="eq"
             />
+            <DataTableFilterClearButton column={column} />
           </div>
         ),
         cell: ({ row }) => (

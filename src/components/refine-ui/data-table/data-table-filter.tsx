@@ -961,6 +961,30 @@ export function DataTableFilterOperatorSelect({
   )
 }
 
+export type DataTableFilterClearButtonProps<TData> = {
+  column: Column<TData>
+}
+
+export function DataTableFilterClearButton<TData>({
+  column,
+}: DataTableFilterClearButtonProps<TData>) {
+  const isFiltered = column.getIsFiltered()
+
+  if (!isFiltered) return null
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className={cn('w-5', 'h-5', 'text-muted-foreground', 'hover:text-destructive')}
+      onClick={() => column.setFilterValue(undefined)}
+    >
+      <X className={cn('!h-3', '!w-3')} />
+    </Button>
+  )
+}
+
+DataTableFilterClearButton.displayName = 'DataTableFilterClearButton'
 DataTableFilterDropdown.displayName = 'DataTableFilterDropdown'
 DataTableFilterDropdownText.displayName = 'DataTableFilterDropdownText'
 DataTableFilterCombobox.displayName = 'DataTableFilterCombobox'

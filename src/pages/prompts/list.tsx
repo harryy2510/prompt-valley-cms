@@ -17,7 +17,10 @@ import {
 } from '@/components/refine-ui/views/list-view'
 import { DataTable } from '@/components/refine-ui/data-table/data-table'
 import { DataTableSorter } from '@/components/refine-ui/data-table/data-table-sorter'
-import { DataTableFilterCombobox } from '@/components/refine-ui/data-table/data-table-filter'
+import {
+  DataTableFilterCombobox,
+  DataTableFilterClearButton,
+} from '@/components/refine-ui/data-table/data-table-filter'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ActionButton } from '@/components/ui/action-button'
@@ -103,6 +106,7 @@ export function PromptsList() {
               operators={['eq']}
               defaultOperator="eq"
             />
+            <DataTableFilterClearButton column={column} />
           </div>
         ),
         cell: ({ row }) => {
@@ -126,6 +130,7 @@ export function PromptsList() {
               operators={['eq']}
               defaultOperator="eq"
             />
+            <DataTableFilterClearButton column={column} />
           </div>
         ),
         enableSorting: false,
@@ -146,10 +151,7 @@ export function PromptsList() {
               {remaining > 0 && (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Badge
-                      variant="outline"
-                      className="text-xs cursor-default"
-                    >
+                    <Badge variant="outline" className="text-xs cursor-default">
                       +{remaining}
                     </Badge>
                   </TooltipTrigger>
@@ -179,6 +181,7 @@ export function PromptsList() {
               operators={['eq']}
               defaultOperator="eq"
             />
+            <DataTableFilterClearButton column={column} />
           </div>
         ),
         enableSorting: false,
@@ -200,10 +203,7 @@ export function PromptsList() {
               {remaining > 0 && (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Badge
-                      variant="outline"
-                      className="text-xs cursor-default"
-                    >
+                    <Badge variant="outline" className="text-xs cursor-default">
                       +{remaining}
                     </Badge>
                   </TooltipTrigger>
@@ -234,6 +234,7 @@ export function PromptsList() {
               operators={['eq']}
               defaultOperator="eq"
             />
+            <DataTableFilterClearButton column={column} />
           </div>
         ),
         cell: ({ getValue }) => {
@@ -262,6 +263,7 @@ export function PromptsList() {
               operators={['eq']}
               defaultOperator="eq"
             />
+            <DataTableFilterClearButton column={column} />
           </div>
         ),
         cell: ({ getValue }) => {
@@ -386,8 +388,8 @@ export function PromptsList() {
               areYouSureTitle="Delete Prompt?"
               areYouSureDescription={
                 <>
-                  This will permanently delete the prompt "
-                  {row.original.title}". This action cannot be undone.
+                  This will permanently delete the prompt "{row.original.title}
+                  ". This action cannot be undone.
                 </>
               }
               confirmLabel="Delete"
