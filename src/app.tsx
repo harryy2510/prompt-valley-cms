@@ -31,12 +31,14 @@ import {
   PromptsEdit,
   PromptsShow,
 } from './pages/prompts'
+import { AssetsManager } from './pages/assets'
 import { Layout } from '@/components/refine-ui/layout/layout'
 import { ThemeProvider } from '@/components/refine-ui/theme/theme-provider'
 import {
   Bot,
   Database,
   FileText,
+  FolderOpen,
   FolderTree,
   Package,
   Tags,
@@ -114,6 +116,14 @@ export function App() {
                 label: 'AI Models',
                 icon: <Package />,
                 parent: 'content',
+              },
+            },
+            {
+              name: 'assets',
+              list: '/assets',
+              meta: {
+                label: 'Assets',
+                icon: <FolderOpen />,
               },
             },
           ]}
@@ -197,6 +207,9 @@ export function App() {
                 <Route path="edit/:id" element={<PromptsEdit />} />
                 <Route path="show/:id" element={<PromptsShow />} />
               </Route>
+
+              {/* Assets */}
+              <Route path="/assets" element={<AssetsManager />} />
             </Route>
 
             <Route path="*" element={<ErrorComponent />} />
