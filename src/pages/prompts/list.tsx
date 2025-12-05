@@ -34,32 +34,34 @@ type Prompt = Tables<'prompts'> & {
 
 const STORAGE_KEY = 'prompts-column-visibility'
 
-type ExportPrompt = {
-	category_id: null | string
-	content: string
-	created_at: string
-	description: null | string
-	id: string
-	is_featured: boolean
-	is_published: boolean
+type ExportPrompt = Pick<
+	Tables<'prompts'>,
+	| 'category_id'
+	| 'content'
+	| 'created_at'
+	| 'description'
+	| 'id'
+	| 'is_featured'
+	| 'is_published'
+	| 'tier'
+	| 'title'
+> & {
 	model_ids: string
 	tag_ids: string
-	tier: string
-	title: string
 }
 
 const EXPORT_COLUMNS: Array<ColumnMapping<ExportPrompt>> = [
-	{ example: 'my-prompt-slug', header: 'ID', key: 'id' },
-	{ example: 'My Prompt', header: 'Title', key: 'title' },
-	{ example: 'A useful prompt', header: 'Description', key: 'description' },
-	{ example: 'Prompt content here...', header: 'Content', key: 'content' },
-	{ example: 'marketing', header: 'Category ID', key: 'category_id' },
-	{ example: 'free', header: 'Tier', key: 'tier' },
-	{ example: 'true', header: 'Published', key: 'is_published' },
-	{ example: 'false', header: 'Featured', key: 'is_featured' },
-	{ example: 'seo,copywriting', header: 'Tag IDs', key: 'tag_ids' },
-	{ example: 'gpt-4o,claude-3', header: 'Model IDs', key: 'model_ids' },
-	{ example: '', header: 'Created At', key: 'created_at' }
+	{ header: 'ID', key: 'id' },
+	{ header: 'Title', key: 'title' },
+	{ header: 'Description', key: 'description' },
+	{ header: 'Content', key: 'content' },
+	{ header: 'Category ID', key: 'category_id' },
+	{ header: 'Tier', key: 'tier' },
+	{ header: 'Published', key: 'is_published' },
+	{ header: 'Featured', key: 'is_featured' },
+	{ header: 'Tag IDs', key: 'tag_ids' },
+	{ header: 'Model IDs', key: 'model_ids' },
+	{ header: 'Created At', key: 'created_at' }
 ]
 
 function transformPromptsForExport(prompts: Array<Prompt>): Array<ExportPrompt> {

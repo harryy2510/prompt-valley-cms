@@ -46,16 +46,16 @@ type ExportAiModel = {
 }
 
 const EXPORT_COLUMNS: Array<ColumnMapping<ExportAiModel>> = [
-	{ example: 'gpt-4o', header: 'ID', key: 'id' },
-	{ example: 'GPT-4o', header: 'Name', key: 'name' },
-	{ example: 'openai', header: 'Provider ID', key: 'provider_id' },
-	{ example: 'OpenAI', header: 'Provider Name', key: 'provider_name' },
-	{ example: 'text, vision, function', header: 'Capabilities', key: 'capabilities' },
-	{ example: '128000', header: 'Context Window', key: 'context_window' },
-	{ example: '4096', header: 'Max Output', key: 'max_output_tokens' },
-	{ example: '2.50', header: 'Cost Input/1M', key: 'cost_input_per_million' },
-	{ example: '10.00', header: 'Cost Output/1M', key: 'cost_output_per_million' },
-	{ example: '', header: 'Created At', key: 'created_at' }
+	{ header: 'ID', key: 'id' },
+	{ header: 'Name', key: 'name' },
+	{ header: 'Provider ID', key: 'provider_id' },
+	{ header: 'Provider Name', key: 'provider_name' },
+	{ header: 'Capabilities', key: 'capabilities' },
+	{ header: 'Context Window', key: 'context_window' },
+	{ header: 'Max Output', key: 'max_output_tokens' },
+	{ header: 'Cost Input/1M', key: 'cost_input_per_million' },
+	{ header: 'Cost Output/1M', key: 'cost_output_per_million' },
+	{ header: 'Created At', key: 'created_at' }
 ]
 
 export function AiModelsList() {

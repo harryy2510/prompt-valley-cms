@@ -26,9 +26,9 @@ type Tag = Tables<'tags'> & {
 const STORAGE_KEY = 'tags-column-visibility'
 
 const EXPORT_COLUMNS: Array<ColumnMapping<Tag>> = [
-	{ example: 'tag-slug', header: 'ID', key: 'id' },
-	{ example: 'My Tag', header: 'Name', key: 'name' },
-	{ example: '', header: 'Created At', key: 'created_at' }
+	{ header: 'ID', key: 'id' },
+	{ header: 'Name', key: 'name' },
+	{ header: 'Created At', key: 'created_at' }
 ]
 
 export function TagsList() {

@@ -27,11 +27,11 @@ type AiProvider = Tables<'ai_providers'> & {
 const STORAGE_KEY = 'ai-providers-column-visibility'
 
 const EXPORT_COLUMNS: Array<ColumnMapping<AiProvider>> = [
-	{ example: 'openai', header: 'ID', key: 'id' },
-	{ example: 'OpenAI', header: 'Name', key: 'name' },
-	{ example: 'https://openai.com', header: 'Website URL', key: 'website_url' },
-	{ example: '', header: 'Logo URL', key: 'logo_url' },
-	{ example: '', header: 'Created At', key: 'created_at' }
+	{ header: 'ID', key: 'id' },
+	{ header: 'Name', key: 'name' },
+	{ header: 'Website URL', key: 'website_url' },
+	{ header: 'Logo URL', key: 'logo_url' },
+	{ header: 'Created At', key: 'created_at' }
 ]
 
 export function AiProvidersList() {

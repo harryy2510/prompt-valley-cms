@@ -54,6 +54,14 @@ export const serverDataProvider: DataProvider = {
 		const result = await getListServer({
 			data: { filters, meta, pagination, resource, sorters }
 		})
+		console.log({
+			filters,
+			meta,
+			pagination,
+			resource,
+			result,
+			sorters
+		})
 		return result as { data: Array<TData>; total: number }
 	},
 

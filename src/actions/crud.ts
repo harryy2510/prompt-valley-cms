@@ -73,6 +73,16 @@ export const getListServer = createServerFn({ method: 'POST' })
 
 		const { count, data: records, error } = await query
 
+		console.log({
+			count,
+			filters,
+			meta,
+			pagination,
+			records,
+			resource,
+			sorters
+		})
+
 		if (error) {
 			throw new Error(error.message)
 		}

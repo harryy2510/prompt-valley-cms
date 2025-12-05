@@ -38,10 +38,10 @@ type ExportCategory = {
 }
 
 const EXPORT_COLUMNS: Array<ColumnMapping<ExportCategory>> = [
-	{ example: 'category-slug', header: 'ID', key: 'id' },
-	{ example: 'My Category', header: 'Name', key: 'name' },
-	{ example: 'parent-category-slug', header: 'Parent ID', key: 'parent_id' },
-	{ example: '', header: 'Created At', key: 'created_at' }
+	{ header: 'ID', key: 'id' },
+	{ header: 'Name', key: 'name' },
+	{ header: 'Parent ID', key: 'parent_id' },
+	{ header: 'Created At', key: 'created_at' }
 ]
 
 export function CategoriesList() {
