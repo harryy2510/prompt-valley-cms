@@ -1,7 +1,7 @@
-import { type ComponentProps, type ReactNode, useTransition } from "react"
-import { Button } from "@/components/ui/button"
-import { toast } from "sonner"
-import { LoadingSwap } from "@/components/ui/loading-swap"
+import { type ComponentProps, type ReactNode, useTransition } from 'react'
+import { Button } from '@/components/ui/button'
+import { toast } from 'sonner'
+import { LoadingSwap } from '@/components/ui/loading-swap'
 import {
   AlertDialog,
   AlertDialogDescription,
@@ -12,24 +12,28 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+} from '@/components/ui/alert-dialog'
 
 export function ActionButton({
   action,
   requireAreYouSure = false,
-  areYouSureDescription = "This action cannot be undone.",
+  areYouSureTitle = 'Are you sure?',
+  areYouSureDescription = 'This action cannot be undone.',
+  confirmLabel = 'Yes',
   ...props
 }: ComponentProps<typeof Button> & {
   action: () => Promise<{ error: boolean; message?: string }>
   requireAreYouSure?: boolean
+  areYouSureTitle?: ReactNode
   areYouSureDescription?: ReactNode
+  confirmLabel?: ReactNode
 }) {
   const [isLoading, startTransition] = useTransition()
 
   function performAction() {
     startTransition(async () => {
       const data = await action()
-      if (data.error) toast.error(data.message ?? "Error")
+      if (data.error && data.message) toast.error(data.message)
     })
   }
 
@@ -41,15 +45,19 @@ export function ActionButton({
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle>{areYouSureTitle}</AlertDialogTitle>
             <AlertDialogDescription>
               {areYouSureDescription}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction disabled={isLoading} onClick={performAction}>
-              <LoadingSwap isLoading={isLoading}>Yes</LoadingSwap>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isLoading}
+              onClick={performAction}
+            >
+              <LoadingSwap isLoading={isLoading}>{confirmLabel}</LoadingSwap>
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -61,7 +69,7 @@ export function ActionButton({
     <Button
       {...props}
       disabled={props.disabled ?? isLoading}
-      onClick={e => {
+      onClick={(e) => {
         performAction()
         props.onClick?.(e)
       }}
