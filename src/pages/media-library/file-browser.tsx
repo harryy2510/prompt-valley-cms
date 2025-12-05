@@ -76,6 +76,8 @@ import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { useNotification } from '@refinedev/core'
+import dayjs from 'dayjs'
+import { fData } from '@/utils/format'
 
 type FileObject = {
   name: string
@@ -108,15 +110,6 @@ function getFileIcon(name: string, isFolder: boolean) {
   if (docExts.includes(ext || '')) return FileText
 
   return File
-}
-
-function formatFileSize(bytes: number | undefined): string {
-  if (!bytes) return '—'
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  if (bytes < 1024 * 1024 * 1024)
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`
 }
 
 function isImageFile(name: string): boolean {
@@ -1047,9 +1040,7 @@ function FileGridItem({
 
           {/* Size */}
           {!isFolder && size && (
-            <p className="text-xs text-muted-foreground">
-              {formatFileSize(size)}
-            </p>
+            <p className="text-xs text-muted-foreground">{fData(size)}</p>
           )}
         </div>
       </ContextMenuTrigger>
@@ -1174,11 +1165,11 @@ function FileListItem({
           {!isFolder && (
             <>
               <span className="text-xs text-muted-foreground w-20 text-right">
-                {formatFileSize(size)}
+                {fData(size)}
               </span>
               {updatedAt && (
                 <span className="text-xs text-muted-foreground w-32 text-right">
-                  {new Date(updatedAt).toLocaleDateString()}
+                  {dayjs(updatedAt).format('DD MMM, YYYY')}
                 </span>
               )}
             </>

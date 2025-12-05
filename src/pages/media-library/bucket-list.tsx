@@ -58,6 +58,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { useNotification } from '@refinedev/core'
+import dayjs from 'dayjs'
 
 type Bucket = {
   id: string
@@ -315,7 +316,7 @@ export function BucketList() {
                       <CardTitle className="text-base">{bucket.name}</CardTitle>
                       <CardDescription className="text-xs">
                         Created{' '}
-                        {new Date(bucket.created_at).toLocaleDateString()}
+                        {dayjs(bucket.created_at).format('DD MMM, YYYY')}
                       </CardDescription>
                     </div>
                   </div>
