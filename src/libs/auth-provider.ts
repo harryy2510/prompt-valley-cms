@@ -1,20 +1,7 @@
 import type { AuthProvider } from '@refinedev/core'
-import { queryOptions, useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 
-import { getUserServer, sendOtpServer, signOutServer, verifyOtpServer } from '@/actions/auth'
-import { userToIdentity } from '@/utils/user'
-
-export type Identity = NonNullable<ReturnType<typeof userToIdentity>>
-
-// ============================================
-// Query Keys
-// ============================================
-
-export const authKeys = {
-	all: ['auth'] as const,
-	identity: () => [...authKeys.all, 'identity'] as const,
-	permissions: () => [...authKeys.all, 'permissions'] as const
-}
+import { identityQueryOptions, sendOtpServer, signOutServer, verifyOtpServer } from '@/actions/auth'
 
 export function useAuthProvider(): AuthProvider {
 	const { data: identity } = useQuery(identityQueryOptions())
@@ -112,11 +99,3 @@ export function useAuthProvider(): AuthProvider {
 		}
 	}
 }
-
-export const identityQueryOptions = () =>
-	queryOptions({
-		gcTime: 1000 * 60 * 30, // 30 minutes
-		queryFn: () => getUserServer().then(userToIdentity),
-		queryKey: authKeys.identity(),
-		staleTime: 1000 * 60 * 5 // 5 minutes
-	})
