@@ -27,15 +27,32 @@ import {
 	updateServer
 } from '@/actions/crud'
 
+export type RelationConfig = {
+	foreignKey: string
+	relatedKey: string
+	through: string
+	type: 'manyToMany'
+}
+
+export type SanitizedMeta = {
+	count?: 'estimated' | 'exact' | 'planned'
+	idColumnName?: string
+	relations?: Record<string, RelationConfig>
+	schema?: string
+	select?: string
+}
+
 /**
  * Strips non-serializable properties (signal, etc.) from meta
  * Only keeps properties that are JSON-serializable and used by the server
  */
-function sanitizeMeta(meta?: MetaQuery) {
+function sanitizeMeta(meta?: MetaQuery): SanitizedMeta | undefined {
 	if (!meta) return undefined
 	// Only pick serializable properties used by the data provider
-	const { count, idColumnName, schema, select } = meta
-	return { count, idColumnName, schema, select }
+	const { count, idColumnName, relations, schema, select } = meta as MetaQuery & {
+		relations?: Record<string, RelationConfig>
+	}
+	return { count, idColumnName, relations, schema, select }
 }
 
 /**
@@ -96,75 +113,85 @@ export const serverDataProvider: DataProvider = {
 		resource,
 		sorters
 	}: GetListParams) => {
-		// Handle junction table filters for prompts (many-to-many relationships)
-		if (resource === 'prompts') {
-			const tagFilter = filters.find((f) => 'field' in f && f.field === 'tag_id')
-			const modelFilter = filters.find((f) => 'field' in f && f.field === 'model_id')
+		const sanitizedMeta = sanitizeMeta(meta)
+		const relations = sanitizedMeta?.relations
 
-			if (tagFilter || modelFilter) {
-				let promptIds: Array<string> | null = null
+		// Handle manyToMany junction table filters if relations are defined
+		if (relations) {
+			const junctionFilters: Array<{
+				field: string
+				relation: RelationConfig
+				value: string
+			}> = []
 
-				if (tagFilter && 'value' in tagFilter) {
-					const result = await getRelatedServer({
-						data: {
-							fkColumn: 'tag_id',
-							fkValue: tagFilter.value as string,
-							junctionTable: 'prompt_tags',
-							select: 'prompt_id'
-						}
-					})
-					const tagPrompts = (result.data ?? []) as Array<{ prompt_id: string }>
-					promptIds = tagPrompts.map((tp) => tp.prompt_id)
+			// Find filters that match manyToMany relations by relatedKey
+			for (const [, relation] of Object.entries(relations)) {
+				if (relation.type === 'manyToMany') {
+					const filter = filters.find((f) => 'field' in f && f.field === relation.relatedKey)
+					if (filter && 'value' in filter) {
+						junctionFilters.push({
+							field: relation.relatedKey,
+							relation,
+							value: filter.value as string
+						})
+					}
 				}
+			}
 
-				if (modelFilter && 'value' in modelFilter) {
+			if (junctionFilters.length > 0) {
+				let matchingIds: Array<string> | null = null
+
+				// Query each junction table and intersect results
+				for (const { relation, value } of junctionFilters) {
 					const result = await getRelatedServer({
 						data: {
-							fkColumn: 'model_id',
-							fkValue: modelFilter.value as string,
-							junctionTable: 'prompt_models',
-							select: 'prompt_id'
+							fkColumn: relation.relatedKey,
+							fkValue: value,
+							junctionTable: relation.through,
+							select: relation.foreignKey
 						}
 					})
-					const modelPrompts = (result.data ?? []) as Array<{ prompt_id: string }>
-					const modelPromptIds = modelPrompts.map((mp) => mp.prompt_id)
+					const ids = ((result.data ?? []) as unknown as Array<Record<string, string>>).map(
+						(row) => row[relation.foreignKey]
+					)
 
-					if (promptIds !== null) {
-						promptIds = promptIds.filter((id) => modelPromptIds.includes(id))
+					if (matchingIds === null) {
+						matchingIds = ids
 					} else {
-						promptIds = modelPromptIds
+						matchingIds = matchingIds.filter((id) => ids.includes(id))
 					}
 				}
 
-				// Remove junction filters and add ID filter
+				// Remove junction filters from the filter list
+				const junctionFields = junctionFilters.map((jf) => jf.field)
 				const remainingFilters = filters.filter(
-					(f) => !('field' in f) || (f.field !== 'tag_id' && f.field !== 'model_id')
+					(f) => !('field' in f) || !junctionFields.includes(f.field)
 				)
 
-				// If no prompt IDs found, return empty result
-				if (promptIds !== null && promptIds.length === 0) {
+				// If no matching IDs found, return empty result
+				if (matchingIds !== null && matchingIds.length === 0) {
 					return { data: [] as Array<TData>, total: 0 }
 				}
 
-				// Add the prompt ID filter if we have results
+				// Add the ID filter if we have results
 				const newFilters: Array<CrudFilter> = [...remainingFilters]
-				if (promptIds !== null) {
+				if (matchingIds !== null) {
 					newFilters.push({
 						field: 'id',
 						operator: 'in',
-						value: promptIds
+						value: matchingIds
 					})
 				}
 
 				const result = await getListServer({
-					data: { filters: newFilters, meta: sanitizeMeta(meta), pagination, resource, sorters }
+					data: { filters: newFilters, meta: sanitizedMeta, pagination, resource, sorters }
 				})
 				return result as unknown as { data: Array<TData>; total: number }
 			}
 		}
 
 		const result = await getListServer({
-			data: { filters, meta: sanitizeMeta(meta), pagination, resource, sorters }
+			data: { filters, meta: sanitizedMeta, pagination, resource, sorters }
 		})
 		return result as unknown as { data: Array<TData>; total: number }
 	},

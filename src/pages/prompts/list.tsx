@@ -461,6 +461,20 @@ export function PromptsList() {
 		onColumnVisibilityChange: setColumnVisibility,
 		refineCoreProps: {
 			meta: {
+				relations: {
+					models: {
+						foreignKey: 'prompt_id',
+						relatedKey: 'model_id',
+						through: 'prompt_models',
+						type: 'manyToMany'
+					},
+					tags: {
+						foreignKey: 'prompt_id',
+						relatedKey: 'tag_id',
+						through: 'prompt_tags',
+						type: 'manyToMany'
+					}
+				},
 				select:
 					'*, categories(id, name), prompt_tags(tags(id, name)), prompt_models(ai_models(id, name))'
 			},
