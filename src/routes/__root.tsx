@@ -1,17 +1,17 @@
 import '@fontsource-variable/space-grotesk/index.css'
 
 import { Refine } from '@refinedev/core'
-import type { Session } from '@supabase/supabase-js'
 import { TanStackDevtools } from '@tanstack/react-devtools'
+import type { QueryClient } from '@tanstack/react-query'
 import { createRootRouteWithContext, HeadContent, Outlet, Scripts } from '@tanstack/react-router'
 import type { PropsWithChildren } from 'react'
 
-import { fetchSessionServer, getUserServer } from '@/actions/auth'
 import { LogoWithText } from '@/components/logo-with-text'
 import { notificationProvider } from '@/components/refine-ui/notification/notification-provider'
 import { Toaster } from '@/components/refine-ui/notification/toaster'
 import { ThemeProvider } from '@/components/refine-ui/theme/theme-provider'
-import { authProvider } from '@/libs/auth-provider'
+import { authKeys, identityQueryOptions, useAuthProvider } from '@/libs/auth-provider'
+import type { Identity } from '@/libs/auth-provider'
 import TanStackQueryDevtools from '@/libs/react-query/query-devtools'
 import TanStackRouterDevtools from '@/libs/react-query/router-devtools'
 import { resources } from '@/libs/refine/resources'
@@ -26,21 +26,22 @@ import appCss from '../tailwind.css?url'
 // ============================================
 
 export type RouterContext = {
-	role: UserRole
-	session: null | Session
+	identity: Identity | null
+	permissions: Identity['role'] | null
+	queryClient: QueryClient
 }
-
-export type UserRole = 'admin' | 'user' | null
 
 // ============================================
 // Root Route
 // ============================================
 
 export const Route = createRootRouteWithContext<RouterContext>()({
-	beforeLoad: async () => {
-		const [session, user] = await Promise.all([fetchSessionServer(), getUserServer()])
-		const role = (user?.app_metadata?.role as UserRole) || null
-		return { role, session }
+	beforeLoad: async ({ context }) => {
+		const identity = await context.queryClient.ensureQueryData(identityQueryOptions())
+		const permissions = identity?.role || null
+		context.queryClient.setQueryData(authKeys.permissions(), permissions)
+
+		return { identity, permissions }
 	},
 
 	component: () => <Outlet />,
@@ -115,6 +116,8 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 // ============================================
 
 function RootDocument({ children }: PropsWithChildren) {
+	const { queryClient } = Route.useRouteContext()
+	const authProvider = useAuthProvider()
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<head>
@@ -129,13 +132,7 @@ function RootDocument({ children }: PropsWithChildren) {
 						disableTelemetry: true,
 						mutationMode: 'pessimistic',
 						reactQuery: {
-							clientConfig: {
-								defaultOptions: {
-									queries: {
-										retry: false
-									}
-								}
-							}
+							clientConfig: queryClient
 						},
 						syncWithLocation: true,
 						title: {

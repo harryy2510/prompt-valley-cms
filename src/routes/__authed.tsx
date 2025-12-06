@@ -1,4 +1,5 @@
-import { createFileRoute, Outlet, redirect, useRouteContext } from '@tanstack/react-router'
+import { usePermissions } from '@refinedev/core'
+import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
 
 import { Forbidden } from '@/components/refine-ui/errors/forbidden'
 import { Layout } from '@/components/refine-ui/layout/layout'
@@ -9,7 +10,7 @@ import { Layout } from '@/components/refine-ui/layout/layout'
 
 export const Route = createFileRoute('/__authed')({
 	beforeLoad: ({ context, location }) => {
-		if (!context.session) {
+		if (!context.identity) {
 			throw redirect({
 				search: {
 					to: location.href
@@ -22,7 +23,11 @@ export const Route = createFileRoute('/__authed')({
 })
 
 function RootComponent() {
-	const { role } = useRouteContext({ from: '/__authed' })
+	const { data: role, isLoading } = usePermissions({})
+
+	if (isLoading) {
+		return null
+	}
 
 	if (role !== 'admin') {
 		return <Forbidden />

@@ -1,4 +1,4 @@
-import { useActiveAuthProvider, useLogout, useRefineOptions } from '@refinedev/core'
+import { useGetIdentity, useLogout, useRefineOptions } from '@refinedev/core'
 import { LogOutIcon } from 'lucide-react'
 
 import { UserAvatar } from '@/components/refine-ui/layout/user-avatar'
@@ -109,11 +109,10 @@ function MobileHeader() {
 }
 
 const UserDropdown = () => {
-	const { isPending: isLoggingOut, mutate: logout } = useLogout()
+	const { isPending, mutate: logout } = useLogout()
+	const { data: identity } = useGetIdentity()
 
-	const authProvider = useActiveAuthProvider()
-
-	if (!authProvider?.getIdentity) {
+	if (!identity) {
 		return null
 	}
 
@@ -123,14 +122,10 @@ const UserDropdown = () => {
 				<UserAvatar />
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="end">
-				<DropdownMenuItem
-					onClick={() => {
-						logout()
-					}}
-				>
+				<DropdownMenuItem onClick={() => logout()}>
 					<LogOutIcon className={cn('text-destructive', 'hover:text-destructive')} />
 					<span className={cn('text-destructive', 'hover:text-destructive')}>
-						{isLoggingOut ? 'Logging out...' : 'Logout'}
+						{isPending ? 'Logging out...' : 'Logout'}
 					</span>
 				</DropdownMenuItem>
 			</DropdownMenuContent>

@@ -16,7 +16,7 @@ const guestSearchSchema = z.object({
 export const Route = createFileRoute('/__guest')({
 	beforeLoad: ({ context, search }) => {
 		// Session is already in context from root route
-		if (context.session) {
+		if (context.identity) {
 			throw redirect({
 				to: search.to || '/'
 			})

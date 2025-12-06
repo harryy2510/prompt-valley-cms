@@ -1,65 +1,69 @@
 import type { AuthProvider } from '@refinedev/core'
+import { queryOptions, useQuery } from '@tanstack/react-query'
 
-import {
-	fetchSessionServer,
-	getUserServer,
-	sendOtpServer,
-	signOutServer,
-	verifyOtpServer
-} from '@/actions/auth'
+import { getUserServer, sendOtpServer, signOutServer, verifyOtpServer } from '@/actions/auth'
+import { userToIdentity } from '@/utils/user'
 
-export const authProvider: AuthProvider = {
-	check: async () => {
-		const session = await fetchSessionServer()
+export type Identity = NonNullable<ReturnType<typeof userToIdentity>>
 
-		if (session) {
-			return {
-				authenticated: true
+// ============================================
+// Query Keys
+// ============================================
+
+export const authKeys = {
+	all: ['auth'] as const,
+	identity: () => [...authKeys.all, 'identity'] as const,
+	permissions: () => [...authKeys.all, 'permissions'] as const
+}
+
+export function useAuthProvider(): AuthProvider {
+	const { data: identity } = useQuery(identityQueryOptions())
+
+	return {
+		check: () => {
+			if (identity) {
+				return Promise.resolve({
+					authenticated: true
+				})
 			}
-		}
 
-		return {
-			authenticated: false,
-			logout: true,
-			redirectTo: '/login'
-		}
-	},
+			return Promise.resolve({
+				authenticated: false,
+				logout: true
+			})
+		},
 
-	forgotPassword: async () => {
-		return Promise.resolve({
-			error: {
-				message: 'Please use the login form to sign up.',
-				name: 'ForgotPasswordError'
-			},
-			success: false
-		})
-	},
+		getIdentity: () => {
+			return Promise.resolve(identity)
+		},
 
-	getIdentity: async () => {
-		const user = await getUserServer()
+		getPermissions: () => {
+			return Promise.resolve(identity?.role || null)
+		},
 
-		if (user) {
-			return {
-				avatar: user.user_metadata?.avatar_url,
-				email: user.email,
-				id: user.id,
-				name: user.user_metadata?.full_name || user.email
-			}
-		}
+		login: async ({ email, otp }) => {
+			try {
+				// Step 1: Send OTP if no token provided
+				if (!otp) {
+					const result = await sendOtpServer({ data: { email } })
 
-		return null
-	},
+					if (!result.success) {
+						return {
+							error: {
+								message: result.error,
+								name: 'LoginError'
+							},
+							success: false
+						}
+					}
 
-	getPermissions: async () => {
-		const user = await getUserServer()
-		return (user?.app_metadata?.role as 'admin' | 'user') || null
-	},
+					return {
+						success: true
+					}
+				}
 
-	login: async ({ email, otp }) => {
-		try {
-			// Step 1: Send OTP if no token provided
-			if (!otp) {
-				const result = await sendOtpServer({ data: { email } })
+				// Step 2: Verify OTP
+				const result = await verifyOtpServer({ data: { email, token: otp } })
 
 				if (!result.success) {
 					return {
@@ -74,77 +78,45 @@ export const authProvider: AuthProvider = {
 				return {
 					success: true
 				}
+			} catch (e: any) {
+				return {
+					error: {
+						message: e.message || 'Login failed',
+						name: 'LoginError'
+					},
+					success: false
+				}
 			}
+		},
 
-			// Step 2: Verify OTP
-			const result = await verifyOtpServer({ data: { email, token: otp } })
+		logout: async () => {
+			const result = await signOutServer()
 
 			if (!result.success) {
 				return {
 					error: {
 						message: result.error,
-						name: 'LoginError'
+						name: 'LogoutError'
 					},
 					success: false
 				}
 			}
 
 			return {
-				redirectTo: '/',
 				success: true
 			}
-		} catch (e: any) {
-			return {
-				error: {
-					message: e.message || 'Login failed',
-					name: 'LoginError'
-				},
-				success: false
-			}
+		},
+		onError: async (error) => {
+			console.error(error)
+			return Promise.resolve({ error })
 		}
-	},
-
-	logout: async () => {
-		const result = await signOutServer()
-
-		if (!result.success) {
-			return {
-				error: {
-					message: result.error,
-					name: 'LogoutError'
-				},
-				success: false
-			}
-		}
-
-		return {
-			redirectTo: '/login',
-			success: true
-		}
-	},
-
-	onError: async (error) => {
-		console.error(error)
-		return Promise.resolve({ error })
-	},
-
-	register: async () => {
-		return Promise.resolve({
-			error: {
-				message: 'Please use the login form to sign up.',
-				name: 'RegisterError'
-			},
-			success: false
-		})
-	},
-
-	updatePassword: async () => {
-		return Promise.resolve({
-			error: {
-				message: 'Please use the login form to sign up.',
-				name: 'UpdatePasswordError'
-			},
-			success: false
-		})
 	}
 }
+
+export const identityQueryOptions = () =>
+	queryOptions({
+		gcTime: 1000 * 60 * 30, // 30 minutes
+		queryFn: () => getUserServer().then(userToIdentity),
+		queryKey: authKeys.identity(),
+		staleTime: 1000 * 60 * 5 // 5 minutes
+	})

@@ -1,23 +1,36 @@
 import { createRouter } from '@tanstack/react-router'
+import { setupRouterSsrQueryIntegration } from '@tanstack/react-router-ssr-query'
+import type { ReactNode } from 'react'
 
 import { DefaultCatchBoundary } from '@/components/refine-ui/errors/default-catch-boundary'
 import { NotFound } from '@/components/refine-ui/errors/not-found'
+import { getContext, ReactQueryProvider } from '@/libs/react-query/root-provider'
 
 // Import the generated route tree
 import { routeTree } from './routeTree.gen'
 
 // Create a new router instance
 export function getRouter() {
-	return createRouter({
+	const rqContext = getContext()
+
+	const router = createRouter({
 		context: {
-			role: null,
-			session: null
+			...rqContext,
+			identity: null,
+			permissions: null
 		},
 		defaultErrorComponent: DefaultCatchBoundary,
 		defaultHashScrollIntoView: { behavior: 'smooth' },
 		defaultNotFoundComponent: () => <NotFound />,
 		defaultPreload: 'intent',
 		routeTree,
-		scrollRestoration: true
+		scrollRestoration: true,
+		Wrap: (props: { children: ReactNode }) => {
+			return <ReactQueryProvider {...rqContext}>{props.children}</ReactQueryProvider>
+		}
 	})
+
+	setupRouterSsrQueryIntegration({ queryClient: rqContext.queryClient, router })
+
+	return router
 }
