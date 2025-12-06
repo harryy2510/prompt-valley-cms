@@ -2,6 +2,7 @@ import type {
 	BaseRecord,
 	CreateManyParams,
 	CreateParams,
+	CrudFilter,
 	DataProvider,
 	DeleteManyParams,
 	DeleteOneParams,
@@ -21,6 +22,7 @@ import {
 	getListServer,
 	getManyServer,
 	getOneServer,
+	getRelatedServer,
 	updateManyServer,
 	updateServer
 } from '@/actions/crud'
@@ -88,12 +90,79 @@ export const serverDataProvider: DataProvider = {
 	getApiUrl: () => process.env.VITE_SUPABASE_URL || '',
 
 	getList: async <TData extends BaseRecord = BaseRecord>({
-		filters,
+		filters = [],
 		meta,
 		pagination,
 		resource,
 		sorters
 	}: GetListParams) => {
+		// Handle junction table filters for prompts (many-to-many relationships)
+		if (resource === 'prompts') {
+			const tagFilter = filters.find((f) => 'field' in f && f.field === 'tag_id')
+			const modelFilter = filters.find((f) => 'field' in f && f.field === 'model_id')
+
+			if (tagFilter || modelFilter) {
+				let promptIds: Array<string> | null = null
+
+				if (tagFilter && 'value' in tagFilter) {
+					const result = await getRelatedServer({
+						data: {
+							fkColumn: 'tag_id',
+							fkValue: tagFilter.value as string,
+							junctionTable: 'prompt_tags',
+							select: 'prompt_id'
+						}
+					})
+					const tagPrompts = (result.data ?? []) as Array<{ prompt_id: string }>
+					promptIds = tagPrompts.map((tp) => tp.prompt_id)
+				}
+
+				if (modelFilter && 'value' in modelFilter) {
+					const result = await getRelatedServer({
+						data: {
+							fkColumn: 'model_id',
+							fkValue: modelFilter.value as string,
+							junctionTable: 'prompt_models',
+							select: 'prompt_id'
+						}
+					})
+					const modelPrompts = (result.data ?? []) as Array<{ prompt_id: string }>
+					const modelPromptIds = modelPrompts.map((mp) => mp.prompt_id)
+
+					if (promptIds !== null) {
+						promptIds = promptIds.filter((id) => modelPromptIds.includes(id))
+					} else {
+						promptIds = modelPromptIds
+					}
+				}
+
+				// Remove junction filters and add ID filter
+				const remainingFilters = filters.filter(
+					(f) => !('field' in f) || (f.field !== 'tag_id' && f.field !== 'model_id')
+				)
+
+				// If no prompt IDs found, return empty result
+				if (promptIds !== null && promptIds.length === 0) {
+					return { data: [] as Array<TData>, total: 0 }
+				}
+
+				// Add the prompt ID filter if we have results
+				const newFilters: Array<CrudFilter> = [...remainingFilters]
+				if (promptIds !== null) {
+					newFilters.push({
+						field: 'id',
+						operator: 'in',
+						value: promptIds
+					})
+				}
+
+				const result = await getListServer({
+					data: { filters: newFilters, meta: sanitizeMeta(meta), pagination, resource, sorters }
+				})
+				return result as unknown as { data: Array<TData>; total: number }
+			}
+		}
+
 		const result = await getListServer({
 			data: { filters, meta: sanitizeMeta(meta), pagination, resource, sorters }
 		})

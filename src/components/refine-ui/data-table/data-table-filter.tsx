@@ -619,9 +619,10 @@ export function DataTableFilterInput<TData>({
 	renderInput,
 	table: tableFromProps
 }: DataTableFilterInputProps<TData>) {
-	const [filterValue, setFilterValue] = useState(
-		(columnFromProps.getFilterValue() as Array<string> | string) || ''
-	)
+	const columnFilterValue = columnFromProps.getFilterValue() as Array<string> | string | undefined
+
+	// Local state for the input value - allows buffering changes until Apply
+	const [filterValue, setFilterValue] = useState<Array<string> | string>(columnFilterValue || '')
 
 	const [operator, setOperator] = useState<CrudOperators>(() => {
 		if (!tableFromProps) {
@@ -639,13 +640,19 @@ export function DataTableFilterInput<TData>({
 		return defaultOperatorFromProps || 'eq'
 	})
 
+	// Sync local state when column filter changes externally (e.g., clear button)
+	useEffect(() => {
+		setFilterValue(columnFilterValue || '')
+		// eslint-disable-next-line react-hooks/exhaustive-deps -- only sync when external value changes
+	}, [columnFilterValue])
+
 	const handleApply = () => {
-		columnFromProps.setFilterValue(filterValue)
+		columnFromProps.setFilterValue(filterValue || undefined)
 	}
 
 	const handleClear = () => {
-		columnFromProps.setFilterValue(undefined)
 		setFilterValue('')
+		columnFromProps.setFilterValue(undefined)
 	}
 
 	const handleOperatorChange = (value: CrudOperators) => {
