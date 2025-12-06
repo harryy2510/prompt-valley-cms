@@ -21,7 +21,7 @@
 		"fix": "pnpm lint:fix && pnpm format:fix",
 		"test": "vitest run",
 		"deploy": "wrangler deploy",
-		"prepare": "husky"
+		"prepare": "pnpx is-ci || husky"
 	},
 	"lint-staged": {
 		"*.{js,jsx,ts,tsx}": [
