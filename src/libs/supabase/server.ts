@@ -3,6 +3,8 @@ import { getCookies, setCookie } from '@tanstack/react-start/server'
 
 import type { Database } from '@/types/database.types'
 
+import { STORAGE_KEY } from './constants'
+
 /**
  * Server-side Supabase with anon key (for auth operations that need session cookies)
  */
@@ -12,7 +14,7 @@ export function getSupabaseServerAuthClient() {
 		process.env.VITE_SUPABASE_PUBLISHABLE_KEY,
 		{
 			auth: {
-				storageKey: 'prompt-valley-auth'
+				storageKey: STORAGE_KEY
 			},
 			cookies: {
 				getAll() {
@@ -41,7 +43,7 @@ export function getSupabaseServerClient() {
 		process.env.SUPABASE_SECRET_KEY,
 		{
 			auth: {
-				storageKey: 'prompt-valley-auth'
+				storageKey: STORAGE_KEY
 			},
 			cookies: {
 				getAll() {

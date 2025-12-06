@@ -6,8 +6,8 @@ import type { QueryClient } from '@tanstack/react-query'
 import { createRootRouteWithContext, HeadContent, Outlet, Scripts } from '@tanstack/react-router'
 import type { PropsWithChildren } from 'react'
 
+import { authKeys, identityQueryOptions, useAuthListener } from '@/actions/auth'
 import type { Identity } from '@/actions/auth'
-import { authKeys, identityQueryOptions } from '@/actions/auth'
 import { LogoWithText } from '@/components/logo-with-text'
 import { notificationProvider } from '@/components/refine-ui/notification/notification-provider'
 import { Toaster } from '@/components/refine-ui/notification/toaster'
@@ -119,6 +119,8 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 function RootDocument({ children }: PropsWithChildren) {
 	const { queryClient } = Route.useRouteContext()
 	const authProvider = useAuthProvider()
+	useAuthListener()
+
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<head>

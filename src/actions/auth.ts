@@ -1,8 +1,10 @@
 import type { User } from '@supabase/supabase-js'
 import { queryOptions } from '@tanstack/react-query'
 import { createServerFn } from '@tanstack/react-start'
+import { useEffect } from 'react'
 
-import { getSupabaseServerAuthClient } from '@/libs/supabase'
+import { getSupabaseBrowserClient } from '@/libs/supabase/client'
+import { getSupabaseServerAuthClient } from '@/libs/supabase/server'
 
 // ============================================
 // Types
@@ -113,3 +115,21 @@ export const identityQueryOptions = () =>
 		queryKey: authKeys.identity(),
 		staleTime: 1000 * 60 * 5 // 5 minutes
 	})
+
+// ============================================
+// Hooks
+// ============================================
+
+export function useAuthListener() {
+	useEffect(() => {
+		const supabase = getSupabaseBrowserClient()
+
+		const {
+			data: { subscription }
+		} = supabase.auth.onAuthStateChange(() => undefined)
+
+		return () => {
+			subscription.unsubscribe()
+		}
+	}, [])
+}

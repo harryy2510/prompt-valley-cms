@@ -1,6 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 
-import { getSupabaseServerClient } from '@/libs/supabase'
+import { getSupabaseServerClient } from '@/libs/supabase/server'
 
 // ============================================
 // Types

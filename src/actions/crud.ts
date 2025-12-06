@@ -2,7 +2,7 @@ import type { CrudFilters, CrudSorting, Pagination } from '@refinedev/core'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createServerFn } from '@tanstack/react-start'
 
-import { getSupabaseServerClient } from '@/libs/supabase'
+import { getSupabaseServerClient } from '@/libs/supabase/server'
 
 // ============================================
 // Types

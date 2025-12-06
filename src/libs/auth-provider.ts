@@ -62,6 +62,8 @@ export function useAuthProvider(): AuthProvider {
 					}
 				}
 
+				window.location.reload()
+
 				return {
 					success: true
 				}
@@ -88,6 +90,8 @@ export function useAuthProvider(): AuthProvider {
 					success: false
 				}
 			}
+
+			window.location.reload()
 
 			return {
 				success: true
