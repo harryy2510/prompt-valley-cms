@@ -1,8 +1,10 @@
 import { useLink, useMenu, useParsed, useRefineOptions } from '@refinedev/core'
 import type { TreeMenuItem } from '@refinedev/core'
+import { useQuery } from '@tanstack/react-query'
 import { ChevronRight, FolderOpen, ListIcon } from 'lucide-react'
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 
+import { listBucketsServer } from '@/actions/storage'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import {
@@ -20,14 +22,6 @@ import {
 	useSidebar as useShadcnSidebar
 } from '@/components/ui/sidebar'
 import { cn } from '@/libs/cn'
-import { getSupabaseBrowserClient } from '@/libs/supabase/client'
-
-type Bucket = {
-	created_at: string
-	id: string
-	name: string
-	public: boolean
-}
 
 type IconProps = {
 	icon: React.ReactNode
@@ -97,25 +91,18 @@ function ItemIcon({ icon, isSelected }: IconProps) {
 	)
 }
 
-function MediaLibrarySidebarItem({ item, selectedKey }: MenuItemProps) {
-	const [buckets, setBuckets] = useState<Array<Bucket>>([])
-	const [isLoading, setIsLoading] = useState(true)
+function MediaLibrarySidebarItem({ item }: MenuItemProps) {
 	const { pathname } = useParsed()
 	const Link = useLink()
 
-	useEffect(() => {
-		const loadBuckets = async () => {
-			try {
-				const { data } = await supabase.storage.listBuckets()
-				setBuckets(data || [])
-			} catch (error) {
-				console.error('Failed to load buckets:', error)
-			} finally {
-				setIsLoading(false)
-			}
-		}
-		loadBuckets()
-	}, [])
+	const { data: buckets = [], isLoading } = useQuery({
+		queryFn: async () => {
+			const { data } = await listBucketsServer()
+			return data
+		},
+		queryKey: ['storage-buckets'],
+		staleTime: 5 * 60 * 1000 // 5 minutes
+	})
 
 	const isParentSelected = pathname === '/media-library'
 	const isAnyBucketSelected = pathname?.startsWith('/media-library/') ?? false
@@ -219,22 +206,18 @@ function MediaLibrarySidebarItem({ item, selectedKey }: MenuItemProps) {
 	)
 }
 
-function MediaLibrarySidebarItemDropdown({ item, selectedKey }: MenuItemProps) {
-	const [buckets, setBuckets] = useState<Array<Bucket>>([])
+function MediaLibrarySidebarItemDropdown({ item }: MenuItemProps) {
 	const { pathname } = useParsed()
 	const Link = useLink()
 
-	useEffect(() => {
-		const loadBuckets = async () => {
-			try {
-				const { data } = await supabase.storage.listBuckets()
-				setBuckets(data || [])
-			} catch (error) {
-				console.error('Failed to load buckets:', error)
-			}
-		}
-		loadBuckets()
-	}, [])
+	const { data: buckets = [] } = useQuery({
+		queryFn: async () => {
+			const { data } = await listBucketsServer()
+			return data
+		},
+		queryKey: ['storage-buckets'],
+		staleTime: 5 * 60 * 1000 // 5 minutes
+	})
 
 	const isParentSelected = pathname === '/media-library'
 
