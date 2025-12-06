@@ -67,6 +67,7 @@ export function ImageUpload({
 	useEffect(() => {
 		if (value && !imageItem) {
 			// External value exists but no internal state - create completed item
+			// eslint-disable-next-line react-hooks/set-state-in-effect
 			setImageItem({
 				bucketPath: value,
 				displayUrl: getImageUrl(value) || value,
@@ -78,7 +79,7 @@ export function ImageUpload({
 			// External value cleared - clear internal state
 			setImageItem(null)
 		}
-	}, [value])
+	}, [imageItem, value])
 
 	// Track visibility with IntersectionObserver
 	useEffect(() => {
@@ -215,7 +216,7 @@ export function ImageUpload({
 		onChange(null)
 
 		if (mode === 'create' && pathToDelete && isBucketPath(pathToDelete)) {
-			deleteImage(pathToDelete)
+			void deleteImage(pathToDelete)
 		}
 	}
 
@@ -476,7 +477,10 @@ export function ImagesUpload({
 
 	// Use ref to always have current value for async operations
 	const valueRef = useRef(value)
-	valueRef.current = value
+
+	useEffect(() => {
+		valueRef.current = value
+	}, [value])
 
 	// Sync external value to internal state on mount and when value changes externally
 	useEffect(() => {
@@ -497,6 +501,7 @@ export function ImagesUpload({
 		const removedPaths = [...internalPaths].filter((path) => path && !externalPaths.has(path))
 
 		if (newExternalPaths.length > 0 || removedPaths.length > 0) {
+			// eslint-disable-next-line react-hooks/set-state-in-effect
 			setImages((prev) => {
 				// Keep uploading items and items still in external value
 				const kept = prev.filter(
@@ -516,7 +521,7 @@ export function ImagesUpload({
 				return [...kept, ...newItems]
 			})
 		}
-	}, [value])
+	}, [images, value])
 
 	// Track visibility with IntersectionObserver
 	useEffect(() => {
@@ -708,7 +713,7 @@ export function ImagesUpload({
 
 			// Delete from bucket in create mode
 			if (mode === 'create' && isBucketPath(item.bucketPath)) {
-				deleteImage(item.bucketPath)
+				void deleteImage(item.bucketPath)
 			}
 		}
 	}

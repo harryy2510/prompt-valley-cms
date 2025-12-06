@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/static-components */
 import { matchResourceFromRoute, useBreadcrumb, useLink, useResourceParams } from '@refinedev/core'
 import { Home } from 'lucide-react'
 import { Fragment, useMemo } from 'react'

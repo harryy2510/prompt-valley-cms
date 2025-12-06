@@ -1,4 +1,6 @@
-import { supabase } from './supabase'
+import { deleteFilesServer, getPublicUrlServer, uploadFileServer } from '@/actions/storage'
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 
 /**
  * Delete an image from the content-bucket
@@ -7,13 +9,9 @@ import { supabase } from './supabase'
  */
 export async function deleteImage(path: string): Promise<boolean> {
 	try {
-		const { error } = await supabase.storage.from('content-bucket').remove([path])
-
-		if (error) {
-			console.error('Delete error:', error)
-			return false
-		}
-
+		await deleteFilesServer({
+			data: { bucketId: 'content-bucket', paths: [path] }
+		})
 		return true
 	} catch (error) {
 		console.error('Delete exception:', error)
@@ -34,9 +32,27 @@ export function getImageUrl(value: null | string | undefined): null | string {
 		return value
 	}
 
-	// Otherwise, treat it as a bucket path
-	const { data } = supabase.storage.from('content-bucket').getPublicUrl(value)
-	return data.publicUrl
+	// Otherwise, construct the public URL directly
+	return `${SUPABASE_URL}/storage/v1/object/public/content-bucket/${value}`
+}
+
+/**
+ * Get the display URL for an image asynchronously (uses server function)
+ * Use this when you need the exact URL from the server
+ */
+export async function getImageUrlAsync(value: null | string | undefined): Promise<null | string> {
+	if (!value) return null
+
+	// If it's already a full URL, return as-is
+	if (isFullUrl(value)) {
+		return value
+	}
+
+	// Get public URL from server
+	const { publicUrl } = await getPublicUrlServer({
+		data: { bucketId: 'content-bucket', path: value }
+	})
+	return publicUrl
 }
 
 /**
@@ -67,15 +83,23 @@ export async function uploadImage(file: File, folder: string): Promise<null | st
 		const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`
 		const filePath = `${folder}/${fileName}`
 
-		const { error } = await supabase.storage.from('content-bucket').upload(filePath, file, {
-			cacheControl: '3600',
-			upsert: false
-		})
-
-		if (error) {
-			console.error('Upload error:', error)
-			return null
+		// Convert file to base64
+		const arrayBuffer = await file.arrayBuffer()
+		const bytes = new Uint8Array(arrayBuffer)
+		let binary = ''
+		for (const byte of bytes) {
+			binary += String.fromCharCode(byte)
 		}
+		const base64 = btoa(binary)
+
+		await uploadFileServer({
+			data: {
+				bucketId: 'content-bucket',
+				contentType: file.type,
+				fileBase64: base64,
+				filePath
+			}
+		})
 
 		return filePath
 	} catch (error) {

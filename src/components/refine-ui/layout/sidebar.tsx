@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/static-components */
 import { useLink, useMenu, useParsed, useRefineOptions } from '@refinedev/core'
 import type { TreeMenuItem } from '@refinedev/core'
 import { useQuery } from '@tanstack/react-query'

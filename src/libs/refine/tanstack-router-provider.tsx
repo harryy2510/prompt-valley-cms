@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks */
 import type { GoConfig, ParseResponse, RouterProvider } from '@refinedev/core'
 import { matchResourceFromRoute, ResourceContext } from '@refinedev/core'
 import {
@@ -5,6 +6,7 @@ import {
 	useLocation,
 	useNavigate,
 	useParams,
+	useRouter,
 	useSearch
 } from '@tanstack/react-router'
 import qs from 'qs'
@@ -30,11 +32,11 @@ const stringifyConfig = {
 export const routerProvider: RouterProvider = {
 	// Hook that returns the back function
 	back: () => {
-		const navigate = useNavigate()
+		const router = useRouter()
 
 		return useCallback(() => {
-			void navigate({ to: '..' })
-		}, [navigate])
+			router.history.back()
+		}, [router])
 	},
 
 	// Hook that returns the go function
@@ -70,9 +72,7 @@ export const routerProvider: RouterProvider = {
 				const hasUrlHash = urlHash.length > 1
 				const hasUrlQuery = Object.keys(urlQuery).length > 0
 
-				const fullPath = `${urlTo}${
-					hasUrlQuery ? qs.stringify(urlQuery, stringifyConfig) : ''
-				}${hasUrlHash ? urlHash : ''}`
+				const fullPath = `${urlTo}${hasUrlQuery ? qs.stringify(urlQuery, stringifyConfig) : ''}${hasUrlHash ? urlHash : ''}`
 
 				if (type === 'path') {
 					return fullPath

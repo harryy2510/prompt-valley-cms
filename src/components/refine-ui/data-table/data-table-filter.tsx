@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/immutability */
 import { useTranslate } from '@refinedev/core'
 import type { CrudOperators } from '@refinedev/core'
 import type { Column, Table as ReactTable } from '@tanstack/react-table'

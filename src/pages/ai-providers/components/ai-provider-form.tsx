@@ -98,7 +98,7 @@ export function AIProviderForm({ mode }: AIProviderFormProps) {
 								name="id"
 								placeholder="e.g. openai, anthropic"
 								resource="ai_providers"
-								sourceValue={form.watch('name')}
+								sourceField="name"
 							/>
 						</CardContent>
 					</Card>

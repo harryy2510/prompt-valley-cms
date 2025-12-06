@@ -129,7 +129,7 @@ export function AIModelForm({ mode }: AIModelFormProps) {
 								name="id"
 								placeholder="e.g. gpt-4, claude-3-5"
 								resource="ai_models"
-								sourceValue={form.watch('name')}
+								sourceField="name"
 							/>
 
 							<FormField

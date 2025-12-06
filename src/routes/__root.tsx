@@ -6,10 +6,10 @@ import { TanStackDevtools } from '@tanstack/react-devtools'
 import { createRootRouteWithContext, HeadContent, Outlet, Scripts } from '@tanstack/react-router'
 import type { PropsWithChildren } from 'react'
 
-import { fetchSessionServer } from '@/actions/auth'
+import { fetchSessionServer, getUserServer } from '@/actions/auth'
 import { LogoWithText } from '@/components/logo-with-text'
+import { notificationProvider } from '@/components/refine-ui/notification/notification-provider'
 import { Toaster } from '@/components/refine-ui/notification/toaster'
-import { useNotificationProvider } from '@/components/refine-ui/notification/use-notification-provider'
 import { ThemeProvider } from '@/components/refine-ui/theme/theme-provider'
 import { authProvider } from '@/libs/auth-provider'
 import TanStackQueryDevtools from '@/libs/react-query/query-devtools'
@@ -26,8 +26,11 @@ import appCss from '../tailwind.css?url'
 // ============================================
 
 export type RouterContext = {
+	role: UserRole
 	session: null | Session
 }
+
+export type UserRole = 'admin' | 'user' | null
 
 // ============================================
 // Root Route
@@ -35,8 +38,9 @@ export type RouterContext = {
 
 export const Route = createRootRouteWithContext<RouterContext>()({
 	beforeLoad: async () => {
-		const session = await fetchSessionServer()
-		return { session }
+		const [session, user] = await Promise.all([fetchSessionServer(), getUserServer()])
+		const role = (user?.app_metadata?.role as UserRole) || null
+		return { role, session }
 	},
 
 	component: () => <Outlet />,
@@ -120,7 +124,7 @@ function RootDocument({ children }: PropsWithChildren) {
 				<Refine
 					authProvider={authProvider}
 					dataProvider={serverDataProvider}
-					notificationProvider={useNotificationProvider}
+					notificationProvider={notificationProvider}
 					options={{
 						disableTelemetry: true,
 						mutationMode: 'pessimistic',

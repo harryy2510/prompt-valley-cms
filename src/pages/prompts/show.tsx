@@ -1,14 +1,14 @@
 import { useOne, useParsed, useUpdate } from '@refinedev/core'
+import { useQuery } from '@tanstack/react-query'
 import { Eye, EyeOff, Star, StarOff } from 'lucide-react'
-import { useEffect, useState } from 'react'
 
+import { getRelatedServer } from '@/actions/crud'
 import { LoadingOverlay } from '@/components/refine-ui/layout/loading-overlay'
 import { ShowView, ShowViewHeader } from '@/components/refine-ui/views/show-view'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { getImageUrl } from '@/libs/storage'
-import { supabase } from '@/libs/supabase'
 import type { Tables } from '@/types/database.types'
 import { fShortenNumber } from '@/utils/format'
 
@@ -21,8 +21,6 @@ type Tag = Tables<'tags'>
 
 export function PromptsShow() {
 	const { id } = useParsed()
-	const [tags, setTags] = useState<Array<Tag>>([])
-	const [models, setModels] = useState<Array<AIModel>>([])
 	const { mutateAsync: updatePrompt, mutation } = useUpdate()
 
 	const { query, result: prompt } = useOne<Prompt>({
@@ -31,6 +29,40 @@ export function PromptsShow() {
 			select: '*, categories(id, name)'
 		},
 		resource: 'prompts'
+	})
+
+	// Load tags using React Query
+	const { data: tags = [] } = useQuery({
+		enabled: !!id,
+		queryFn: async () => {
+			const { data } = await getRelatedServer({
+				data: {
+					fkColumn: 'prompt_id',
+					fkValue: id as string,
+					junctionTable: 'prompt_tags',
+					select: 'tags(*)'
+				}
+			})
+			return data.map((pt: { tags: Tag }) => pt.tags)
+		},
+		queryKey: ['prompt-tags', id]
+	})
+
+	// Load models using React Query
+	const { data: models = [] } = useQuery({
+		enabled: !!id,
+		queryFn: async () => {
+			const { data } = await getRelatedServer({
+				data: {
+					fkColumn: 'prompt_id',
+					fkValue: id as string,
+					junctionTable: 'prompt_models',
+					select: 'ai_models(*)'
+				}
+			})
+			return data.map((pm: { ai_models: AIModel }) => pm.ai_models)
+		},
+		queryKey: ['prompt-models', id]
 	})
 
 	const isLoading = query.isLoading
@@ -54,32 +86,6 @@ export function PromptsShow() {
 			values: { is_featured: !prompt?.is_featured }
 		})
 	}
-
-	useEffect(() => {
-		const loadRelations = async () => {
-			if (id) {
-				const { data: promptTags } = await supabase
-					.from('prompt_tags')
-					.select('tags(*)')
-					.eq('prompt_id', id)
-
-				if (promptTags) {
-					setTags(promptTags.map((pt: any) => pt.tags))
-				}
-
-				const { data: promptModels } = await supabase
-					.from('prompt_models')
-					.select('ai_models(*)')
-					.eq('prompt_id', id)
-
-				if (promptModels) {
-					setModels(promptModels.map((pm: any) => pm.ai_models))
-				}
-			}
-		}
-
-		loadRelations()
-	}, [id])
 
 	return (
 		<ShowView>

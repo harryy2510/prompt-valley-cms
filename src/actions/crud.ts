@@ -2,7 +2,7 @@ import type { CrudFilters, CrudSorting, Pagination } from '@refinedev/core'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createServerFn } from '@tanstack/react-start'
 
-import { getSupabaseServerClient } from '@/libs/supabase/server'
+import { getSupabaseServerClient } from '@/libs/supabase'
 
 // ============================================
 // Types
@@ -395,4 +395,277 @@ export const deleteManyServer = createServerFn({ method: 'POST' })
 		)
 
 		return { data: results }
+	})
+
+// ============================================
+// Utility Server Functions
+// ============================================
+
+type CheckSlugInput = {
+	baseSlug: string
+	columnName: string
+	resource: string
+	schema?: string
+}
+
+type CountInput = {
+	resource: string
+	schema?: string
+}
+
+type DeleteJunctionInput = {
+	column: string
+	junctionTable: string
+	schema?: string
+	value: string
+}
+
+type FindAvailableSlugInput = {
+	baseSlug: string
+	columnName: string
+	currentId?: string
+	resource: string
+	schema?: string
+}
+
+type GetRelatedInput = {
+	/** The foreign key column pointing to the main resource (e.g., 'prompt_id') */
+	fkColumn: string
+	/** The value of the foreign key */
+	fkValue: string
+	/** The junction table to query (e.g., 'prompt_tags') */
+	junctionTable: string
+	schema?: string
+	/** The select query for related data (e.g., 'tags(*)' or 'tag_id') */
+	select: string
+}
+
+type JunctionTableInput = {
+	junctionTable: string
+	records: Array<Record<string, unknown>>
+	schema?: string
+}
+
+export const checkSlugServer = createServerFn({ method: 'POST' })
+	.inputValidator((data: CheckSlugInput) => data)
+	.handler(async ({ data }) => {
+		const { baseSlug, columnName, resource, schema } = data
+		const client = getClient(schema)
+
+		const { data: existing } = await client
+			.from(resource)
+			.select(columnName)
+			.like(columnName, `${baseSlug}%`)
+
+		return { data: existing || [] }
+	})
+
+export const findAvailableSlugServer = createServerFn({ method: 'POST' })
+	.inputValidator((data: FindAvailableSlugInput) => data)
+	.handler(async ({ data }) => {
+		const { baseSlug, columnName, currentId, resource, schema } = data
+		const client = getClient(schema)
+
+		if (!baseSlug) {
+			return { slug: baseSlug }
+		}
+
+		// First check if the base slug is available
+		let query = client
+			.from(resource)
+			.select('id', { count: 'exact', head: true })
+			.eq(columnName, baseSlug)
+
+		if (currentId) {
+			query = query.neq('id', currentId)
+		}
+
+		const { count } = await query
+
+		if (count === 0) {
+			return { slug: baseSlug } // Available as-is
+		}
+
+		// Slug is taken, find an available one with suffix
+		const { data: existing } = await client
+			.from(resource)
+			.select(columnName)
+			.like(columnName, `${baseSlug}%`)
+
+		const existingSlugs = new Set(
+			(existing as Array<Record<string, unknown>> | null)?.map((row) => row[columnName]) || []
+		)
+
+		let counter = 1
+		let candidate = `${baseSlug}-${counter}`
+
+		while (existingSlugs.has(candidate)) {
+			counter++
+			candidate = `${baseSlug}-${counter}`
+		}
+
+		return { slug: candidate }
+	})
+
+export const insertJunctionServer = createServerFn({ method: 'POST' })
+	.inputValidator((data: JunctionTableInput) => data)
+	.handler(async ({ data }) => {
+		const { junctionTable, records, schema } = data
+		const client = getClient(schema)
+
+		if (records.length === 0) {
+			return { success: true }
+		}
+
+		const { error } = await client.from(junctionTable).insert(records)
+
+		if (error) {
+			throw new Error(error.message)
+		}
+
+		return { success: true }
+	})
+
+export const deleteJunctionServer = createServerFn({ method: 'POST' })
+	.inputValidator((data: DeleteJunctionInput) => data)
+	.handler(async ({ data }) => {
+		const { column, junctionTable, schema, value } = data
+		const client = getClient(schema)
+
+		const { error } = await client.from(junctionTable).delete().eq(column, value)
+
+		if (error) {
+			throw new Error(error.message)
+		}
+
+		return { success: true }
+	})
+
+export const countServer = createServerFn({ method: 'POST' })
+	.inputValidator((data: CountInput) => data)
+	.handler(async ({ data }) => {
+		const { resource, schema } = data
+		const client = getClient(schema)
+
+		const { count, error } = await client.from(resource).select('*', { count: 'exact', head: true })
+
+		if (error) {
+			throw new Error(error.message)
+		}
+
+		return { count: count || 0 }
+	})
+
+export const getRelatedServer = createServerFn({ method: 'POST' })
+	.inputValidator((data: GetRelatedInput) => data)
+	.handler(async ({ data }) => {
+		const { fkColumn, fkValue, junctionTable, schema, select } = data
+		const client = getClient(schema)
+
+		const { data: records, error } = await client
+			.from(junctionTable)
+			.select(select)
+			.eq(fkColumn, fkValue)
+
+		if (error) {
+			throw new Error(error.message)
+		}
+
+		return { data: records || [] }
+	})
+
+type ExportDataInput = {
+	orderBy?: string
+	resource: string
+	schema?: string
+	select?: string
+}
+
+export const exportDataServer = createServerFn({ method: 'POST' })
+	.inputValidator((data: ExportDataInput) => data)
+	.handler(async ({ data }) => {
+		const { orderBy = 'created_at', resource, schema, select = '*' } = data
+		const client = getClient(schema)
+
+		const PAGE_SIZE = 1000
+		let allData: Array<Record<string, any>> = []
+		let page = 0
+		let hasMore = true
+
+		// First, get total count
+		const { count } = await client.from(resource).select('*', { count: 'exact', head: true })
+		const totalCount = count || 0
+
+		while (hasMore) {
+			const from = page * PAGE_SIZE
+			const to = from + PAGE_SIZE - 1
+
+			const { data: pageData, error } = await client
+				.from(resource)
+				.select(select)
+				.range(from, to)
+				.order(orderBy, { ascending: false })
+
+			if (error) {
+				throw new Error(error.message)
+			}
+
+			if (pageData && pageData.length > 0) {
+				allData = [...allData, ...pageData]
+			}
+
+			hasMore = pageData !== null && pageData.length === PAGE_SIZE
+			page++
+		}
+
+		return { data: allData, total: totalCount }
+	})
+
+type ValidateIdsInput = {
+	ids: Array<string>
+	resource: string
+	schema?: string
+}
+
+export const validateIdsServer = createServerFn({ method: 'POST' })
+	.inputValidator((data: ValidateIdsInput) => data)
+	.handler(async ({ data }) => {
+		const { ids, resource, schema } = data
+		const client = getClient(schema)
+
+		const { data: records, error } = await client.from(resource).select('id').in('id', ids)
+
+		if (error) {
+			throw new Error(error.message)
+		}
+
+		const existingIds = new Set(records?.map((r: { id: string }) => r.id) || [])
+		const missingIds = ids.filter((id) => !existingIds.has(id))
+
+		return { existingIds: Array.from(existingIds), missingIds }
+	})
+
+type UpsertInput = {
+	resource: string
+	schema?: string
+	variables: unknown
+}
+
+export const upsertServer = createServerFn({ method: 'POST' })
+	.inputValidator((data: UpsertInput) => data)
+	.handler(async ({ data }) => {
+		const { resource, schema, variables } = data
+		const client = getClient(schema)
+
+		const { data: record, error } = await client
+			.from(resource)
+			.upsert(variables)
+			.select('id')
+			.single()
+
+		if (error) {
+			throw new Error(error.message)
+		}
+
+		return { data: record }
 	})

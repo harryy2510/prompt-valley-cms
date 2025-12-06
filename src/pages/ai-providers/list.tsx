@@ -242,7 +242,7 @@ export function AiProvidersList() {
 	const tableData = table.refineCore.tableQuery.data?.data ?? []
 
 	const handleImportSuccess = () => {
-		table.refineCore.tableQuery.refetch()
+		void table.refineCore.tableQuery.refetch()
 	}
 
 	return (

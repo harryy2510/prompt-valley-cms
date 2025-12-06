@@ -326,7 +326,7 @@ function SidebarProvider({
 
 	// Helper to toggle the sidebar.
 	const toggleSidebar = React.useCallback(() => {
-		return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open)
+		return isMobile ? setOpenMobile((o) => !o) : setOpen((o) => !o)
 	}, [isMobile, setOpen, setOpenMobile])
 
 	// Adds a keyboard shortcut to toggle the sidebar.
@@ -584,6 +584,7 @@ function SidebarMenuSkeleton({
 }) {
 	// Random width between 50 to 90%.
 	const width = React.useMemo(() => {
+		// eslint-disable-next-line react-hooks/purity
 		return `${Math.floor(Math.random() * 40) + 50}%`
 	}, [])
 

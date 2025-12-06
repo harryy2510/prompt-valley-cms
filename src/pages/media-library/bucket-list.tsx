@@ -15,6 +15,14 @@ import {
 import { useCallback, useEffect, useState } from 'react'
 
 import {
+	createBucketServer,
+	deleteBucketServer,
+	deleteFilesServer,
+	listBucketsServer,
+	listFilesServer,
+	updateBucketServer
+} from '@/actions/storage'
+import {
 	AlertDialog,
 	AlertDialogContent,
 	AlertDialogDescription,
@@ -51,7 +59,6 @@ import {
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/libs/cn'
-import { supabase } from '@/libs/supabase'
 
 type Bucket = {
 	allowed_mime_types?: Array<string> | null
@@ -89,11 +96,8 @@ export function BucketList() {
 	const loadBuckets = useCallback(async () => {
 		setIsLoading(true)
 		try {
-			const { data, error } = await supabase.storage.listBuckets()
-
-			if (error) throw error
-
-			setBuckets(data || [])
+			const { data } = await listBucketsServer()
+			setBuckets((data as Array<Bucket>) || [])
 		} catch (error) {
 			console.error('Error loading buckets:', error)
 			notify?.({
@@ -106,7 +110,7 @@ export function BucketList() {
 	}, [notify])
 
 	useEffect(() => {
-		loadBuckets()
+		void loadBuckets()
 	}, [loadBuckets])
 
 	const handleCreateBucket = async () => {
@@ -114,22 +118,19 @@ export function BucketList() {
 
 		setIsSubmitting(true)
 		try {
-			const { error } = await supabase.storage.createBucket(formData.name, {
-				public: formData.public
+			await createBucketServer({
+				data: { name: formData.name, public: formData.public }
 			})
-
-			if (error) throw error
-
 			notify?.({
 				message: 'Bucket created successfully',
 				type: 'success'
 			})
 			setCreateDialogOpen(false)
 			setFormData({ name: '', public: true })
-			loadBuckets()
-		} catch (error: any) {
+			await loadBuckets()
+		} catch (error: unknown) {
 			notify?.({
-				message: error.message || 'Failed to create bucket',
+				message: (error as Error).message || 'Failed to create bucket',
 				type: 'error'
 			})
 		} finally {
@@ -142,22 +143,19 @@ export function BucketList() {
 
 		setIsSubmitting(true)
 		try {
-			const { error } = await supabase.storage.updateBucket(selectedBucket.id, {
-				public: formData.public
+			await updateBucketServer({
+				data: { id: selectedBucket.id, public: formData.public }
 			})
-
-			if (error) throw error
-
 			notify?.({
 				message: 'Bucket updated successfully',
 				type: 'success'
 			})
 			setEditDialogOpen(false)
 			setSelectedBucket(null)
-			loadBuckets()
-		} catch (error: any) {
+			await loadBuckets()
+		} catch (error: unknown) {
 			notify?.({
-				message: error.message || 'Failed to update bucket',
+				message: (error as Error).message || 'Failed to update bucket',
 				type: 'error'
 			})
 		} finally {
@@ -171,9 +169,9 @@ export function BucketList() {
 		setIsSubmitting(true)
 		try {
 			// First, empty the bucket by listing and deleting all files
-			const { data: files } = await supabase.storage
-				.from(selectedBucket.id)
-				.list('', { limit: 10000 })
+			const { data: files } = await listFilesServer({
+				data: { bucketId: selectedBucket.id, limit: 10000, path: '' }
+			})
 
 			if (files && files.length > 0) {
 				// Recursively delete all files and folders
@@ -181,9 +179,7 @@ export function BucketList() {
 			}
 
 			// Then delete the bucket
-			const { error } = await supabase.storage.deleteBucket(selectedBucket.id)
-
-			if (error) throw error
+			await deleteBucketServer({ data: { id: selectedBucket.id } })
 
 			notify?.({
 				message: 'Bucket deleted successfully',
@@ -192,10 +188,10 @@ export function BucketList() {
 			setDeleteDialogOpen(false)
 			setSelectedBucket(null)
 			setDeleteConfirmText('')
-			loadBuckets()
-		} catch (error: any) {
+			await loadBuckets()
+		} catch (error: unknown) {
 			notify?.({
-				message: error.message || 'Failed to delete bucket',
+				message: (error as Error).message || 'Failed to delete bucket',
 				type: 'error'
 			})
 		} finally {
@@ -205,7 +201,9 @@ export function BucketList() {
 
 	// Recursively delete all files in a bucket
 	const deleteAllFiles = async (bucketId: string, path: string) => {
-		const { data: items } = await supabase.storage.from(bucketId).list(path, { limit: 10000 })
+		const { data: items } = await listFilesServer({
+			data: { bucketId, limit: 10000, path }
+		})
 
 		if (!items || items.length === 0) return
 
@@ -224,7 +222,7 @@ export function BucketList() {
 
 		// Delete files in this level
 		if (filesToDelete.length > 0) {
-			await supabase.storage.from(bucketId).remove(filesToDelete)
+			await deleteFilesServer({ data: { bucketId, paths: filesToDelete } })
 		}
 
 		// Recursively delete folder contents

@@ -13,6 +13,13 @@ import {
 } from 'lucide-react'
 import { useCallback, useRef, useState } from 'react'
 
+import {
+	deleteJunctionServer,
+	exportDataServer,
+	insertJunctionServer,
+	upsertServer,
+	validateIdsServer
+} from '@/actions/crud'
 import { Button } from '@/components/ui/button'
 import {
 	Dialog,
@@ -32,7 +39,6 @@ import {
 import { Progress } from '@/components/ui/progress'
 import { downloadTemplate, exportToFile, parseFile } from '@/libs/excel'
 import type { ExportFormat } from '@/libs/excel'
-import { supabase } from '@/libs/supabase'
 
 export type ColumnMapping<T> = {
 	example?: string
@@ -110,38 +116,17 @@ export function DataTableExport<T extends Record<string, unknown>>({
 	const fetchAllData = useCallback(async (): Promise<Array<T>> => {
 		if (!resource) return data
 
-		const PAGE_SIZE = 1000
-		let allData: Array<unknown> = []
-		let page = 0
-		let hasMore = true
+		setExportProgress(10) // Show some initial progress
 
-		// First, get total count
-		const { count } = await supabase.from(resource).select('*', { count: 'exact', head: true })
-
-		const totalCount = count || 0
-
-		while (hasMore) {
-			const from = page * PAGE_SIZE
-			const to = from + PAGE_SIZE - 1
-
-			const { data: pageData, error } = await supabase
-				.from(resource)
-				.select(select)
-				.range(from, to)
-				.order('created_at', { ascending: false })
-
-			if (error) {
-				throw error
+		const { data: allData, total } = await exportDataServer({
+			data: {
+				orderBy: 'created_at',
+				resource,
+				select
 			}
+		})
 
-			if (pageData && pageData.length > 0) {
-				allData = [...allData, ...pageData]
-				setExportProgress(Math.min(100, (allData.length / totalCount) * 100))
-			}
-
-			hasMore = pageData && pageData.length === PAGE_SIZE
-			page++
-		}
+		setExportProgress(total > 0 ? 100 : 50)
 
 		return transformData ? transformData(allData) : (allData as Array<T>)
 	}, [resource, select, data, transformData])
@@ -259,14 +244,13 @@ export function DataTableImport<T extends Record<string, unknown>>({
 
 			if (allIds.size === 0) continue
 
-			// Check which IDs exist
-			const { data: existingRecords } = await supabase
-				.from(rel.resource)
-				.select('id')
-				.in('id', Array.from(allIds))
-
-			const existingIds = new Set(existingRecords?.map((r) => r.id) || [])
-			const missingIds = Array.from(allIds).filter((id) => !existingIds.has(id))
+			// Check which IDs exist using server function
+			const { missingIds } = await validateIdsServer({
+				data: {
+					ids: Array.from(allIds),
+					resource: rel.resource
+				}
+			})
 
 			if (missingIds.length > 0) {
 				errors.push(
@@ -414,13 +398,13 @@ export function DataTableImport<T extends Record<string, unknown>>({
 
 				// Use upsert if ID exists, otherwise create
 				if (hasId) {
-					const { data: upsertData, error: upsertError } = await supabase
-						.from(resource)
-						.upsert(finalRow)
-						.select('id')
-						.single()
+					const { data: upsertData } = await upsertServer({
+						data: {
+							resource,
+							variables: finalRow
+						}
+					})
 
-					if (upsertError) throw upsertError
 					newId = upsertData?.id
 				} else {
 					const createResult = await createRecord({
@@ -436,20 +420,30 @@ export function DataTableImport<T extends Record<string, unknown>>({
 				if (newId) {
 					for (const rel of relationships) {
 						if (rel.isMany && rel.junctionTable && relationshipData[rel.field]?.length) {
+							const fkColumn = rel.junctionFk || `${resource.slice(0, -1)}_id`
+
 							// Delete existing junction records first (for upsert case)
 							if (hasId) {
-								await supabase
-									.from(rel.junctionTable)
-									.delete()
-									.eq(rel.junctionFk || `${resource.slice(0, -1)}_id`, newId)
+								await deleteJunctionServer({
+									data: {
+										column: fkColumn,
+										junctionTable: rel.junctionTable,
+										value: String(newId)
+									}
+								})
 							}
 
 							const junctionRecords = relationshipData[rel.field].map((relatedId) => ({
-								[rel.junctionFk || `${resource.slice(0, -1)}_id`]: newId,
+								[fkColumn]: newId,
 								[rel.junctionRelatedFk || `${rel.resource.slice(0, -1)}_id`]: relatedId
 							}))
 
-							await supabase.from(rel.junctionTable).insert(junctionRecords)
+							await insertJunctionServer({
+								data: {
+									junctionTable: rel.junctionTable,
+									records: junctionRecords
+								}
+							})
 						}
 					}
 				}

@@ -1,30 +1,143 @@
-import type { CrudFilter, DataProvider } from '@refinedev/core'
-import { dataProvider as supabaseDataProvider } from '@refinedev/supabase'
+import type { BaseRecord, CrudFilter, DataProvider } from '@refinedev/core'
 
-import { supabase } from './supabase'
+import {
+	createManyServer,
+	createServer,
+	deleteManyServer,
+	deleteOneServer,
+	getListServer,
+	getManyServer,
+	getOneServer,
+	getRelatedServer,
+	updateManyServer,
+	updateServer
+} from '@/actions/crud'
 
-const baseDataProvider = supabaseDataProvider(supabase)
+type MetaOptions = {
+	count?: 'estimated' | 'exact' | 'planned'
+	idColumnName?: string
+	schema?: string
+	select?: string
+}
 
-// Custom data provider that handles junction table filtering for prompts
+// Custom data provider that uses server functions for all operations
 export const dataProvider: DataProvider = {
-	...baseDataProvider,
-	getList: async (params) => {
-		const { filters = [], resource, ...rest } = params
+	create: async ({ meta, resource, variables }) => {
+		const metaOptions: MetaOptions | undefined = meta
+			? {
+					count: meta.count,
+					idColumnName: meta.idColumnName,
+					schema: meta.schema,
+					select: meta.select
+				}
+			: undefined
+
+		const result = await createServer({
+			data: {
+				meta: metaOptions,
+				resource,
+				variables
+			}
+		})
+
+		return result as { data: BaseRecord }
+	},
+
+	createMany: async ({ meta, resource, variables }) => {
+		const metaOptions: MetaOptions | undefined = meta
+			? {
+					count: meta.count,
+					idColumnName: meta.idColumnName,
+					schema: meta.schema,
+					select: meta.select
+				}
+			: undefined
+
+		const result = await createManyServer({
+			data: {
+				meta: metaOptions,
+				resource,
+				variables
+			}
+		})
+
+		return result as { data: Array<BaseRecord> }
+	},
+
+	deleteMany: async ({ ids, meta, resource }) => {
+		const metaOptions: MetaOptions | undefined = meta
+			? {
+					count: meta.count,
+					idColumnName: meta.idColumnName,
+					schema: meta.schema,
+					select: meta.select
+				}
+			: undefined
+
+		const result = await deleteManyServer({
+			data: {
+				ids: ids.map(String),
+				meta: metaOptions,
+				resource
+			}
+		})
+
+		return result as { data: Array<BaseRecord> }
+	},
+
+	deleteOne: async ({ id, meta, resource }) => {
+		const metaOptions: MetaOptions | undefined = meta
+			? {
+					count: meta.count,
+					idColumnName: meta.idColumnName,
+					schema: meta.schema,
+					select: meta.select
+				}
+			: undefined
+
+		const result = await deleteOneServer({
+			data: {
+				id: String(id),
+				meta: metaOptions,
+				resource
+			}
+		})
+
+		return result as { data: BaseRecord }
+	},
+
+	getApiUrl: () => {
+		return import.meta.env.VITE_SUPABASE_URL || ''
+	},
+
+	getList: async ({ filters = [], meta, pagination, resource, sorters }) => {
+		const metaOptions: MetaOptions | undefined = meta
+			? {
+					count: meta.count,
+					idColumnName: meta.idColumnName,
+					schema: meta.schema,
+					select: meta.select
+				}
+			: undefined
 
 		// Handle special junction table filters for prompts
 		if (resource === 'prompts') {
 			const tagFilter = filters.find((f) => 'field' in f && f.field === 'tag_id')
 			const modelFilter = filters.find((f) => 'field' in f && f.field === 'model_id')
 
-			// If filtering by tag or model, we need to get prompt IDs from junction tables first
 			if (tagFilter || modelFilter) {
 				let promptIds: Array<string> | null = null
 
 				if (tagFilter && 'value' in tagFilter) {
-					const { data: tagPrompts } = await supabase
-						.from('prompt_tags')
-						.select('prompt_id')
-						.eq('tag_id', tagFilter.value as string)
+					const result = await getRelatedServer({
+						data: {
+							fkColumn: 'tag_id',
+							fkValue: tagFilter.value as string,
+							junctionTable: 'prompt_tags',
+							select: 'prompt_id'
+						}
+					})
+					const tagPrompts = result.data as Array<{ prompt_id: string }>
 
 					if (tagPrompts) {
 						promptIds = tagPrompts.map((tp) => tp.prompt_id)
@@ -32,14 +145,18 @@ export const dataProvider: DataProvider = {
 				}
 
 				if (modelFilter && 'value' in modelFilter) {
-					const { data: modelPrompts } = await supabase
-						.from('prompt_models')
-						.select('prompt_id')
-						.eq('model_id', modelFilter.value as string)
+					const result = await getRelatedServer({
+						data: {
+							fkColumn: 'model_id',
+							fkValue: modelFilter.value as string,
+							junctionTable: 'prompt_models',
+							select: 'prompt_id'
+						}
+					})
+					const modelPrompts = result.data as Array<{ prompt_id: string }>
 
 					if (modelPrompts) {
 						const modelPromptIds = modelPrompts.map((mp) => mp.prompt_id)
-						// If we already have tag filter results, intersect them
 						if (promptIds !== null) {
 							promptIds = promptIds.filter((id) => modelPromptIds.includes(id))
 						} else {
@@ -71,15 +188,116 @@ export const dataProvider: DataProvider = {
 					})
 				}
 
-				return baseDataProvider.getList({
-					filters: newFilters,
-					resource,
-					...rest
+				const result = await getListServer({
+					data: {
+						filters: newFilters,
+						meta: metaOptions,
+						pagination,
+						resource,
+						sorters
+					}
 				})
+
+				return result as { data: Array<BaseRecord>; total: number }
 			}
 		}
 
-		// For all other cases, use the base data provider
-		return baseDataProvider.getList(params)
+		const result = await getListServer({
+			data: {
+				filters,
+				meta: metaOptions,
+				pagination,
+				resource,
+				sorters
+			}
+		})
+
+		return result as { data: Array<BaseRecord>; total: number }
+	},
+
+	getMany: async ({ ids, meta, resource }) => {
+		const metaOptions: MetaOptions | undefined = meta
+			? {
+					count: meta.count,
+					idColumnName: meta.idColumnName,
+					schema: meta.schema,
+					select: meta.select
+				}
+			: undefined
+
+		const result = await getManyServer({
+			data: {
+				ids: ids.map(String),
+				meta: metaOptions,
+				resource
+			}
+		})
+
+		return result as { data: Array<BaseRecord> }
+	},
+
+	getOne: async ({ id, meta, resource }) => {
+		const metaOptions: MetaOptions | undefined = meta
+			? {
+					count: meta.count,
+					idColumnName: meta.idColumnName,
+					schema: meta.schema,
+					select: meta.select
+				}
+			: undefined
+
+		const result = await getOneServer({
+			data: {
+				id: String(id),
+				meta: metaOptions,
+				resource
+			}
+		})
+
+		return result as { data: BaseRecord }
+	},
+
+	update: async ({ id, meta, resource, variables }) => {
+		const metaOptions: MetaOptions | undefined = meta
+			? {
+					count: meta.count,
+					idColumnName: meta.idColumnName,
+					schema: meta.schema,
+					select: meta.select
+				}
+			: undefined
+
+		const result = await updateServer({
+			data: {
+				id: String(id),
+				meta: metaOptions,
+				resource,
+				variables
+			}
+		})
+
+		return result as { data: BaseRecord }
+	},
+
+	updateMany: async ({ ids, meta, resource, variables }) => {
+		const metaOptions: MetaOptions | undefined = meta
+			? {
+					count: meta.count,
+					idColumnName: meta.idColumnName,
+					schema: meta.schema,
+					select: meta.select
+				}
+			: undefined
+
+		const result = await updateManyServer({
+			data: {
+				ids: ids.map(String),
+				meta: metaOptions,
+				resource,
+				variables
+			}
+		})
+
+		return result as { data: Array<BaseRecord> }
 	}
 }

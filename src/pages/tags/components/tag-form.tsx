@@ -93,7 +93,7 @@ export function TagForm({ mode }: TagFormProps) {
 								name="id"
 								placeholder="e.g. content-writing, seo"
 								resource="tags"
-								sourceValue={form.watch('name')}
+								sourceField="name"
 							/>
 						</CardContent>
 					</Card>

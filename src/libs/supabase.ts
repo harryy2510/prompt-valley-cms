@@ -1,10 +1,61 @@
-import { createClient } from '@supabase/supabase-js'
+import { createServerClient } from '@supabase/ssr'
+import { getCookies, setCookie } from '@tanstack/react-start/server'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabasePublishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+import type { Database } from '@/types/database.types'
 
-if (!supabaseUrl || !supabasePublishableKey) {
-	throw new Error('Missing Supabase environment variables')
+/**
+ * Server-side Supabase with anon key (for auth operations that need session cookies)
+ */
+export function getSupabaseServerAuthClient() {
+	return createServerClient<Database>(
+		process.env.VITE_SUPABASE_URL,
+		process.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+		{
+			auth: {
+				storageKey: 'prompt-valley-auth'
+			},
+			cookies: {
+				getAll() {
+					return Object.entries(getCookies()).map(([name, value]) => ({
+						name,
+						value
+					}))
+				},
+				setAll(cookies) {
+					cookies.forEach((cookie) => {
+						setCookie(cookie.name, cookie.value)
+					})
+				}
+			}
+		}
+	)
 }
 
-export const supabase = createClient(supabaseUrl, supabasePublishableKey)
+/**
+ * Server-side Supabase with cookie-based session management
+ * Uses service role key for data operations (bypasses RLS)
+ */
+export function getSupabaseServerClient() {
+	return createServerClient<Database>(
+		process.env.VITE_SUPABASE_URL,
+		process.env.SUPABASE_SECRET_KEY,
+		{
+			auth: {
+				storageKey: 'prompt-valley-auth'
+			},
+			cookies: {
+				getAll() {
+					return Object.entries(getCookies()).map(([name, value]) => ({
+						name,
+						value
+					}))
+				},
+				setAll(cookies) {
+					cookies.forEach((cookie) => {
+						setCookie(cookie.name, cookie.value)
+					})
+				}
+			}
+		}
+	)
+}

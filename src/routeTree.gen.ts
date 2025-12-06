@@ -24,502 +24,496 @@ import { Route as _authedPromptsCreateRouteImport } from './routes/__authed/prom
 import { Route as _authedCategoriesCreateRouteImport } from './routes/__authed/categories/create'
 import { Route as _authedAiProvidersCreateRouteImport } from './routes/__authed/ai-providers/create'
 import { Route as _authedAiModelsCreateRouteImport } from './routes/__authed/ai-models/create'
-import { Route as _authedTagsIdEditRouteImport } from './routes/__authed/tags/$id.edit'
-import { Route as _authedPromptsIdShowRouteImport } from './routes/__authed/prompts/$id.show'
-import { Route as _authedPromptsIdEditRouteImport } from './routes/__authed/prompts/$id.edit'
+import { Route as _authedTagsEditIdRouteImport } from './routes/__authed/tags/edit/$id'
+import { Route as _authedPromptsShowIdRouteImport } from './routes/__authed/prompts/show/$id'
+import { Route as _authedPromptsEditIdRouteImport } from './routes/__authed/prompts/edit/$id'
 import { Route as _authedMediaLibraryBucketIdSplatRouteImport } from './routes/__authed/media-library/$bucketId.$'
-import { Route as _authedCategoriesIdEditRouteImport } from './routes/__authed/categories/$id.edit'
-import { Route as _authedAiProvidersIdEditRouteImport } from './routes/__authed/ai-providers/$id.edit'
-import { Route as _authedAiModelsIdEditRouteImport } from './routes/__authed/ai-models/$id.edit'
+import { Route as _authedCategoriesEditIdRouteImport } from './routes/__authed/categories/edit/$id'
+import { Route as _authedAiProvidersEditIdRouteImport } from './routes/__authed/ai-providers/edit/$id'
+import { Route as _authedAiModelsEditIdRouteImport } from './routes/__authed/ai-models/edit/$id'
 
 const _guestRoute = _guestRouteImport.update({
-  id: '/__guest',
-  getParentRoute: () => rootRouteImport,
+	id: '/__guest',
+	getParentRoute: () => rootRouteImport
 } as any)
 const _authedRoute = _authedRouteImport.update({
-  id: '/__authed',
-  getParentRoute: () => rootRouteImport,
+	id: '/__authed',
+	getParentRoute: () => rootRouteImport
 } as any)
 const _authedIndexRoute = _authedIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => _authedRoute,
+	id: '/',
+	path: '/',
+	getParentRoute: () => _authedRoute
 } as any)
 const _guestAuthRoute = _guestAuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => _guestRoute,
+	id: '/auth',
+	path: '/auth',
+	getParentRoute: () => _guestRoute
 } as any)
 const _authedTagsIndexRoute = _authedTagsIndexRouteImport.update({
-  id: '/tags/',
-  path: '/tags/',
-  getParentRoute: () => _authedRoute,
+	id: '/tags/',
+	path: '/tags/',
+	getParentRoute: () => _authedRoute
 } as any)
 const _authedPromptsIndexRoute = _authedPromptsIndexRouteImport.update({
-  id: '/prompts/',
-  path: '/prompts/',
-  getParentRoute: () => _authedRoute,
+	id: '/prompts/',
+	path: '/prompts/',
+	getParentRoute: () => _authedRoute
 } as any)
-const _authedMediaLibraryIndexRoute =
-  _authedMediaLibraryIndexRouteImport.update({
-    id: '/media-library/',
-    path: '/media-library/',
-    getParentRoute: () => _authedRoute,
-  } as any)
+const _authedMediaLibraryIndexRoute = _authedMediaLibraryIndexRouteImport.update({
+	id: '/media-library/',
+	path: '/media-library/',
+	getParentRoute: () => _authedRoute
+} as any)
 const _authedCategoriesIndexRoute = _authedCategoriesIndexRouteImport.update({
-  id: '/categories/',
-  path: '/categories/',
-  getParentRoute: () => _authedRoute,
+	id: '/categories/',
+	path: '/categories/',
+	getParentRoute: () => _authedRoute
 } as any)
 const _authedAiProvidersIndexRoute = _authedAiProvidersIndexRouteImport.update({
-  id: '/ai-providers/',
-  path: '/ai-providers/',
-  getParentRoute: () => _authedRoute,
+	id: '/ai-providers/',
+	path: '/ai-providers/',
+	getParentRoute: () => _authedRoute
 } as any)
 const _authedAiModelsIndexRoute = _authedAiModelsIndexRouteImport.update({
-  id: '/ai-models/',
-  path: '/ai-models/',
-  getParentRoute: () => _authedRoute,
+	id: '/ai-models/',
+	path: '/ai-models/',
+	getParentRoute: () => _authedRoute
 } as any)
 const _authedTagsCreateRoute = _authedTagsCreateRouteImport.update({
-  id: '/tags/create',
-  path: '/tags/create',
-  getParentRoute: () => _authedRoute,
+	id: '/tags/create',
+	path: '/tags/create',
+	getParentRoute: () => _authedRoute
 } as any)
 const _authedPromptsCreateRoute = _authedPromptsCreateRouteImport.update({
-  id: '/prompts/create',
-  path: '/prompts/create',
-  getParentRoute: () => _authedRoute,
+	id: '/prompts/create',
+	path: '/prompts/create',
+	getParentRoute: () => _authedRoute
 } as any)
 const _authedCategoriesCreateRoute = _authedCategoriesCreateRouteImport.update({
-  id: '/categories/create',
-  path: '/categories/create',
-  getParentRoute: () => _authedRoute,
+	id: '/categories/create',
+	path: '/categories/create',
+	getParentRoute: () => _authedRoute
 } as any)
-const _authedAiProvidersCreateRoute =
-  _authedAiProvidersCreateRouteImport.update({
-    id: '/ai-providers/create',
-    path: '/ai-providers/create',
-    getParentRoute: () => _authedRoute,
-  } as any)
+const _authedAiProvidersCreateRoute = _authedAiProvidersCreateRouteImport.update({
+	id: '/ai-providers/create',
+	path: '/ai-providers/create',
+	getParentRoute: () => _authedRoute
+} as any)
 const _authedAiModelsCreateRoute = _authedAiModelsCreateRouteImport.update({
-  id: '/ai-models/create',
-  path: '/ai-models/create',
-  getParentRoute: () => _authedRoute,
+	id: '/ai-models/create',
+	path: '/ai-models/create',
+	getParentRoute: () => _authedRoute
 } as any)
-const _authedTagsIdEditRoute = _authedTagsIdEditRouteImport.update({
-  id: '/tags/$id/edit',
-  path: '/tags/$id/edit',
-  getParentRoute: () => _authedRoute,
+const _authedTagsEditIdRoute = _authedTagsEditIdRouteImport.update({
+	id: '/tags/edit/$id',
+	path: '/tags/edit/$id',
+	getParentRoute: () => _authedRoute
 } as any)
-const _authedPromptsIdShowRoute = _authedPromptsIdShowRouteImport.update({
-  id: '/prompts/$id/show',
-  path: '/prompts/$id/show',
-  getParentRoute: () => _authedRoute,
+const _authedPromptsShowIdRoute = _authedPromptsShowIdRouteImport.update({
+	id: '/prompts/show/$id',
+	path: '/prompts/show/$id',
+	getParentRoute: () => _authedRoute
 } as any)
-const _authedPromptsIdEditRoute = _authedPromptsIdEditRouteImport.update({
-  id: '/prompts/$id/edit',
-  path: '/prompts/$id/edit',
-  getParentRoute: () => _authedRoute,
+const _authedPromptsEditIdRoute = _authedPromptsEditIdRouteImport.update({
+	id: '/prompts/edit/$id',
+	path: '/prompts/edit/$id',
+	getParentRoute: () => _authedRoute
 } as any)
-const _authedMediaLibraryBucketIdSplatRoute =
-  _authedMediaLibraryBucketIdSplatRouteImport.update({
-    id: '/media-library/$bucketId/$',
-    path: '/media-library/$bucketId/$',
-    getParentRoute: () => _authedRoute,
-  } as any)
-const _authedCategoriesIdEditRoute = _authedCategoriesIdEditRouteImport.update({
-  id: '/categories/$id/edit',
-  path: '/categories/$id/edit',
-  getParentRoute: () => _authedRoute,
+const _authedMediaLibraryBucketIdSplatRoute = _authedMediaLibraryBucketIdSplatRouteImport.update({
+	id: '/media-library/$bucketId/$',
+	path: '/media-library/$bucketId/$',
+	getParentRoute: () => _authedRoute
 } as any)
-const _authedAiProvidersIdEditRoute =
-  _authedAiProvidersIdEditRouteImport.update({
-    id: '/ai-providers/$id/edit',
-    path: '/ai-providers/$id/edit',
-    getParentRoute: () => _authedRoute,
-  } as any)
-const _authedAiModelsIdEditRoute = _authedAiModelsIdEditRouteImport.update({
-  id: '/ai-models/$id/edit',
-  path: '/ai-models/$id/edit',
-  getParentRoute: () => _authedRoute,
+const _authedCategoriesEditIdRoute = _authedCategoriesEditIdRouteImport.update({
+	id: '/categories/edit/$id',
+	path: '/categories/edit/$id',
+	getParentRoute: () => _authedRoute
+} as any)
+const _authedAiProvidersEditIdRoute = _authedAiProvidersEditIdRouteImport.update({
+	id: '/ai-providers/edit/$id',
+	path: '/ai-providers/edit/$id',
+	getParentRoute: () => _authedRoute
+} as any)
+const _authedAiModelsEditIdRoute = _authedAiModelsEditIdRouteImport.update({
+	id: '/ai-models/edit/$id',
+	path: '/ai-models/edit/$id',
+	getParentRoute: () => _authedRoute
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/auth': typeof _guestAuthRoute
-  '/': typeof _authedIndexRoute
-  '/ai-models/create': typeof _authedAiModelsCreateRoute
-  '/ai-providers/create': typeof _authedAiProvidersCreateRoute
-  '/categories/create': typeof _authedCategoriesCreateRoute
-  '/prompts/create': typeof _authedPromptsCreateRoute
-  '/tags/create': typeof _authedTagsCreateRoute
-  '/ai-models': typeof _authedAiModelsIndexRoute
-  '/ai-providers': typeof _authedAiProvidersIndexRoute
-  '/categories': typeof _authedCategoriesIndexRoute
-  '/media-library': typeof _authedMediaLibraryIndexRoute
-  '/prompts': typeof _authedPromptsIndexRoute
-  '/tags': typeof _authedTagsIndexRoute
-  '/ai-models/$id/edit': typeof _authedAiModelsIdEditRoute
-  '/ai-providers/$id/edit': typeof _authedAiProvidersIdEditRoute
-  '/categories/$id/edit': typeof _authedCategoriesIdEditRoute
-  '/media-library/$bucketId/$': typeof _authedMediaLibraryBucketIdSplatRoute
-  '/prompts/$id/edit': typeof _authedPromptsIdEditRoute
-  '/prompts/$id/show': typeof _authedPromptsIdShowRoute
-  '/tags/$id/edit': typeof _authedTagsIdEditRoute
+	'/auth': typeof _guestAuthRoute
+	'/': typeof _authedIndexRoute
+	'/ai-models/create': typeof _authedAiModelsCreateRoute
+	'/ai-providers/create': typeof _authedAiProvidersCreateRoute
+	'/categories/create': typeof _authedCategoriesCreateRoute
+	'/prompts/create': typeof _authedPromptsCreateRoute
+	'/tags/create': typeof _authedTagsCreateRoute
+	'/ai-models': typeof _authedAiModelsIndexRoute
+	'/ai-providers': typeof _authedAiProvidersIndexRoute
+	'/categories': typeof _authedCategoriesIndexRoute
+	'/media-library': typeof _authedMediaLibraryIndexRoute
+	'/prompts': typeof _authedPromptsIndexRoute
+	'/tags': typeof _authedTagsIndexRoute
+	'/ai-models/edit/$id': typeof _authedAiModelsEditIdRoute
+	'/ai-providers/edit/$id': typeof _authedAiProvidersEditIdRoute
+	'/categories/edit/$id': typeof _authedCategoriesEditIdRoute
+	'/media-library/$bucketId/$': typeof _authedMediaLibraryBucketIdSplatRoute
+	'/prompts/edit/$id': typeof _authedPromptsEditIdRoute
+	'/prompts/show/$id': typeof _authedPromptsShowIdRoute
+	'/tags/edit/$id': typeof _authedTagsEditIdRoute
 }
 export interface FileRoutesByTo {
-  '/auth': typeof _guestAuthRoute
-  '/': typeof _authedIndexRoute
-  '/ai-models/create': typeof _authedAiModelsCreateRoute
-  '/ai-providers/create': typeof _authedAiProvidersCreateRoute
-  '/categories/create': typeof _authedCategoriesCreateRoute
-  '/prompts/create': typeof _authedPromptsCreateRoute
-  '/tags/create': typeof _authedTagsCreateRoute
-  '/ai-models': typeof _authedAiModelsIndexRoute
-  '/ai-providers': typeof _authedAiProvidersIndexRoute
-  '/categories': typeof _authedCategoriesIndexRoute
-  '/media-library': typeof _authedMediaLibraryIndexRoute
-  '/prompts': typeof _authedPromptsIndexRoute
-  '/tags': typeof _authedTagsIndexRoute
-  '/ai-models/$id/edit': typeof _authedAiModelsIdEditRoute
-  '/ai-providers/$id/edit': typeof _authedAiProvidersIdEditRoute
-  '/categories/$id/edit': typeof _authedCategoriesIdEditRoute
-  '/media-library/$bucketId/$': typeof _authedMediaLibraryBucketIdSplatRoute
-  '/prompts/$id/edit': typeof _authedPromptsIdEditRoute
-  '/prompts/$id/show': typeof _authedPromptsIdShowRoute
-  '/tags/$id/edit': typeof _authedTagsIdEditRoute
+	'/auth': typeof _guestAuthRoute
+	'/': typeof _authedIndexRoute
+	'/ai-models/create': typeof _authedAiModelsCreateRoute
+	'/ai-providers/create': typeof _authedAiProvidersCreateRoute
+	'/categories/create': typeof _authedCategoriesCreateRoute
+	'/prompts/create': typeof _authedPromptsCreateRoute
+	'/tags/create': typeof _authedTagsCreateRoute
+	'/ai-models': typeof _authedAiModelsIndexRoute
+	'/ai-providers': typeof _authedAiProvidersIndexRoute
+	'/categories': typeof _authedCategoriesIndexRoute
+	'/media-library': typeof _authedMediaLibraryIndexRoute
+	'/prompts': typeof _authedPromptsIndexRoute
+	'/tags': typeof _authedTagsIndexRoute
+	'/ai-models/edit/$id': typeof _authedAiModelsEditIdRoute
+	'/ai-providers/edit/$id': typeof _authedAiProvidersEditIdRoute
+	'/categories/edit/$id': typeof _authedCategoriesEditIdRoute
+	'/media-library/$bucketId/$': typeof _authedMediaLibraryBucketIdSplatRoute
+	'/prompts/edit/$id': typeof _authedPromptsEditIdRoute
+	'/prompts/show/$id': typeof _authedPromptsShowIdRoute
+	'/tags/edit/$id': typeof _authedTagsEditIdRoute
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport
-  '/__authed': typeof _authedRouteWithChildren
-  '/__guest': typeof _guestRouteWithChildren
-  '/__guest/auth': typeof _guestAuthRoute
-  '/__authed/': typeof _authedIndexRoute
-  '/__authed/ai-models/create': typeof _authedAiModelsCreateRoute
-  '/__authed/ai-providers/create': typeof _authedAiProvidersCreateRoute
-  '/__authed/categories/create': typeof _authedCategoriesCreateRoute
-  '/__authed/prompts/create': typeof _authedPromptsCreateRoute
-  '/__authed/tags/create': typeof _authedTagsCreateRoute
-  '/__authed/ai-models/': typeof _authedAiModelsIndexRoute
-  '/__authed/ai-providers/': typeof _authedAiProvidersIndexRoute
-  '/__authed/categories/': typeof _authedCategoriesIndexRoute
-  '/__authed/media-library/': typeof _authedMediaLibraryIndexRoute
-  '/__authed/prompts/': typeof _authedPromptsIndexRoute
-  '/__authed/tags/': typeof _authedTagsIndexRoute
-  '/__authed/ai-models/$id/edit': typeof _authedAiModelsIdEditRoute
-  '/__authed/ai-providers/$id/edit': typeof _authedAiProvidersIdEditRoute
-  '/__authed/categories/$id/edit': typeof _authedCategoriesIdEditRoute
-  '/__authed/media-library/$bucketId/$': typeof _authedMediaLibraryBucketIdSplatRoute
-  '/__authed/prompts/$id/edit': typeof _authedPromptsIdEditRoute
-  '/__authed/prompts/$id/show': typeof _authedPromptsIdShowRoute
-  '/__authed/tags/$id/edit': typeof _authedTagsIdEditRoute
+	__root__: typeof rootRouteImport
+	'/__authed': typeof _authedRouteWithChildren
+	'/__guest': typeof _guestRouteWithChildren
+	'/__guest/auth': typeof _guestAuthRoute
+	'/__authed/': typeof _authedIndexRoute
+	'/__authed/ai-models/create': typeof _authedAiModelsCreateRoute
+	'/__authed/ai-providers/create': typeof _authedAiProvidersCreateRoute
+	'/__authed/categories/create': typeof _authedCategoriesCreateRoute
+	'/__authed/prompts/create': typeof _authedPromptsCreateRoute
+	'/__authed/tags/create': typeof _authedTagsCreateRoute
+	'/__authed/ai-models/': typeof _authedAiModelsIndexRoute
+	'/__authed/ai-providers/': typeof _authedAiProvidersIndexRoute
+	'/__authed/categories/': typeof _authedCategoriesIndexRoute
+	'/__authed/media-library/': typeof _authedMediaLibraryIndexRoute
+	'/__authed/prompts/': typeof _authedPromptsIndexRoute
+	'/__authed/tags/': typeof _authedTagsIndexRoute
+	'/__authed/ai-models/edit/$id': typeof _authedAiModelsEditIdRoute
+	'/__authed/ai-providers/edit/$id': typeof _authedAiProvidersEditIdRoute
+	'/__authed/categories/edit/$id': typeof _authedCategoriesEditIdRoute
+	'/__authed/media-library/$bucketId/$': typeof _authedMediaLibraryBucketIdSplatRoute
+	'/__authed/prompts/edit/$id': typeof _authedPromptsEditIdRoute
+	'/__authed/prompts/show/$id': typeof _authedPromptsShowIdRoute
+	'/__authed/tags/edit/$id': typeof _authedTagsEditIdRoute
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/auth'
-    | '/'
-    | '/ai-models/create'
-    | '/ai-providers/create'
-    | '/categories/create'
-    | '/prompts/create'
-    | '/tags/create'
-    | '/ai-models'
-    | '/ai-providers'
-    | '/categories'
-    | '/media-library'
-    | '/prompts'
-    | '/tags'
-    | '/ai-models/$id/edit'
-    | '/ai-providers/$id/edit'
-    | '/categories/$id/edit'
-    | '/media-library/$bucketId/$'
-    | '/prompts/$id/edit'
-    | '/prompts/$id/show'
-    | '/tags/$id/edit'
-  fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/auth'
-    | '/'
-    | '/ai-models/create'
-    | '/ai-providers/create'
-    | '/categories/create'
-    | '/prompts/create'
-    | '/tags/create'
-    | '/ai-models'
-    | '/ai-providers'
-    | '/categories'
-    | '/media-library'
-    | '/prompts'
-    | '/tags'
-    | '/ai-models/$id/edit'
-    | '/ai-providers/$id/edit'
-    | '/categories/$id/edit'
-    | '/media-library/$bucketId/$'
-    | '/prompts/$id/edit'
-    | '/prompts/$id/show'
-    | '/tags/$id/edit'
-  id:
-    | '__root__'
-    | '/__authed'
-    | '/__guest'
-    | '/__guest/auth'
-    | '/__authed/'
-    | '/__authed/ai-models/create'
-    | '/__authed/ai-providers/create'
-    | '/__authed/categories/create'
-    | '/__authed/prompts/create'
-    | '/__authed/tags/create'
-    | '/__authed/ai-models/'
-    | '/__authed/ai-providers/'
-    | '/__authed/categories/'
-    | '/__authed/media-library/'
-    | '/__authed/prompts/'
-    | '/__authed/tags/'
-    | '/__authed/ai-models/$id/edit'
-    | '/__authed/ai-providers/$id/edit'
-    | '/__authed/categories/$id/edit'
-    | '/__authed/media-library/$bucketId/$'
-    | '/__authed/prompts/$id/edit'
-    | '/__authed/prompts/$id/show'
-    | '/__authed/tags/$id/edit'
-  fileRoutesById: FileRoutesById
+	fileRoutesByFullPath: FileRoutesByFullPath
+	fullPaths:
+		| '/auth'
+		| '/'
+		| '/ai-models/create'
+		| '/ai-providers/create'
+		| '/categories/create'
+		| '/prompts/create'
+		| '/tags/create'
+		| '/ai-models'
+		| '/ai-providers'
+		| '/categories'
+		| '/media-library'
+		| '/prompts'
+		| '/tags'
+		| '/ai-models/edit/$id'
+		| '/ai-providers/edit/$id'
+		| '/categories/edit/$id'
+		| '/media-library/$bucketId/$'
+		| '/prompts/edit/$id'
+		| '/prompts/show/$id'
+		| '/tags/edit/$id'
+	fileRoutesByTo: FileRoutesByTo
+	to:
+		| '/auth'
+		| '/'
+		| '/ai-models/create'
+		| '/ai-providers/create'
+		| '/categories/create'
+		| '/prompts/create'
+		| '/tags/create'
+		| '/ai-models'
+		| '/ai-providers'
+		| '/categories'
+		| '/media-library'
+		| '/prompts'
+		| '/tags'
+		| '/ai-models/edit/$id'
+		| '/ai-providers/edit/$id'
+		| '/categories/edit/$id'
+		| '/media-library/$bucketId/$'
+		| '/prompts/edit/$id'
+		| '/prompts/show/$id'
+		| '/tags/edit/$id'
+	id:
+		| '__root__'
+		| '/__authed'
+		| '/__guest'
+		| '/__guest/auth'
+		| '/__authed/'
+		| '/__authed/ai-models/create'
+		| '/__authed/ai-providers/create'
+		| '/__authed/categories/create'
+		| '/__authed/prompts/create'
+		| '/__authed/tags/create'
+		| '/__authed/ai-models/'
+		| '/__authed/ai-providers/'
+		| '/__authed/categories/'
+		| '/__authed/media-library/'
+		| '/__authed/prompts/'
+		| '/__authed/tags/'
+		| '/__authed/ai-models/edit/$id'
+		| '/__authed/ai-providers/edit/$id'
+		| '/__authed/categories/edit/$id'
+		| '/__authed/media-library/$bucketId/$'
+		| '/__authed/prompts/edit/$id'
+		| '/__authed/prompts/show/$id'
+		| '/__authed/tags/edit/$id'
+	fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  _authedRoute: typeof _authedRouteWithChildren
-  _guestRoute: typeof _guestRouteWithChildren
+	_authedRoute: typeof _authedRouteWithChildren
+	_guestRoute: typeof _guestRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
-  interface FileRoutesByPath {
-    '/__guest': {
-      id: '/__guest'
-      path: ''
-      fullPath: ''
-      preLoaderRoute: typeof _guestRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/__authed': {
-      id: '/__authed'
-      path: ''
-      fullPath: ''
-      preLoaderRoute: typeof _authedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/__authed/': {
-      id: '/__authed/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof _authedIndexRouteImport
-      parentRoute: typeof _authedRoute
-    }
-    '/__guest/auth': {
-      id: '/__guest/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof _guestAuthRouteImport
-      parentRoute: typeof _guestRoute
-    }
-    '/__authed/tags/': {
-      id: '/__authed/tags/'
-      path: '/tags'
-      fullPath: '/tags'
-      preLoaderRoute: typeof _authedTagsIndexRouteImport
-      parentRoute: typeof _authedRoute
-    }
-    '/__authed/prompts/': {
-      id: '/__authed/prompts/'
-      path: '/prompts'
-      fullPath: '/prompts'
-      preLoaderRoute: typeof _authedPromptsIndexRouteImport
-      parentRoute: typeof _authedRoute
-    }
-    '/__authed/media-library/': {
-      id: '/__authed/media-library/'
-      path: '/media-library'
-      fullPath: '/media-library'
-      preLoaderRoute: typeof _authedMediaLibraryIndexRouteImport
-      parentRoute: typeof _authedRoute
-    }
-    '/__authed/categories/': {
-      id: '/__authed/categories/'
-      path: '/categories'
-      fullPath: '/categories'
-      preLoaderRoute: typeof _authedCategoriesIndexRouteImport
-      parentRoute: typeof _authedRoute
-    }
-    '/__authed/ai-providers/': {
-      id: '/__authed/ai-providers/'
-      path: '/ai-providers'
-      fullPath: '/ai-providers'
-      preLoaderRoute: typeof _authedAiProvidersIndexRouteImport
-      parentRoute: typeof _authedRoute
-    }
-    '/__authed/ai-models/': {
-      id: '/__authed/ai-models/'
-      path: '/ai-models'
-      fullPath: '/ai-models'
-      preLoaderRoute: typeof _authedAiModelsIndexRouteImport
-      parentRoute: typeof _authedRoute
-    }
-    '/__authed/tags/create': {
-      id: '/__authed/tags/create'
-      path: '/tags/create'
-      fullPath: '/tags/create'
-      preLoaderRoute: typeof _authedTagsCreateRouteImport
-      parentRoute: typeof _authedRoute
-    }
-    '/__authed/prompts/create': {
-      id: '/__authed/prompts/create'
-      path: '/prompts/create'
-      fullPath: '/prompts/create'
-      preLoaderRoute: typeof _authedPromptsCreateRouteImport
-      parentRoute: typeof _authedRoute
-    }
-    '/__authed/categories/create': {
-      id: '/__authed/categories/create'
-      path: '/categories/create'
-      fullPath: '/categories/create'
-      preLoaderRoute: typeof _authedCategoriesCreateRouteImport
-      parentRoute: typeof _authedRoute
-    }
-    '/__authed/ai-providers/create': {
-      id: '/__authed/ai-providers/create'
-      path: '/ai-providers/create'
-      fullPath: '/ai-providers/create'
-      preLoaderRoute: typeof _authedAiProvidersCreateRouteImport
-      parentRoute: typeof _authedRoute
-    }
-    '/__authed/ai-models/create': {
-      id: '/__authed/ai-models/create'
-      path: '/ai-models/create'
-      fullPath: '/ai-models/create'
-      preLoaderRoute: typeof _authedAiModelsCreateRouteImport
-      parentRoute: typeof _authedRoute
-    }
-    '/__authed/tags/$id/edit': {
-      id: '/__authed/tags/$id/edit'
-      path: '/tags/$id/edit'
-      fullPath: '/tags/$id/edit'
-      preLoaderRoute: typeof _authedTagsIdEditRouteImport
-      parentRoute: typeof _authedRoute
-    }
-    '/__authed/prompts/$id/show': {
-      id: '/__authed/prompts/$id/show'
-      path: '/prompts/$id/show'
-      fullPath: '/prompts/$id/show'
-      preLoaderRoute: typeof _authedPromptsIdShowRouteImport
-      parentRoute: typeof _authedRoute
-    }
-    '/__authed/prompts/$id/edit': {
-      id: '/__authed/prompts/$id/edit'
-      path: '/prompts/$id/edit'
-      fullPath: '/prompts/$id/edit'
-      preLoaderRoute: typeof _authedPromptsIdEditRouteImport
-      parentRoute: typeof _authedRoute
-    }
-    '/__authed/media-library/$bucketId/$': {
-      id: '/__authed/media-library/$bucketId/$'
-      path: '/media-library/$bucketId/$'
-      fullPath: '/media-library/$bucketId/$'
-      preLoaderRoute: typeof _authedMediaLibraryBucketIdSplatRouteImport
-      parentRoute: typeof _authedRoute
-    }
-    '/__authed/categories/$id/edit': {
-      id: '/__authed/categories/$id/edit'
-      path: '/categories/$id/edit'
-      fullPath: '/categories/$id/edit'
-      preLoaderRoute: typeof _authedCategoriesIdEditRouteImport
-      parentRoute: typeof _authedRoute
-    }
-    '/__authed/ai-providers/$id/edit': {
-      id: '/__authed/ai-providers/$id/edit'
-      path: '/ai-providers/$id/edit'
-      fullPath: '/ai-providers/$id/edit'
-      preLoaderRoute: typeof _authedAiProvidersIdEditRouteImport
-      parentRoute: typeof _authedRoute
-    }
-    '/__authed/ai-models/$id/edit': {
-      id: '/__authed/ai-models/$id/edit'
-      path: '/ai-models/$id/edit'
-      fullPath: '/ai-models/$id/edit'
-      preLoaderRoute: typeof _authedAiModelsIdEditRouteImport
-      parentRoute: typeof _authedRoute
-    }
-  }
+	interface FileRoutesByPath {
+		'/__guest': {
+			id: '/__guest'
+			path: ''
+			fullPath: ''
+			preLoaderRoute: typeof _guestRouteImport
+			parentRoute: typeof rootRouteImport
+		}
+		'/__authed': {
+			id: '/__authed'
+			path: ''
+			fullPath: ''
+			preLoaderRoute: typeof _authedRouteImport
+			parentRoute: typeof rootRouteImport
+		}
+		'/__authed/': {
+			id: '/__authed/'
+			path: '/'
+			fullPath: '/'
+			preLoaderRoute: typeof _authedIndexRouteImport
+			parentRoute: typeof _authedRoute
+		}
+		'/__guest/auth': {
+			id: '/__guest/auth'
+			path: '/auth'
+			fullPath: '/auth'
+			preLoaderRoute: typeof _guestAuthRouteImport
+			parentRoute: typeof _guestRoute
+		}
+		'/__authed/tags/': {
+			id: '/__authed/tags/'
+			path: '/tags'
+			fullPath: '/tags'
+			preLoaderRoute: typeof _authedTagsIndexRouteImport
+			parentRoute: typeof _authedRoute
+		}
+		'/__authed/prompts/': {
+			id: '/__authed/prompts/'
+			path: '/prompts'
+			fullPath: '/prompts'
+			preLoaderRoute: typeof _authedPromptsIndexRouteImport
+			parentRoute: typeof _authedRoute
+		}
+		'/__authed/media-library/': {
+			id: '/__authed/media-library/'
+			path: '/media-library'
+			fullPath: '/media-library'
+			preLoaderRoute: typeof _authedMediaLibraryIndexRouteImport
+			parentRoute: typeof _authedRoute
+		}
+		'/__authed/categories/': {
+			id: '/__authed/categories/'
+			path: '/categories'
+			fullPath: '/categories'
+			preLoaderRoute: typeof _authedCategoriesIndexRouteImport
+			parentRoute: typeof _authedRoute
+		}
+		'/__authed/ai-providers/': {
+			id: '/__authed/ai-providers/'
+			path: '/ai-providers'
+			fullPath: '/ai-providers'
+			preLoaderRoute: typeof _authedAiProvidersIndexRouteImport
+			parentRoute: typeof _authedRoute
+		}
+		'/__authed/ai-models/': {
+			id: '/__authed/ai-models/'
+			path: '/ai-models'
+			fullPath: '/ai-models'
+			preLoaderRoute: typeof _authedAiModelsIndexRouteImport
+			parentRoute: typeof _authedRoute
+		}
+		'/__authed/tags/create': {
+			id: '/__authed/tags/create'
+			path: '/tags/create'
+			fullPath: '/tags/create'
+			preLoaderRoute: typeof _authedTagsCreateRouteImport
+			parentRoute: typeof _authedRoute
+		}
+		'/__authed/prompts/create': {
+			id: '/__authed/prompts/create'
+			path: '/prompts/create'
+			fullPath: '/prompts/create'
+			preLoaderRoute: typeof _authedPromptsCreateRouteImport
+			parentRoute: typeof _authedRoute
+		}
+		'/__authed/categories/create': {
+			id: '/__authed/categories/create'
+			path: '/categories/create'
+			fullPath: '/categories/create'
+			preLoaderRoute: typeof _authedCategoriesCreateRouteImport
+			parentRoute: typeof _authedRoute
+		}
+		'/__authed/ai-providers/create': {
+			id: '/__authed/ai-providers/create'
+			path: '/ai-providers/create'
+			fullPath: '/ai-providers/create'
+			preLoaderRoute: typeof _authedAiProvidersCreateRouteImport
+			parentRoute: typeof _authedRoute
+		}
+		'/__authed/ai-models/create': {
+			id: '/__authed/ai-models/create'
+			path: '/ai-models/create'
+			fullPath: '/ai-models/create'
+			preLoaderRoute: typeof _authedAiModelsCreateRouteImport
+			parentRoute: typeof _authedRoute
+		}
+		'/__authed/tags/edit/$id': {
+			id: '/__authed/tags/edit/$id'
+			path: '/tags/edit/$id'
+			fullPath: '/tags/edit/$id'
+			preLoaderRoute: typeof _authedTagsEditIdRouteImport
+			parentRoute: typeof _authedRoute
+		}
+		'/__authed/prompts/show/$id': {
+			id: '/__authed/prompts/show/$id'
+			path: '/prompts/show/$id'
+			fullPath: '/prompts/show/$id'
+			preLoaderRoute: typeof _authedPromptsShowIdRouteImport
+			parentRoute: typeof _authedRoute
+		}
+		'/__authed/prompts/edit/$id': {
+			id: '/__authed/prompts/edit/$id'
+			path: '/prompts/edit/$id'
+			fullPath: '/prompts/edit/$id'
+			preLoaderRoute: typeof _authedPromptsEditIdRouteImport
+			parentRoute: typeof _authedRoute
+		}
+		'/__authed/media-library/$bucketId/$': {
+			id: '/__authed/media-library/$bucketId/$'
+			path: '/media-library/$bucketId/$'
+			fullPath: '/media-library/$bucketId/$'
+			preLoaderRoute: typeof _authedMediaLibraryBucketIdSplatRouteImport
+			parentRoute: typeof _authedRoute
+		}
+		'/__authed/categories/edit/$id': {
+			id: '/__authed/categories/edit/$id'
+			path: '/categories/edit/$id'
+			fullPath: '/categories/edit/$id'
+			preLoaderRoute: typeof _authedCategoriesEditIdRouteImport
+			parentRoute: typeof _authedRoute
+		}
+		'/__authed/ai-providers/edit/$id': {
+			id: '/__authed/ai-providers/edit/$id'
+			path: '/ai-providers/edit/$id'
+			fullPath: '/ai-providers/edit/$id'
+			preLoaderRoute: typeof _authedAiProvidersEditIdRouteImport
+			parentRoute: typeof _authedRoute
+		}
+		'/__authed/ai-models/edit/$id': {
+			id: '/__authed/ai-models/edit/$id'
+			path: '/ai-models/edit/$id'
+			fullPath: '/ai-models/edit/$id'
+			preLoaderRoute: typeof _authedAiModelsEditIdRouteImport
+			parentRoute: typeof _authedRoute
+		}
+	}
 }
 
 interface _authedRouteChildren {
-  _authedIndexRoute: typeof _authedIndexRoute
-  _authedAiModelsCreateRoute: typeof _authedAiModelsCreateRoute
-  _authedAiProvidersCreateRoute: typeof _authedAiProvidersCreateRoute
-  _authedCategoriesCreateRoute: typeof _authedCategoriesCreateRoute
-  _authedPromptsCreateRoute: typeof _authedPromptsCreateRoute
-  _authedTagsCreateRoute: typeof _authedTagsCreateRoute
-  _authedAiModelsIndexRoute: typeof _authedAiModelsIndexRoute
-  _authedAiProvidersIndexRoute: typeof _authedAiProvidersIndexRoute
-  _authedCategoriesIndexRoute: typeof _authedCategoriesIndexRoute
-  _authedMediaLibraryIndexRoute: typeof _authedMediaLibraryIndexRoute
-  _authedPromptsIndexRoute: typeof _authedPromptsIndexRoute
-  _authedTagsIndexRoute: typeof _authedTagsIndexRoute
-  _authedAiModelsIdEditRoute: typeof _authedAiModelsIdEditRoute
-  _authedAiProvidersIdEditRoute: typeof _authedAiProvidersIdEditRoute
-  _authedCategoriesIdEditRoute: typeof _authedCategoriesIdEditRoute
-  _authedMediaLibraryBucketIdSplatRoute: typeof _authedMediaLibraryBucketIdSplatRoute
-  _authedPromptsIdEditRoute: typeof _authedPromptsIdEditRoute
-  _authedPromptsIdShowRoute: typeof _authedPromptsIdShowRoute
-  _authedTagsIdEditRoute: typeof _authedTagsIdEditRoute
+	_authedIndexRoute: typeof _authedIndexRoute
+	_authedAiModelsCreateRoute: typeof _authedAiModelsCreateRoute
+	_authedAiProvidersCreateRoute: typeof _authedAiProvidersCreateRoute
+	_authedCategoriesCreateRoute: typeof _authedCategoriesCreateRoute
+	_authedPromptsCreateRoute: typeof _authedPromptsCreateRoute
+	_authedTagsCreateRoute: typeof _authedTagsCreateRoute
+	_authedAiModelsIndexRoute: typeof _authedAiModelsIndexRoute
+	_authedAiProvidersIndexRoute: typeof _authedAiProvidersIndexRoute
+	_authedCategoriesIndexRoute: typeof _authedCategoriesIndexRoute
+	_authedMediaLibraryIndexRoute: typeof _authedMediaLibraryIndexRoute
+	_authedPromptsIndexRoute: typeof _authedPromptsIndexRoute
+	_authedTagsIndexRoute: typeof _authedTagsIndexRoute
+	_authedAiModelsEditIdRoute: typeof _authedAiModelsEditIdRoute
+	_authedAiProvidersEditIdRoute: typeof _authedAiProvidersEditIdRoute
+	_authedCategoriesEditIdRoute: typeof _authedCategoriesEditIdRoute
+	_authedMediaLibraryBucketIdSplatRoute: typeof _authedMediaLibraryBucketIdSplatRoute
+	_authedPromptsEditIdRoute: typeof _authedPromptsEditIdRoute
+	_authedPromptsShowIdRoute: typeof _authedPromptsShowIdRoute
+	_authedTagsEditIdRoute: typeof _authedTagsEditIdRoute
 }
 
 const _authedRouteChildren: _authedRouteChildren = {
-  _authedIndexRoute: _authedIndexRoute,
-  _authedAiModelsCreateRoute: _authedAiModelsCreateRoute,
-  _authedAiProvidersCreateRoute: _authedAiProvidersCreateRoute,
-  _authedCategoriesCreateRoute: _authedCategoriesCreateRoute,
-  _authedPromptsCreateRoute: _authedPromptsCreateRoute,
-  _authedTagsCreateRoute: _authedTagsCreateRoute,
-  _authedAiModelsIndexRoute: _authedAiModelsIndexRoute,
-  _authedAiProvidersIndexRoute: _authedAiProvidersIndexRoute,
-  _authedCategoriesIndexRoute: _authedCategoriesIndexRoute,
-  _authedMediaLibraryIndexRoute: _authedMediaLibraryIndexRoute,
-  _authedPromptsIndexRoute: _authedPromptsIndexRoute,
-  _authedTagsIndexRoute: _authedTagsIndexRoute,
-  _authedAiModelsIdEditRoute: _authedAiModelsIdEditRoute,
-  _authedAiProvidersIdEditRoute: _authedAiProvidersIdEditRoute,
-  _authedCategoriesIdEditRoute: _authedCategoriesIdEditRoute,
-  _authedMediaLibraryBucketIdSplatRoute: _authedMediaLibraryBucketIdSplatRoute,
-  _authedPromptsIdEditRoute: _authedPromptsIdEditRoute,
-  _authedPromptsIdShowRoute: _authedPromptsIdShowRoute,
-  _authedTagsIdEditRoute: _authedTagsIdEditRoute,
+	_authedIndexRoute: _authedIndexRoute,
+	_authedAiModelsCreateRoute: _authedAiModelsCreateRoute,
+	_authedAiProvidersCreateRoute: _authedAiProvidersCreateRoute,
+	_authedCategoriesCreateRoute: _authedCategoriesCreateRoute,
+	_authedPromptsCreateRoute: _authedPromptsCreateRoute,
+	_authedTagsCreateRoute: _authedTagsCreateRoute,
+	_authedAiModelsIndexRoute: _authedAiModelsIndexRoute,
+	_authedAiProvidersIndexRoute: _authedAiProvidersIndexRoute,
+	_authedCategoriesIndexRoute: _authedCategoriesIndexRoute,
+	_authedMediaLibraryIndexRoute: _authedMediaLibraryIndexRoute,
+	_authedPromptsIndexRoute: _authedPromptsIndexRoute,
+	_authedTagsIndexRoute: _authedTagsIndexRoute,
+	_authedAiModelsEditIdRoute: _authedAiModelsEditIdRoute,
+	_authedAiProvidersEditIdRoute: _authedAiProvidersEditIdRoute,
+	_authedCategoriesEditIdRoute: _authedCategoriesEditIdRoute,
+	_authedMediaLibraryBucketIdSplatRoute: _authedMediaLibraryBucketIdSplatRoute,
+	_authedPromptsEditIdRoute: _authedPromptsEditIdRoute,
+	_authedPromptsShowIdRoute: _authedPromptsShowIdRoute,
+	_authedTagsEditIdRoute: _authedTagsEditIdRoute
 }
 
-const _authedRouteWithChildren =
-  _authedRoute._addFileChildren(_authedRouteChildren)
+const _authedRouteWithChildren = _authedRoute._addFileChildren(_authedRouteChildren)
 
 interface _guestRouteChildren {
-  _guestAuthRoute: typeof _guestAuthRoute
+	_guestAuthRoute: typeof _guestAuthRoute
 }
 
 const _guestRouteChildren: _guestRouteChildren = {
-  _guestAuthRoute: _guestAuthRoute,
+	_guestAuthRoute: _guestAuthRoute
 }
 
-const _guestRouteWithChildren =
-  _guestRoute._addFileChildren(_guestRouteChildren)
+const _guestRouteWithChildren = _guestRoute._addFileChildren(_guestRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  _authedRoute: _authedRouteWithChildren,
-  _guestRoute: _guestRouteWithChildren,
+	_authedRoute: _authedRouteWithChildren,
+	_guestRoute: _guestRouteWithChildren
 }
 export const routeTree = rootRouteImport
-  ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
+	._addFileChildren(rootRouteChildren)
+	._addFileTypes<FileRouteTypes>()
 
 import type { getRouter } from './router.tsx'
 import type { createStart } from '@tanstack/react-start'
 declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
+	interface Register {
+		ssr: true
+		router: Awaited<ReturnType<typeof getRouter>>
+	}
 }

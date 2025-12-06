@@ -81,7 +81,7 @@ export function AiModelsList() {
 						<div className="text-xs text-muted-foreground font-mono">{row.original.id}</div>
 					</>
 				),
-				header: ({ column, table }) => (
+				header: ({ column }) => (
 					<div className="flex items-center gap-1">
 						<span>Model</span>
 						<DataTableSorter column={column} />
@@ -320,7 +320,7 @@ export function AiModelsList() {
 	const exportData = transformModelsForExport(tableData)
 
 	const handleImportSuccess = () => {
-		table.refineCore.tableQuery.refetch()
+		void table.refineCore.tableQuery.refetch()
 	}
 
 	return (

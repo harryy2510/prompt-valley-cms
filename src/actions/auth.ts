@@ -2,7 +2,7 @@ import type { User as AuthUser, Session } from '@supabase/supabase-js'
 import { createServerFn } from '@tanstack/react-start'
 import dayjs from 'dayjs'
 
-import { getSupabaseServerAuthClient } from '@/libs/supabase/server'
+import { getSupabaseServerAuthClient } from '@/libs/supabase'
 
 export const fetchSessionServer = createServerFn({ method: 'GET' }).handler(
 	async (): Promise<null | Session> => {

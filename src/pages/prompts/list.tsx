@@ -452,7 +452,7 @@ export function PromptsList() {
 				size: 120
 			}
 		],
-		[edit, show, deletePrompt, categoryOptions, tagOptions, modelOptions]
+		[categoryOptions, tagOptions, modelOptions, updatePrompt, show, edit, deletePrompt]
 	)
 
 	const table = useTable<Prompt>({
@@ -478,7 +478,7 @@ export function PromptsList() {
 	const exportData = transformPromptsForExport(tableData)
 
 	const handleImportSuccess = () => {
-		table.refineCore.tableQuery.refetch()
+		void table.refineCore.tableQuery.refetch()
 	}
 
 	return (

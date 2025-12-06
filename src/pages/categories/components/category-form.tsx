@@ -131,7 +131,7 @@ export function CategoryForm({ mode }: CategoryFormProps) {
 								name="id"
 								placeholder="e.g. marketing, development"
 								resource="categories"
-								sourceValue={form.watch('name')}
+								sourceField="name"
 							/>
 
 							<FormField

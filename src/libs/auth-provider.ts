@@ -26,13 +26,13 @@ export const authProvider: AuthProvider = {
 	},
 
 	forgotPassword: async () => {
-		return {
+		return Promise.resolve({
 			error: {
 				message: 'Please use the login form to sign up.',
 				name: 'ForgotPasswordError'
 			},
 			success: false
-		}
+		})
 	},
 
 	getIdentity: async () => {
@@ -125,26 +125,26 @@ export const authProvider: AuthProvider = {
 
 	onError: async (error) => {
 		console.error(error)
-		return { error }
+		return Promise.resolve({ error })
 	},
 
 	register: async () => {
-		return {
+		return Promise.resolve({
 			error: {
 				message: 'Please use the login form to sign up.',
 				name: 'RegisterError'
 			},
 			success: false
-		}
+		})
 	},
 
 	updatePassword: async () => {
-		return {
+		return Promise.resolve({
 			error: {
 				message: 'Please use the login form to sign up.',
 				name: 'UpdatePasswordError'
 			},
 			success: false
-		}
+		})
 	}
 }

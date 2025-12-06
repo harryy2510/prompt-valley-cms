@@ -2,11 +2,12 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useBack, useSelect } from '@refinedev/core'
 import type { FormAction, HttpError } from '@refinedev/core'
 import { useForm } from '@refinedev/react-hook-form'
+import { useQuery } from '@tanstack/react-query'
 import { startCase } from 'lodash-es'
-import { useEffect, useState } from 'react'
 import * as z from 'zod'
 import { getDefaultsForSchema } from 'zod-defaults'
 
+import { deleteJunctionServer, getRelatedServer, insertJunctionServer } from '@/actions/crud'
 import { SlugField } from '@/components/forms/slug-field'
 import { LoadingOverlay } from '@/components/refine-ui/layout/loading-overlay'
 import { Button } from '@/components/ui/button'
@@ -38,7 +39,6 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning'
-import { supabase } from '@/libs/supabase'
 import type { Enums, Tables } from '@/types/database.types'
 import { slug } from '@/utils/validations'
 
@@ -72,7 +72,6 @@ type PromptFormProps = {
 export function PromptForm({ mode }: PromptFormProps) {
 	const isCreate = mode === 'create'
 	const back = useBack()
-	const [isLoadingRelations, setIsLoadingRelations] = useState(!isCreate)
 
 	const {
 		refineCore: { formLoading, id, mutation, onFinish, query },
@@ -108,45 +107,48 @@ export function PromptForm({ mode }: PromptFormProps) {
 		resource: 'ai_models'
 	})
 
-	// Load junction table relations for edit mode
-	useEffect(() => {
-		const loadRelations = async () => {
-			if (!isCreate && id && query?.data?.data) {
-				setIsLoadingRelations(true)
-
-				// Load existing tags
-				const { data: tagsData } = await supabase
-					.from('prompt_tags')
-					.select('tag_id')
-					.eq('prompt_id', id)
-
-				if (tagsData && tagsData.length > 0) {
-					form.setValue(
-						'tags',
-						tagsData.map((t) => t.tag_id)
-					)
+	// Load junction table relations for edit mode using React Query
+	const { isLoading: isLoadingRelations } = useQuery({
+		enabled: !isCreate && !!id && !!query?.data?.data,
+		queryFn: async () => {
+			// Load existing tags
+			const { data: tagsData } = await getRelatedServer({
+				data: {
+					fkColumn: 'prompt_id',
+					fkValue: id as string,
+					junctionTable: 'prompt_tags',
+					select: 'tag_id'
 				}
+			})
 
-				// Load existing models
-				const { data: modelsData } = await supabase
-					.from('prompt_models')
-					.select('model_id')
-					.eq('prompt_id', id)
-
-				if (modelsData && modelsData.length > 0) {
-					form.setValue(
-						'models',
-						modelsData.map((m) => m.model_id)
-					)
-				}
-
-				setIsLoadingRelations(false)
+			if (tagsData && tagsData.length > 0) {
+				form.setValue(
+					'tags',
+					tagsData.map((t: { tag_id: string }) => t.tag_id)
+				)
 			}
-		}
 
-		loadRelations()
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [id, query?.data?.data, isCreate])
+			// Load existing models
+			const { data: modelsData } = await getRelatedServer({
+				data: {
+					fkColumn: 'prompt_id',
+					fkValue: id as string,
+					junctionTable: 'prompt_models',
+					select: 'model_id'
+				}
+			})
+
+			if (modelsData && modelsData.length > 0) {
+				form.setValue(
+					'models',
+					modelsData.map((m: { model_id: string }) => m.model_id)
+				)
+			}
+
+			return { models: modelsData, tags: tagsData }
+		},
+		queryKey: ['prompt-relations', id]
+	})
 
 	useUnsavedChangesWarning({
 		formState: form.formState
@@ -156,7 +158,7 @@ export function PromptForm({ mode }: PromptFormProps) {
 		const { models, tags, ...promptData } = data
 
 		// Submit the main prompt data
-		await onFinish(promptData as any)
+		await onFinish(promptData as unknown as Prompt)
 
 		// Handle junction tables after main record is saved
 		const promptId = data.id
@@ -164,41 +166,65 @@ export function PromptForm({ mode }: PromptFormProps) {
 		if (isCreate) {
 			// Insert new relations
 			if (tags.length > 0) {
-				await supabase.from('prompt_tags').insert(
-					tags.map((tagId) => ({
-						prompt_id: promptId,
-						tag_id: tagId
-					}))
-				)
+				await insertJunctionServer({
+					data: {
+						junctionTable: 'prompt_tags',
+						records: tags.map((tagId) => ({
+							prompt_id: promptId,
+							tag_id: tagId
+						}))
+					}
+				})
 			}
 			if (models.length > 0) {
-				await supabase.from('prompt_models').insert(
-					models.map((modelId) => ({
-						model_id: modelId,
-						prompt_id: promptId
-					}))
-				)
+				await insertJunctionServer({
+					data: {
+						junctionTable: 'prompt_models',
+						records: models.map((modelId) => ({
+							model_id: modelId,
+							prompt_id: promptId
+						}))
+					}
+				})
 			}
 		} else {
 			// Update: delete old and insert new
-			await supabase.from('prompt_tags').delete().eq('prompt_id', promptId)
+			await deleteJunctionServer({
+				data: {
+					column: 'prompt_id',
+					junctionTable: 'prompt_tags',
+					value: promptId
+				}
+			})
 			if (tags.length > 0) {
-				await supabase.from('prompt_tags').insert(
-					tags.map((tagId) => ({
-						prompt_id: promptId,
-						tag_id: tagId
-					}))
-				)
+				await insertJunctionServer({
+					data: {
+						junctionTable: 'prompt_tags',
+						records: tags.map((tagId) => ({
+							prompt_id: promptId,
+							tag_id: tagId
+						}))
+					}
+				})
 			}
 
-			await supabase.from('prompt_models').delete().eq('prompt_id', promptId)
+			await deleteJunctionServer({
+				data: {
+					column: 'prompt_id',
+					junctionTable: 'prompt_models',
+					value: promptId
+				}
+			})
 			if (models.length > 0) {
-				await supabase.from('prompt_models').insert(
-					models.map((modelId) => ({
-						model_id: modelId,
-						prompt_id: promptId
-					}))
-				)
+				await insertJunctionServer({
+					data: {
+						junctionTable: 'prompt_models',
+						records: models.map((modelId) => ({
+							model_id: modelId,
+							prompt_id: promptId
+						}))
+					}
+				})
 			}
 		}
 	}
@@ -247,7 +273,7 @@ export function PromptForm({ mode }: PromptFormProps) {
 								name="id"
 								placeholder="e.g. write-product-description"
 								resource="prompts"
-								sourceValue={form.watch('title')}
+								sourceField="title"
 							/>
 
 							<FormField

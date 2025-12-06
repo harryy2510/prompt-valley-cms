@@ -1,5 +1,3 @@
-'use client'
-
 import { CheckIcon, ChevronsUpDownIcon, XIcon } from 'lucide-react'
 import { createContext, use, useCallback, useEffect, useRef, useState } from 'react'
 import type { ComponentPropsWithoutRef, ReactNode } from 'react'
@@ -40,9 +38,11 @@ export function MultiSelect({
 	values?: Array<string>
 }) {
 	const [open, setOpen] = useState(false)
-	const [internalValues, setInternalValues] = useState(new Set<string>(values ?? defaultValues))
+	const [internalValues, setInternalValues] = useState(
+		() => new Set<string>(values ?? defaultValues)
+	)
 	const selectedValues = values ? new Set(values) : internalValues
-	const [items, setItems] = useState<Map<string, ReactNode>>(new Map())
+	const [items, setItems] = useState<Map<string, ReactNode>>(() => new Map())
 
 	function toggleValue(value: string) {
 		const getNewSet = (prev: Set<string>) => {
@@ -210,21 +210,21 @@ export function MultiSelectValue({
 	const shouldWrap = overflowBehavior === 'wrap' || (overflowBehavior === 'wrap-when-open' && open)
 
 	const checkOverflow = useCallback(() => {
-		if (valueRef.current == null) return
+		if (!valueRef.current) return
 
 		const containerElement = valueRef.current
 		const overflowElement = overflowRef.current
-		const items = containerElement.querySelectorAll<HTMLElement>('[data-selected-item]')
+		const selectedItems = containerElement.querySelectorAll<HTMLElement>('[data-selected-item]')
 
-		if (overflowElement != null) overflowElement.style.display = 'none'
-		items.forEach((child) => child.style.removeProperty('display'))
+		if (overflowElement) overflowElement.style.display = 'none'
+		selectedItems.forEach((child) => child.style.removeProperty('display'))
 		let amount = 0
-		for (let i = items.length - 1; i >= 0; i--) {
-			const child = items[i]
+		for (let i = selectedItems.length - 1; i >= 0; i--) {
+			const child = selectedItems[i]
 			if (containerElement.scrollWidth <= containerElement.clientWidth) {
 				break
 			}
-			amount = items.length - i
+			amount = selectedItems.length - i
 			child.style.display = 'none'
 			overflowElement?.style.removeProperty('display')
 		}
@@ -321,7 +321,7 @@ function debounce<T extends (...args: Array<never>) => void>(
 
 function useMultiSelectContext() {
 	const context = use(MultiSelectContext)
-	if (context == null) {
+	if (!context) {
 		throw new Error('useMultiSelectContext must be used within a MultiSelectContext')
 	}
 	return context

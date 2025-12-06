@@ -1,9 +1,7 @@
-import { useGo, useResourceParams, useTranslate } from '@refinedev/core'
-import { Ghost, Home, InfoIcon, MapPinOff } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useGo, useTranslate } from '@refinedev/core'
+import { Ghost, Home, MapPinOff } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 /**
  * When the app is navigated to a non-existent route, refine shows a default error page.
@@ -11,28 +9,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
  *
  * @see {@link https://refine.dev/docs/packages/documentation/routers/} for more details.
  */
-export function ErrorComponent() {
-	const [errorMessage, setErrorMessage] = useState<string>()
-
+export function NotFound() {
 	const translate = useTranslate()
 	const go = useGo()
-
-	const { action, resource } = useResourceParams()
-
-	useEffect(() => {
-		if (resource && action) {
-			setErrorMessage(
-				translate(
-					'pages.error.info',
-					{
-						action: action,
-						resource: resource?.name
-					},
-					`You may have forgotten to add the "${action}" component to "${resource?.name}" resource.`
-				)
-			)
-		}
-	}, [resource, action, translate])
 
 	return (
 		<div className="flex min-h-screen flex-col items-center justify-center gap-6 p-4 text-center bg-background">
@@ -43,9 +22,7 @@ export function ErrorComponent() {
 
 			<div className="space-y-2">
 				<h1 className="text-4xl font-bold tracking-tight">Lost in the void! 👻</h1>
-				<p className="text-xl text-muted-foreground">
-					{translate('pages.error.title', 'This page has gone ghost mode.')}
-				</p>
+				<p className="text-xl text-muted-foreground">This page has gone ghost mode.</p>
 			</div>
 
 			<div className="max-w-md space-y-2 text-sm text-muted-foreground">
@@ -54,21 +31,6 @@ export function ErrorComponent() {
 					nowhere.
 				</p>
 				<p>Spoiler: It's probably the first one.</p>
-				{errorMessage && (
-					<TooltipProvider>
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<p className="inline-flex items-center gap-1 cursor-help text-xs text-muted-foreground/70">
-									<InfoIcon className="size-3" />
-									Dev hint available
-								</p>
-							</TooltipTrigger>
-							<TooltipContent>
-								<p className="max-w-xs">{errorMessage}</p>
-							</TooltipContent>
-						</Tooltip>
-					</TooltipProvider>
-				)}
 			</div>
 
 			<Button className="mt-4 gap-2" onClick={() => go({ to: '/' })} size="lg" variant="outline">
@@ -83,4 +45,4 @@ export function ErrorComponent() {
 	)
 }
 
-ErrorComponent.displayName = 'ErrorComponent'
+NotFound.displayName = 'ErrorComponent'

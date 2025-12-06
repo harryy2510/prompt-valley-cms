@@ -1,9 +1,9 @@
 import type { BaseRecord, HttpError } from '@refinedev/core'
 import { useNavigation, useNotification } from '@refinedev/core'
 import type { UseTableReturnType } from '@refinedev/react-table'
-import type { Column, Row } from '@tanstack/react-table'
+import type { Column } from '@tanstack/react-table'
 import { flexRender } from '@tanstack/react-table'
-import { Copy, ExternalLink, Eye, Loader2, Pencil, Trash2 } from 'lucide-react'
+import { Copy, Eye, Loader2, Pencil, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 
@@ -72,7 +72,7 @@ export function DataTable<TData extends BaseRecord>({
 	})
 
 	const handleCopyId = (id: number | string) => {
-		navigator.clipboard.writeText(String(id))
+		void navigator.clipboard.writeText(String(id))
 		notify?.({
 			message: 'ID copied to clipboard',
 			type: 'success'
@@ -82,11 +82,11 @@ export function DataTable<TData extends BaseRecord>({
 	useEffect(() => {
 		const checkOverflow = () => {
 			if (tableRef.current && tableContainerRef.current) {
-				const table = tableRef.current
-				const container = tableContainerRef.current
+				const tableElem = tableRef.current
+				const containerElem = tableContainerRef.current
 
-				const horizontalOverflow = table.offsetWidth > container.clientWidth
-				const verticalOverflow = table.offsetHeight > container.clientHeight
+				const horizontalOverflow = tableElem.offsetWidth > containerElem.clientWidth
+				const verticalOverflow = tableElem.offsetHeight > containerElem.clientHeight
 
 				setIsOverflowing({
 					horizontal: horizontalOverflow,

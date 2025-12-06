@@ -1,7 +1,7 @@
 import { createRouter } from '@tanstack/react-router'
 
-import { DefaultCatchBoundary } from '@/components/default-catch-boundary'
-import { ErrorComponent } from '@/components/refine-ui/layout/error-component'
+import { DefaultCatchBoundary } from '@/components/refine-ui/errors/default-catch-boundary'
+import { NotFound } from '@/components/refine-ui/errors/not-found'
 
 // Import the generated route tree
 import { routeTree } from './routeTree.gen'
@@ -10,11 +10,12 @@ import { routeTree } from './routeTree.gen'
 export function getRouter() {
 	return createRouter({
 		context: {
+			role: null,
 			session: null
 		},
 		defaultErrorComponent: DefaultCatchBoundary,
 		defaultHashScrollIntoView: { behavior: 'smooth' },
-		defaultNotFoundComponent: () => <ErrorComponent />,
+		defaultNotFoundComponent: () => <NotFound />,
 		defaultPreload: 'intent',
 		routeTree,
 		scrollRestoration: true

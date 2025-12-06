@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/static-components */
 import { useGo, useNotification, useParsed } from '@refinedev/core'
 import dayjs from 'dayjs'
 import {
@@ -30,6 +31,12 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Selecto from 'react-selecto'
 
+import {
+	deleteFilesServer,
+	downloadFileServer,
+	listFilesServer,
+	uploadFileServer
+} from '@/actions/storage'
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -75,8 +82,9 @@ import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/libs/cn'
-import { supabase } from '@/libs/supabase'
 import { fData } from '@/utils/format'
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 
 type FileBrowserProps = {
 	bucketId?: string
@@ -147,7 +155,7 @@ export function FileBrowser({ bucketId: propBucketId }: FileBrowserProps = {}) {
 	const [folders, setFolders] = useState<Array<string>>([])
 	const [isLoading, setIsLoading] = useState(true)
 	const [viewMode, setViewMode] = useState<ViewMode>('grid')
-	const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
+	const [selectedItems, setSelectedItems] = useState<Set<string>>(() => new Set())
 	const [isUploading, setIsUploading] = useState(false)
 	const [newFolderDialogOpen, setNewFolderDialogOpen] = useState(false)
 	const [newFolderName, setNewFolderName] = useState('')
@@ -176,12 +184,14 @@ export function FileBrowser({ bucketId: propBucketId }: FileBrowserProps = {}) {
 	const loadFiles = useCallback(async () => {
 		setIsLoading(true)
 		try {
-			const { data, error } = await supabase.storage.from(bucketId).list(pathString, {
-				limit: 1000,
-				sortBy: { column: 'name', order: 'asc' }
+			const { data } = await listFilesServer({
+				data: {
+					bucketId,
+					limit: 1000,
+					path: pathString,
+					sortBy: { column: 'name', order: 'asc' }
+				}
 			})
-
-			if (error) throw error
 
 			// Separate folders and files
 			const folderSet = new Set<string>()
@@ -192,7 +202,7 @@ export function FileBrowser({ bucketId: propBucketId }: FileBrowserProps = {}) {
 					// It's a folder placeholder
 					folderSet.add(item.name)
 				} else {
-					fileList.push(item)
+					fileList.push(item as FileObject)
 				}
 			})
 
@@ -210,7 +220,7 @@ export function FileBrowser({ bucketId: propBucketId }: FileBrowserProps = {}) {
 	}, [bucketId, pathString, notify])
 
 	useEffect(() => {
-		loadFiles()
+		void loadFiles()
 	}, [loadFiles])
 
 	// Clear selection when changing folders
@@ -234,8 +244,7 @@ export function FileBrowser({ bucketId: propBucketId }: FileBrowserProps = {}) {
 
 	const getPublicUrl = (fileName: string): string => {
 		const fullPath = pathString ? `${pathString}/${fileName}` : fileName
-		const { data } = supabase.storage.from(bucketId).getPublicUrl(fullPath)
-		return data.publicUrl
+		return `${SUPABASE_URL}/storage/v1/object/public/${bucketId}/${fullPath}`
 	}
 
 	const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -249,15 +258,29 @@ export function FileBrowser({ bucketId: propBucketId }: FileBrowserProps = {}) {
 		for (const file of Array.from(uploadFiles)) {
 			const filePath = pathString ? `${pathString}/${file.name}` : file.name
 
-			const { error } = await supabase.storage
-				.from(bucketId)
-				.upload(filePath, file, { upsert: true })
+			try {
+				// Convert file to base64
+				const arrayBuffer = await file.arrayBuffer()
+				const bytes = new Uint8Array(arrayBuffer)
+				let binary = ''
+				for (const byte of bytes) {
+					binary += String.fromCharCode(byte)
+				}
+				const fileBase64 = btoa(binary)
 
-			if (error) {
+				await uploadFileServer({
+					data: {
+						bucketId,
+						contentType: file.type,
+						fileBase64,
+						filePath,
+						upsert: true
+					}
+				})
+				successCount++
+			} catch (error) {
 				console.error('Upload error:', error)
 				errorCount++
-			} else {
-				successCount++
 			}
 		}
 
@@ -277,7 +300,7 @@ export function FileBrowser({ bucketId: propBucketId }: FileBrowserProps = {}) {
 			})
 		}
 
-		loadFiles()
+		void loadFiles()
 	}
 
 	const handleCreateFolder = async () => {
@@ -287,21 +310,26 @@ export function FileBrowser({ bucketId: propBucketId }: FileBrowserProps = {}) {
 			? `${pathString}/${newFolderName}/.keep`
 			: `${newFolderName}/.keep`
 
-		const { error } = await supabase.storage
-			.from(bucketId)
-			.upload(folderPath, new Blob(['']), { upsert: true })
-
-		if (error) {
-			notify?.({
-				message: 'Failed to create folder',
-				type: 'error'
+		try {
+			await uploadFileServer({
+				data: {
+					bucketId,
+					contentType: 'text/plain',
+					fileBase64: '',
+					filePath: folderPath,
+					upsert: true
+				}
 			})
-		} else {
 			notify?.({
 				message: 'Folder created',
 				type: 'success'
 			})
-			loadFiles()
+			void loadFiles()
+		} catch {
+			notify?.({
+				message: 'Failed to create folder',
+				type: 'error'
+			})
 		}
 
 		setNewFolderDialogOpen(false)
@@ -313,35 +341,34 @@ export function FileBrowser({ bucketId: propBucketId }: FileBrowserProps = {}) {
 
 		const fullPath = pathString ? `${pathString}/${itemToDelete.name}` : itemToDelete.name
 
-		if (itemToDelete.isFolder) {
-			// For folders, we need to delete all contents recursively
-			const { data: folderContents } = await supabase.storage
-				.from(bucketId)
-				.list(fullPath, { limit: 1000 })
-
-			if (folderContents && folderContents.length > 0) {
-				const filesToDelete = folderContents.map((f) => `${fullPath}/${f.name}`)
-				await supabase.storage.from(bucketId).remove(filesToDelete)
-			}
-		} else {
-			const { error } = await supabase.storage.from(bucketId).remove([fullPath])
-
-			if (error) {
-				notify?.({
-					message: 'Failed to delete file',
-					type: 'error'
+		try {
+			if (itemToDelete.isFolder) {
+				// For folders, we need to delete all contents recursively
+				const { data: folderContents } = await listFilesServer({
+					data: { bucketId, limit: 1000, path: fullPath }
 				})
+
+				if (folderContents && folderContents.length > 0) {
+					const filesToDelete = folderContents.map((f) => `${fullPath}/${f.name}`)
+					await deleteFilesServer({ data: { bucketId, paths: filesToDelete } })
+				}
 			} else {
-				notify?.({
-					message: 'File deleted',
-					type: 'success'
-				})
+				await deleteFilesServer({ data: { bucketId, paths: [fullPath] } })
 			}
+			notify?.({
+				message: itemToDelete.isFolder ? 'Folder deleted' : 'File deleted',
+				type: 'success'
+			})
+		} catch {
+			notify?.({
+				message: `Failed to delete ${itemToDelete.isFolder ? 'folder' : 'file'}`,
+				type: 'error'
+			})
 		}
 
 		setDeleteDialogOpen(false)
 		setItemToDelete(null)
-		loadFiles()
+		void loadFiles()
 	}
 
 	const handleBulkDelete = async () => {
@@ -357,24 +384,23 @@ export function FileBrowser({ bucketId: propBucketId }: FileBrowserProps = {}) {
 
 			const fullPath = pathString ? `${pathString}/${itemName}` : itemName
 
-			if (item.isFolder) {
-				// For folders, delete all contents recursively
-				const { data: folderContents } = await supabase.storage
-					.from(bucketId)
-					.list(fullPath, { limit: 1000 })
+			try {
+				if (item.isFolder) {
+					// For folders, delete all contents recursively
+					const { data: folderContents } = await listFilesServer({
+						data: { bucketId, limit: 1000, path: fullPath }
+					})
 
-				if (folderContents && folderContents.length > 0) {
-					const filesToDelete = folderContents.map((f) => `${fullPath}/${f.name}`)
-					const { error } = await supabase.storage.from(bucketId).remove(filesToDelete)
-					if (error) errorCount++
-					else successCount++
+					if (folderContents && folderContents.length > 0) {
+						const filesToDelete = folderContents.map((f) => `${fullPath}/${f.name}`)
+						await deleteFilesServer({ data: { bucketId, paths: filesToDelete } })
+					}
 				} else {
-					successCount++
+					await deleteFilesServer({ data: { bucketId, paths: [fullPath] } })
 				}
-			} else {
-				const { error } = await supabase.storage.from(bucketId).remove([fullPath])
-				if (error) errorCount++
-				else successCount++
+				successCount++
+			} catch {
+				errorCount++
 			}
 		}
 
@@ -395,32 +421,40 @@ export function FileBrowser({ bucketId: propBucketId }: FileBrowserProps = {}) {
 			})
 		}
 
-		loadFiles()
+		void loadFiles()
 	}
 
 	const handleDownload = async (fileName: string) => {
 		const fullPath = pathString ? `${pathString}/${fileName}` : fileName
-		const { data, error } = await supabase.storage.from(bucketId).download(fullPath)
 
-		if (error) {
+		try {
+			const result = await downloadFileServer({ data: { bucketId, path: fullPath } })
+
+			// Convert base64 back to blob
+			const binaryString = atob(result.data)
+			const bytes = new Uint8Array(binaryString.length)
+			for (let i = 0; i < binaryString.length; i++) {
+				bytes[i] = binaryString.charCodeAt(i)
+			}
+			const blob = new Blob([bytes], { type: result.contentType })
+
+			const url = URL.createObjectURL(blob)
+			const a = document.createElement('a')
+			a.href = url
+			a.download = fileName
+			a.click()
+			URL.revokeObjectURL(url)
+		} catch {
 			notify?.({
 				message: 'Failed to download file',
 				type: 'error'
 			})
-			return
 		}
-
-		const url = URL.createObjectURL(data)
-		const a = document.createElement('a')
-		a.href = url
-		a.download = fileName
-		a.click()
-		URL.revokeObjectURL(url)
 	}
 
 	const handleCopyUrl = (fileName: string) => {
 		const url = getPublicUrl(fileName)
-		navigator.clipboard.writeText(url)
+		void navigator.clipboard.writeText(url)
 		notify?.({
 			message: 'URL copied to clipboard',
 			type: 'success'
@@ -429,7 +463,7 @@ export function FileBrowser({ bucketId: propBucketId }: FileBrowserProps = {}) {
 
 	const handleCopyPath = (fileName: string) => {
 		const fullPath = pathString ? `${pathString}/${fileName}` : fileName
-		navigator.clipboard.writeText(fullPath)
+		void navigator.clipboard.writeText(fullPath)
 		notify?.({
 			message: 'Path copied to clipboard',
 			type: 'success'
@@ -721,7 +755,9 @@ export function FileBrowser({ bucketId: propBucketId }: FileBrowserProps = {}) {
 					<Input
 						onChange={(e) => setNewFolderName(e.target.value)}
 						onKeyDown={(e) => {
-							if (e.key === 'Enter') handleCreateFolder()
+							if (e.key === 'Enter') {
+								void handleCreateFolder()
+							}
 						}}
 						placeholder="Folder name"
 						value={newFolderName}
