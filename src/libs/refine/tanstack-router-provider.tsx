@@ -1,131 +1,151 @@
-import { matchResourceFromRoute } from '@refinedev/core'
-import type { ResourceProps, RouterProvider } from '@refinedev/core'
+import type { GoConfig, ParseResponse, RouterProvider } from '@refinedev/core'
+import { matchResourceFromRoute, ResourceContext } from '@refinedev/core'
 import {
 	Link as TanStackLink,
 	useLocation,
 	useNavigate,
 	useParams,
-	useRouter,
 	useSearch
 } from '@tanstack/react-router'
-import type { LinkProps } from '@tanstack/react-router'
 import qs from 'qs'
-import { forwardRef, useCallback } from 'react'
+import type { ComponentProps } from 'react'
+import React, { use, useCallback } from 'react'
+import { parseQuery, parseURL } from 'ufo'
+
+/**
+ * qs stringify config matching Refine's React Router provider
+ */
+const stringifyConfig = {
+	addQueryPrefix: true,
+	arrayFormat: 'indices' as const,
+	encode: false,
+	encodeValuesOnly: true,
+	skipNulls: true
+}
 
 /**
  * Factory function to create TanStack Router provider for Refine
  * Takes resources as a parameter to avoid global state
  */
-export function createRouterBindings(resources: Array<ResourceProps>): RouterProvider {
-	// Hook that returns the go function
-	const useGo = () => {
+export const routerProvider: RouterProvider = {
+	// Hook that returns the back function
+	back: () => {
 		const navigate = useNavigate()
+
+		return useCallback(() => {
+			void navigate({ to: '..' })
+		}, [navigate])
+	},
+
+	// Hook that returns the go function
+	go: () => {
 		const location = useLocation()
-		const router = useRouter()
+		const navigate = useNavigate()
 
-		const go = useCallback(
-			({
-				hash,
-				options = {},
-				query,
-				to,
-				type = 'push'
-			}: {
-				hash?: string
-				options?: { keepHash?: boolean; keepQuery?: boolean }
-				query?: Record<string, unknown>
-				to?: string
-				type?: 'path' | 'push' | 'replace'
-			}) => {
-				const { keepHash, keepQuery } = options
+		return useCallback(
+			({ hash, options: { keepHash, keepQuery } = {}, query, to, type }: GoConfig) => {
+				let urlHash = ''
 
-				// Build query string
-				let urlQuery = query || {}
-				if (keepQuery) {
-					const currentSearch = location.search as Record<string, unknown>
-					urlQuery = { ...currentSearch, ...query }
+				if (keepHash && typeof document !== 'undefined') {
+					urlHash = document.location.hash
 				}
 
-				const queryString = Object.keys(urlQuery).length
-					? `?${qs.stringify(urlQuery, { encode: false })}`
-					: ''
+				if (hash) {
+					urlHash = `#${hash.replace(/^#/, '')}`
+				}
 
-				// Build hash
-				const currentHash = location.hash
-				const hashString = hash ? `#${hash}` : keepHash && currentHash ? currentHash : ''
+				const urlQuery = {
+					...(keepQuery ? location.search : {}),
+					...query
+				}
 
-				// Build final path
-				const targetPath = to || location.pathname
-				const fullPath = `${targetPath}${queryString}${hashString}`
+				if (urlQuery.to) {
+					urlQuery.to = encodeURIComponent(`${urlQuery.to}`)
+				}
 
-				// Return path string or navigate
+				const cleanPathname = location.pathname.split('?')[0].split('#')[0] ?? ''
+
+				const urlTo = to || cleanPathname
+
+				const hasUrlHash = urlHash.length > 1
+				const hasUrlQuery = Object.keys(urlQuery).length > 0
+
+				const fullPath = `${urlTo}${
+					hasUrlQuery ? qs.stringify(urlQuery, stringifyConfig) : ''
+				}${hasUrlHash ? urlHash : ''}`
+
 				if (type === 'path') {
 					return fullPath
 				}
 
-				// Invalidate router to refetch loaders after navigation
-				void router.invalidate()
-
-				navigate({
+				// Navigate to the url
+				void navigate({
+					hash: hasUrlHash ? urlHash : '',
 					replace: type === 'replace',
-					to: fullPath
+					search: urlQuery,
+					to: urlTo
 				})
+
+				return undefined
 			},
-			[navigate, location, router]
+			[location, navigate]
 		)
+	},
 
-		return go
-	}
-
-	// Hook that returns the back function
-	const useBack = () => {
-		const back = useCallback(() => {
-			window.history.back()
-		}, [])
-
-		return back
-	}
+	Link: function RefineLink({
+		ref,
+		to,
+		...props
+	}: ComponentProps<NonNullable<RouterProvider['Link']>> & {
+		ref?: React.RefObject<HTMLAnchorElement | null>
+	}) {
+		const parsed = parseURL(to)
+		if (parsed.host) {
+			return <a href={to} {...props} ref={ref} />
+		}
+		const query = parseQuery(parsed.search)
+		return <TanStackLink hash={parsed.hash} search={query} to={to} {...props} ref={ref} />
+	},
 
 	// Hook that returns the parsed route info
-	const useParse = () => {
+	parse: () => {
 		const params = useParams({ strict: false })
 		const location = useLocation()
 		const search = useSearch({ strict: false })
+		const { resources } = use(ResourceContext)
 
-		const parse = useCallback(() => {
+		return useCallback(() => {
 			// Match resource from route using closure reference
 			const { action, resource } = matchResourceFromRoute(location.pathname, resources)
 
-			// Extract ID from params
-			const id = (params as Record<string, string>)?.id
-
-			// Parse pagination params
-			const current = search?.current ? Number(search.current) : undefined
-			const pageSize = search?.pageSize ? Number(search.pageSize) : undefined
-
-			return {
-				action,
-				id,
-				params: {
-					...params,
-					...search,
-					current,
-					pageSize
-				},
-				pathname: location.pathname,
-				resource
+			const combinedParams: Record<string, unknown> = {
+				...params,
+				...search
 			}
-		}, [params, location, search])
 
-		return parse
-	}
+			const response: ParseResponse = {
+				...(resource && { resource }),
+				...(action && { action }),
+				...(params?.id && { id: decodeURIComponent(params.id) }),
+				params: {
+					...combinedParams,
+					currentPage: convertToNumberIfPossible(combinedParams.currentPage as string),
+					pageSize: convertToNumberIfPossible(combinedParams.pageSize as string),
+					to: combinedParams.to ? decodeURIComponent(combinedParams.to as string) : undefined
+				},
+				pathname: location.pathname
+			}
 
-	return {
-		back: useBack,
-		go: useGo,
-		Link: ({ ref, ...props }: LinkProps & { ref?: React.RefObject<HTMLAnchorElement | null> }) => {
-			return <TanStackLink {...props} ref={ref} />
-		},
-		parse: useParse
+			return response
+		}, [location.pathname, resources, params, search])
 	}
+}
+
+/**
+ * Convert string to number if possible
+ */
+function convertToNumberIfPossible(value: string | undefined): number | undefined {
+	if (value === undefined) return undefined
+	const num = Number(value)
+	return isNaN(num) ? undefined : num
 }

@@ -6,7 +6,7 @@ import { z } from 'zod'
 // ============================================
 
 const guestSearchSchema = z.object({
-	redirect: z.string().optional()
+	to: z.string().optional()
 })
 
 // ============================================
@@ -18,7 +18,7 @@ export const Route = createFileRoute('/__guest')({
 		// Session is already in context from root route
 		if (context.session) {
 			throw redirect({
-				to: search.redirect || '/'
+				to: search.to || '/'
 			})
 		}
 	},

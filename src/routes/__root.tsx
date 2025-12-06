@@ -16,12 +16,10 @@ import TanStackQueryDevtools from '@/libs/react-query/query-devtools'
 import TanStackRouterDevtools from '@/libs/react-query/router-devtools'
 import { resources } from '@/libs/refine/resources'
 import { serverDataProvider } from '@/libs/refine/server-data-provider'
-import { createRouterBindings } from '@/libs/refine/tanstack-router-provider'
+import { routerProvider } from '@/libs/refine/tanstack-router-provider'
 import { seo } from '@/utils/seo'
 
 import appCss from '../tailwind.css?url'
-
-const routerProvider = createRouterBindings(resources)
 
 // ============================================
 // Router Context Type

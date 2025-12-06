@@ -1,23 +1,38 @@
 import type { CrudFilters, CrudSorting, Pagination } from '@refinedev/core'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { createServerFn } from '@tanstack/react-start'
 
 import { getSupabaseServerClient } from '@/libs/supabase/server'
 
 // ============================================
-// Helpers
-// ============================================
-
-/**
- * Strips non-serializable properties (AbortSignal, functions, etc.) from Supabase responses
- * Uses JSON parse/stringify to ensure only plain JSON data is returned
- */
-function sanitizeResponse<T>(data: T): T {
-	return JSON.parse(JSON.stringify(data))
-}
-
-// ============================================
 // Types
 // ============================================
+
+type AnyClient = ReturnType<SupabaseClient<any, any, any>['schema']> | SupabaseClient<any, any, any>
+
+type CreateInput = {
+	meta?: MetaOptions
+	resource: string
+	variables: unknown
+}
+
+type CreateManyInput = {
+	meta?: MetaOptions
+	resource: string
+	variables: Array<unknown>
+}
+
+type DeleteInput = {
+	id: string
+	meta?: MetaOptions
+	resource: string
+}
+
+type DeleteManyInput = {
+	ids: Array<string>
+	meta?: MetaOptions
+	resource: string
+}
 
 type GetListInput = {
 	filters?: CrudFilters
@@ -27,9 +42,57 @@ type GetListInput = {
 	sorters?: CrudSorting
 }
 
+type GetManyInput = {
+	ids: Array<string>
+	meta?: MetaOptions
+	resource: string
+}
+
+type GetOneInput = {
+	id: string
+	meta?: MetaOptions
+	resource: string
+}
+
 type MetaOptions = {
-	[key: string]: unknown
+	count?: 'estimated' | 'exact' | 'planned'
+	idColumnName?: string
+	schema?: string
 	select?: string
+}
+
+type UpdateInput = {
+	id: string
+	meta?: MetaOptions
+	resource: string
+	variables: unknown
+}
+
+// ============================================
+// Helpers
+// ============================================
+
+type UpdateManyInput = {
+	ids: Array<string>
+	meta?: MetaOptions
+	resource: string
+	variables: unknown
+}
+
+/**
+ * Gets the Supabase client, optionally with a different schema
+ * Returns an untyped client to allow dynamic resource names
+ */
+function getClient(schema?: string): AnyClient {
+	const supabase = getSupabaseServerClient() as SupabaseClient<any, any, any>
+	return schema ? supabase.schema(schema) : supabase
+}
+
+/**
+ * Gets the ID column name from meta or defaults to 'id'
+ */
+function getIdColumn(meta?: MetaOptions): string {
+	return meta?.idColumnName || 'id'
 }
 
 // ============================================
@@ -39,18 +102,29 @@ type MetaOptions = {
 export const getListServer = createServerFn({ method: 'POST' })
 	.inputValidator((data: GetListInput) => data)
 	.handler(async ({ data }) => {
-		const supabase = getSupabaseServerClient()
 		const { filters, meta, pagination, resource, sorters } = data
+		const client = getClient(meta?.schema)
 
 		const selectQuery = meta?.select || '*'
-		let query = supabase.from(resource).select(selectQuery, { count: 'exact' })
+		const countOption = meta?.count || 'exact'
+		let query = client.from(resource).select(selectQuery, { count: countOption })
 
-		// Apply pagination
+		// Apply pagination (Refine uses 'current' and 'pageSize')
 		if (pagination) {
-			const { current = 1, pageSize = 10 } = pagination
-			const start = (current - 1) * pageSize
-			const end = start + pageSize - 1
-			query = query.range(start, end)
+			const {
+				currentPage = 1,
+				mode = 'server',
+				pageSize = 10
+			} = pagination as {
+				currentPage?: number
+				mode?: 'client' | 'off' | 'server'
+				pageSize?: number
+			}
+			if (mode === 'server') {
+				const start = (currentPage - 1) * pageSize
+				const end = start + pageSize - 1
+				query = query.range(start, end)
+			}
 		}
 
 		// Apply filters
@@ -58,28 +132,79 @@ export const getListServer = createServerFn({ method: 'POST' })
 			for (const filter of filters) {
 				if ('field' in filter && filter.field) {
 					const { field, operator, value } = filter
+
+					// Check for relationship filter pattern: table.field or table_field
+					// For many-to-many, field might be like "prompt_tags.tag_id" or just "tag_id"
+					// which needs to filter through a join table
+					const isRelationFilter = field.includes('.')
+					const filterField = field
+
+					// For relationship filters, we need to ensure the join is included
+					// This requires modifying the select to include the related table with !inner
+					if (isRelationFilter) {
+						const [relatedTable] = field.split('.')
+						// Ensure we have an inner join for filtering
+						const currentSelect = selectQuery
+						if (!currentSelect.includes(`${relatedTable}!inner`)) {
+							query = client
+								.from(resource)
+								.select(
+									currentSelect === '*'
+										? `*, ${relatedTable}!inner(*)`
+										: `${currentSelect}, ${relatedTable}!inner(*)`,
+									{ count: countOption }
+								)
+						}
+					}
+
 					switch (operator) {
 						case 'contains':
-							query = query.ilike(field, `%${value}%`)
+							query = query.ilike(filterField, `%${value}%`)
 							break
 						case 'eq':
-							query = query.eq(field, value)
+							query = query.eq(filterField, value)
+							break
+						case 'gt':
+							query = query.gt(filterField, value)
+							break
+						case 'gte':
+							query = query.gte(filterField, value)
 							break
 						case 'in':
-							query = query.in(field, value as Array<unknown>)
+							query = query.in(filterField, value as Array<unknown>)
+							break
+						case 'lt':
+							query = query.lt(filterField, value)
+							break
+						case 'lte':
+							query = query.lte(filterField, value)
 							break
 						case 'ne':
-							query = query.neq(field, value)
+							query = query.neq(filterField, value)
+							break
+						case 'null':
+							query = value ? query.is(filterField, null) : query.not(filterField, 'is', null)
 							break
 					}
 				}
 			}
 		}
 
-		// Apply sorting
+		// Apply sorting with foreign table support
 		if (sorters && sorters.length > 0) {
 			for (const sorter of sorters) {
-				query = query.order(sorter.field, { ascending: sorter.order === 'asc' })
+				// Check for foreign table pattern: foreignTable.field
+				const [foreignTable, field] = sorter.field.split(/\.(?=[^.]+$)/)
+
+				if (foreignTable && field) {
+					// Foreign table sorting
+					query = query.select(meta?.select || `*, ${foreignTable}(${field})`).order(field, {
+						ascending: sorter.order === 'asc',
+						referencedTable: foreignTable
+					})
+				} else {
+					query = query.order(sorter.field, { ascending: sorter.order === 'asc' })
+				}
 			}
 		}
 
@@ -93,16 +218,17 @@ export const getListServer = createServerFn({ method: 'POST' })
 	})
 
 export const getOneServer = createServerFn({ method: 'POST' })
-	.inputValidator((data: { id: string; meta?: MetaOptions; resource: string }) => data)
+	.inputValidator((data: GetOneInput) => data)
 	.handler(async ({ data }) => {
-		const supabase = getSupabaseServerClient()
 		const { id, meta, resource } = data
+		const client = getClient(meta?.schema)
+		const idColumn = getIdColumn(meta)
 
 		const selectQuery = meta?.select || '*'
-		const { data: record, error } = await supabase
+		const { data: record, error } = await client
 			.from(resource)
 			.select(selectQuery)
-			.eq('id', id)
+			.eq(idColumn, id)
 			.single()
 
 		if (error) {
@@ -110,18 +236,38 @@ export const getOneServer = createServerFn({ method: 'POST' })
 		}
 
 		return { data: record }
+	})
+
+export const getManyServer = createServerFn({ method: 'POST' })
+	.inputValidator((data: GetManyInput) => data)
+	.handler(async ({ data }) => {
+		const { ids, meta, resource } = data
+		const client = getClient(meta?.schema)
+		const idColumn = getIdColumn(meta)
+
+		const selectQuery = meta?.select || '*'
+		const { data: records, error } = await client
+			.from(resource)
+			.select(selectQuery)
+			.in(idColumn, ids)
+
+		if (error) {
+			throw new Error(error.message)
+		}
+
+		return { data: records || [] }
 	})
 
 export const createServer = createServerFn({ method: 'POST' })
-	.inputValidator((data: { meta?: MetaOptions; resource: string; variables: unknown }) => data)
+	.inputValidator((data: CreateInput) => data)
 	.handler(async ({ data }) => {
-		const supabase = getSupabaseServerClient()
 		const { meta, resource, variables } = data
+		const client = getClient(meta?.schema)
 
 		const selectQuery = meta?.select || '*'
-		const { data: record, error } = await supabase
+		const { data: record, error } = await client
 			.from(resource)
-			.insert(variables as Record<string, unknown>)
+			.insert(variables)
 			.select(selectQuery)
 			.single()
 
@@ -130,21 +276,39 @@ export const createServer = createServerFn({ method: 'POST' })
 		}
 
 		return { data: record }
+	})
+
+export const createManyServer = createServerFn({ method: 'POST' })
+	.inputValidator((data: CreateManyInput) => data)
+	.handler(async ({ data }) => {
+		const { meta, resource, variables } = data
+		const client = getClient(meta?.schema)
+
+		const selectQuery = meta?.select || '*'
+		const { data: records, error } = await client
+			.from(resource)
+			.insert(variables)
+			.select(selectQuery)
+
+		if (error) {
+			throw new Error(error.message)
+		}
+
+		return { data: records || [] }
 	})
 
 export const updateServer = createServerFn({ method: 'POST' })
-	.inputValidator(
-		(data: { id: string; meta?: MetaOptions; resource: string; variables: unknown }) => data
-	)
+	.inputValidator((data: UpdateInput) => data)
 	.handler(async ({ data }) => {
-		const supabase = getSupabaseServerClient()
 		const { id, meta, resource, variables } = data
+		const client = getClient(meta?.schema)
+		const idColumn = getIdColumn(meta)
 
 		const selectQuery = meta?.select || '*'
-		const { data: record, error } = await supabase
+		const { data: record, error } = await client
 			.from(resource)
-			.update(variables as Record<string, unknown>)
-			.eq('id', id)
+			.update(variables)
+			.eq(idColumn, id)
 			.select(selectQuery)
 			.single()
 
@@ -155,16 +319,46 @@ export const updateServer = createServerFn({ method: 'POST' })
 		return { data: record }
 	})
 
-export const deleteOneServer = createServerFn({ method: 'POST' })
-	.inputValidator((data: { id: string; resource: string }) => data)
+export const updateManyServer = createServerFn({ method: 'POST' })
+	.inputValidator((data: UpdateManyInput) => data)
 	.handler(async ({ data }) => {
-		const supabase = getSupabaseServerClient()
-		const { id, resource } = data
+		const { ids, meta, resource, variables } = data
+		const client = getClient(meta?.schema)
+		const idColumn = getIdColumn(meta)
+		const selectQuery = meta?.select || '*'
 
-		const { data: record, error } = await supabase
+		// Update each record individually to get proper return data
+		const results = await Promise.all(
+			ids.map(async (id) => {
+				const { data: record, error } = await client
+					.from(resource)
+					.update(variables)
+					.eq(idColumn, id)
+					.select(selectQuery)
+					.single()
+
+				if (error) {
+					throw new Error(error.message)
+				}
+
+				return record
+			})
+		)
+
+		return { data: results }
+	})
+
+export const deleteOneServer = createServerFn({ method: 'POST' })
+	.inputValidator((data: DeleteInput) => data)
+	.handler(async ({ data }) => {
+		const { id, meta, resource } = data
+		const client = getClient(meta?.schema)
+		const idColumn = getIdColumn(meta)
+
+		const { data: record, error } = await client
 			.from(resource)
 			.delete()
-			.eq('id', id)
+			.eq(idColumn, id)
 			.select()
 			.single()
 
@@ -173,4 +367,32 @@ export const deleteOneServer = createServerFn({ method: 'POST' })
 		}
 
 		return { data: record }
+	})
+
+export const deleteManyServer = createServerFn({ method: 'POST' })
+	.inputValidator((data: DeleteManyInput) => data)
+	.handler(async ({ data }) => {
+		const { ids, meta, resource } = data
+		const client = getClient(meta?.schema)
+		const idColumn = getIdColumn(meta)
+
+		// Delete each record individually to get proper return data
+		const results = await Promise.all(
+			ids.map(async (id) => {
+				const { data: record, error } = await client
+					.from(resource)
+					.delete()
+					.eq(idColumn, id)
+					.select()
+					.single()
+
+				if (error) {
+					throw new Error(error.message)
+				}
+
+				return record
+			})
+		)
+
+		return { data: results }
 	})
