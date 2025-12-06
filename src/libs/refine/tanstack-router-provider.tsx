@@ -17,7 +17,7 @@ import { parseQuery, parseURL } from 'ufo'
 /**
  * qs stringify config matching Refine's React Router provider
  */
-const stringifyConfig = {
+export const stringifyConfig = {
 	addQueryPrefix: true,
 	arrayFormat: 'indices' as const,
 	encode: false,
