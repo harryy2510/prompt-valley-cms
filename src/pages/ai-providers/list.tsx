@@ -252,7 +252,7 @@ export function AiProvidersList() {
 					<div className="flex items-center gap-2">
 						<DataTableImport<AiProvider>
 							columns={EXPORT_COLUMNS}
-							excludeFields={['created_at', 'logo_url']}
+							excludeFields={['created_at']}
 							onSuccess={handleImportSuccess}
 							resource="ai_providers"
 							templateFilename="ai-providers-template"
