@@ -22,8 +22,11 @@ import { ListView, ListViewHeader } from '@/components/refine-ui/views/list-view
 import { ActionButton } from '@/components/ui/action-button'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel'
+import { Image } from '@/components/ui/image'
 import { Switch } from '@/components/ui/switch'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { getImageUrl } from '@/libs/storage'
 import type { Tables } from '@/types/database.types'
 import { fShortenNumber } from '@/utils/format'
 
@@ -47,6 +50,7 @@ type ExportPrompt = Pick<
 	| 'tier'
 	| 'title'
 > & {
+	images: string
 	model_ids: string
 	tag_ids: string
 }
@@ -60,6 +64,7 @@ const EXPORT_COLUMNS: Array<ColumnMapping<ExportPrompt>> = [
 	{ header: 'Tier', key: 'tier' },
 	{ header: 'Published', key: 'is_published' },
 	{ header: 'Featured', key: 'is_featured' },
+	{ header: 'Images', key: 'images' },
 	{ header: 'Tag IDs', key: 'tag_ids' },
 	{ header: 'Model IDs', key: 'model_ids' },
 	{ header: 'Created At', key: 'created_at' }
@@ -72,6 +77,7 @@ function transformPromptsForExport(prompts: Array<Prompt>): Array<ExportPrompt> 
 		created_at: p.created_at,
 		description: p.description,
 		id: p.id,
+		images: p.images?.join(', ') || '',
 		is_featured: p.is_featured,
 		is_published: p.is_published,
 		model_ids: p.prompt_models?.map((pm) => pm.ai_models.id).join(', ') || '',
@@ -135,6 +141,49 @@ export function PromptsList() {
 					</div>
 				),
 				id: 'title'
+			},
+			{
+				accessorKey: 'images',
+				cell: ({ row }) => {
+					const images = row.original.images ?? []
+					if (images.length === 0) {
+						return <span className="text-muted-foreground">—</span>
+					}
+					if (images.length === 1) {
+						const url = getImageUrl(images[0])
+						return url ? (
+							<Image
+								alt="Prompt image"
+								className="size-10 rounded border object-cover"
+								src={url}
+							/>
+						) : (
+							<span className="text-muted-foreground">—</span>
+						)
+					}
+					return (
+						<Carousel className="w-12" opts={{ loop: true }}>
+							<CarouselContent className="-ml-1">
+								{images.map((image, index) => {
+									const url = getImageUrl(image)
+									return url ? (
+										<CarouselItem className="pl-1 basis-full" key={index}>
+											<Image
+												alt={`Prompt image ${index + 1}`}
+												className="size-10 rounded border object-cover"
+												src={url}
+											/>
+										</CarouselItem>
+									) : null
+								})}
+							</CarouselContent>
+						</Carousel>
+					)
+				},
+				enableSorting: false,
+				header: 'Images',
+				id: 'images',
+				size: 80
 			},
 			{
 				accessorKey: 'category_id',
@@ -502,6 +551,7 @@ export function PromptsList() {
 				action={
 					<div className="flex items-center gap-2">
 						<DataTableImport<ExportPrompt>
+							arrayFields={['images']}
 							columns={EXPORT_COLUMNS}
 							excludeFields={['created_at', 'updated_at']}
 							onSuccess={handleImportSuccess}

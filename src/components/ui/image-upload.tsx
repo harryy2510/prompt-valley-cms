@@ -494,44 +494,45 @@ export function ImagesUpload({
 
 	// Sync external value to internal state on mount and when value changes externally
 	useEffect(() => {
-		// Get current successful bucket paths from internal state
-		const internalPaths = new Set(
-			images
-				.filter((img) => img.status === 'success' && img.bucketPath)
-				.map((img) => img.bucketPath)
-		)
-
-		// Get paths from external value
 		const externalPaths = new Set(value)
 
-		// Check if external value has items not in internal state
-		const newExternalPaths = value.filter((path) => !internalPaths.has(path))
+		setImages((prev) => {
+			// Get current successful bucket paths from internal state
+			const internalPaths = new Set(
+				prev
+					.filter((img) => img.status === 'success' && img.bucketPath)
+					.map((img) => img.bucketPath)
+			)
 
-		// Check if internal state has items removed from external value
-		const removedPaths = [...internalPaths].filter((path) => path && !externalPaths.has(path))
+			// Check if external value has items not in internal state
+			const newExternalPaths = value.filter((path) => !internalPaths.has(path))
 
-		if (newExternalPaths.length > 0 || removedPaths.length > 0) {
-			// eslint-disable-next-line react-hooks/set-state-in-effect
-			setImages((prev) => {
-				// Keep uploading items and items still in external value
-				const kept = prev.filter(
-					(img) =>
-						img.status === 'uploading' || (img.bucketPath && externalPaths.has(img.bucketPath))
-				)
+			// Check if internal state has items removed from external value
+			const removedPaths = [...internalPaths].filter((path) => path && !externalPaths.has(path))
 
-				// Add new external items
-				const newItems: Array<ImageItem> = newExternalPaths.map((path) => ({
-					bucketPath: path,
-					displayUrl: getImageUrl(path) || path,
-					id: `external-${path}`,
-					progress: 100,
-					status: 'success' as const
-				}))
+			// No changes needed - return same reference to avoid unnecessary re-render
+			if (newExternalPaths.length === 0 && removedPaths.length === 0) {
+				return prev
+			}
 
-				return [...kept, ...newItems]
-			})
-		}
-	}, [images, value])
+			// Keep uploading items and items still in external value
+			const kept = prev.filter(
+				(img) =>
+					img.status === 'uploading' || (img.bucketPath && externalPaths.has(img.bucketPath))
+			)
+
+			// Add new external items
+			const newItems: Array<ImageItem> = newExternalPaths.map((path) => ({
+				bucketPath: path,
+				displayUrl: getImageUrl(path) || path,
+				id: `external-${path}`,
+				progress: 100,
+				status: 'success' as const
+			}))
+
+			return [...kept, ...newItems]
+		})
+	}, [value])
 
 	// Track visibility with IntersectionObserver
 	useEffect(() => {

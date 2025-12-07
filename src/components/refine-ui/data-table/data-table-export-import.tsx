@@ -1,5 +1,4 @@
 import { useCreate, useNotification } from '@refinedev/core'
-import pLimit from 'p-limit'
 import {
 	AlertCircle,
 	Check,
@@ -12,6 +11,7 @@ import {
 	Upload,
 	XCircle
 } from 'lucide-react'
+import pLimit from 'p-limit'
 import { useCallback, useRef, useState } from 'react'
 
 import {
@@ -60,6 +60,8 @@ export type DataTableExportProps<T extends Record<string, unknown>> = {
 }
 
 export type DataTableImportProps<T extends Record<string, unknown>> = {
+	/** Fields that should be converted from comma-separated strings to arrays */
+	arrayFields?: Array<string>
 	columns: Array<ColumnMapping<T>>
 	/** Fields to exclude from main record creation (handled separately) */
 	excludeFields?: Array<string>
@@ -201,6 +203,7 @@ export function DataTableExport<T extends Record<string, unknown>>({
 }
 
 export function DataTableImport<T extends Record<string, unknown>>({
+	arrayFields = [],
 	columns,
 	excludeFields = [],
 	onSuccess,
@@ -340,6 +343,7 @@ export function DataTableImport<T extends Record<string, unknown>>({
 			relationships.filter((r) => r.isMany && r.junctionTable).map((r) => r.field)
 		)
 		const fieldsToExclude = new Set([...excludeFields, ...manyToManyFields])
+		const arrayFieldsSet = new Set(arrayFields)
 
 		// Track completed count for progress
 		let completedCount = 0
@@ -370,7 +374,20 @@ export function DataTableImport<T extends Record<string, unknown>>({
 								}
 							} else if (!fieldsToExclude.has(keyStr)) {
 								// Handle regular fields (including simple foreign keys)
-								if (
+								if (arrayFieldsSet.has(keyStr)) {
+									// Convert comma-separated string to array
+									if (value) {
+										const arr =
+											typeof value === 'string'
+												? value.split(',').map((v) => v.trim()).filter(Boolean)
+												: Array.isArray(value)
+													? value
+													: [String(value)]
+										;(transformedRow as Record<string, unknown>)[keyStr] = arr
+									} else {
+										;(transformedRow as Record<string, unknown>)[keyStr] = []
+									}
+								} else if (
 									typeof value === 'string' &&
 									(value.toLowerCase() === 'true' || value.toLowerCase() === 'false')
 								) {
