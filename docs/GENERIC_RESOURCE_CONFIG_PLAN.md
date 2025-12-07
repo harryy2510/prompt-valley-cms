@@ -108,6 +108,267 @@ Junction table relationship.
 
 ---
 
+## Relation Display & Data Fetching
+
+### Displaying Related Data in Lists
+
+When showing a `belongsTo` field in a table, we need to display the related record's label (e.g., "Marketing") not just the foreign key (e.g., "abc-123").
+
+```typescript
+interface BelongsToRelation {
+  type: 'belongsTo'
+  resource: string
+  foreignKey: string
+  labelField: string              // Field to display (e.g., 'name')
+
+  // Additional display fields to fetch
+  displayFields?: string[]        // e.g., ['name', 'icon', 'color']
+
+  // For nested access in templates
+  accessor?: string               // e.g., 'category.name' for nested display
+}
+```
+
+**Generated Select Query:**
+```typescript
+// For prompts with category relation:
+// Config: { type: 'belongsTo', resource: 'categories', foreignKey: 'category_id', labelField: 'name' }
+// Generated: '*, categories(id, name)'
+
+// With additional display fields:
+// Config: { displayFields: ['name', 'icon', 'color'] }
+// Generated: '*, categories(id, name, icon, color)'
+```
+
+### Displaying ManyToMany in Lists
+
+For junction table relationships, we need to:
+1. Fetch through the junction table
+2. Access nested data for display
+
+```typescript
+interface ManyToManyRelation {
+  type: 'manyToMany'
+  resource: string               // e.g., 'tags'
+  through: string                // e.g., 'prompt_tags'
+  foreignKey: string             // e.g., 'prompt_id'
+  relatedKey: string             // e.g., 'tag_id'
+  labelField: string             // e.g., 'name'
+
+  // Additional fields to fetch from related resource
+  displayFields?: string[]       // e.g., ['name', 'color']
+
+  // Accessor path for nested data
+  // Auto-generated: '{through}({resource}(id, {labelField}))'
+  accessor?: string              // e.g., 'prompt_tags.tags.name'
+}
+```
+
+**Generated Select Query:**
+```typescript
+// For prompts with tags relation:
+// Config: { type: 'manyToMany', resource: 'tags', through: 'prompt_tags', relatedKey: 'tag_id', labelField: 'name' }
+// Generated: 'prompt_tags(tags(id, name))'
+
+// Full select for prompts:
+// '*, categories(id, name), prompt_tags(tags(id, name)), prompt_models(ai_models(id, name))'
+```
+
+### Select Query Generation Utility
+
+```typescript
+// src/config/utils/generate-select.ts
+
+function generateSelectQuery(config: ResourceConfig): string {
+  const parts: string[] = ['*']
+
+  for (const [name, relation] of Object.entries(config.relations || {})) {
+    const fields = ['id', relation.labelField, ...(relation.displayFields || [])]
+    const fieldList = [...new Set(fields)].join(', ')
+
+    if (relation.type === 'belongsTo') {
+      // Direct relation: categories(id, name)
+      parts.push(`${relation.resource}(${fieldList})`)
+    }
+    else if (relation.type === 'manyToMany') {
+      // Junction table: prompt_tags(tags(id, name))
+      parts.push(`${relation.through}(${relation.resource}(${fieldList}))`)
+    }
+    // hasMany doesn't need to be in select - it's counted or loaded separately
+  }
+
+  return parts.join(', ')
+}
+
+// Example output:
+// generateSelectQuery(promptsConfig)
+// => '*, categories(id, name), prompt_tags(tags(id, name)), prompt_models(ai_models(id, name))'
+```
+
+### Accessing Nested Data in Cells
+
+```typescript
+interface ListColumnConfig {
+  id: string
+
+  // For relation fields - path to display value
+  // Auto-generated from relation config if not specified
+  accessor?: string | ((row: unknown) => unknown)
+
+  // Examples:
+  // 'category_id' with belongsTo -> accessor: 'categories.name' (auto)
+  // 'tags' with manyToMany -> accessor: (row) => row.prompt_tags?.map(pt => pt.tags?.name)
+}
+
+// Cell renderer receives the accessed value
+list: {
+  columns: [
+    {
+      id: 'category_id',
+      cell: 'default',
+      // Auto-generated accessor from relation:
+      // accessor: (row) => row.categories?.name
+    },
+    {
+      id: 'tags',
+      cell: 'tags',
+      // Auto-generated accessor from relation:
+      // accessor: (row) => row.prompt_tags?.map(pt => pt.tags)
+    }
+  ]
+}
+```
+
+### Form Options Loading (useSelect)
+
+For relation fields in forms, we need to load options from the related resource.
+
+```typescript
+interface BelongsToRelation {
+  // ... existing fields
+
+  // Options loading configuration
+  optionLabel?: string           // Field for option label (default: labelField)
+  optionValue?: string           // Field for option value (default: 'id')
+
+  // Pagination for large datasets
+  pagination?: {
+    pageSize?: number            // default: 1000
+    mode?: 'client' | 'server'
+  }
+
+  // Search/filter options
+  searchable?: boolean           // Enable search in select
+  searchFields?: string[]        // Fields to search in
+
+  // Sort options
+  sortBy?: string                // Field to sort by
+  sortOrder?: 'asc' | 'desc'
+}
+```
+
+**Generated useSelect config:**
+```typescript
+// From relation config:
+// { type: 'belongsTo', resource: 'categories', labelField: 'name', filters: [...] }
+
+// Generated useSelect call:
+const { options } = useSelect({
+  resource: 'categories',
+  optionLabel: 'name',
+  optionValue: 'id',
+  filters: [...],
+  pagination: { pageSize: 1000 }
+})
+```
+
+### Form Relation Data Preloading
+
+For manyToMany fields in edit mode, we need to preload existing junction table data.
+
+```typescript
+interface ManyToManyRelation {
+  // ... existing fields
+
+  // Form field configuration
+  formField?: string             // Name of form field (default: relation name)
+
+  // Preload configuration for edit mode
+  preload?: {
+    // Query to load existing relations
+    // Auto-generated: SELECT {relatedKey} FROM {through} WHERE {foreignKey} = :id
+    select?: string
+  }
+}
+```
+
+**Generated preload query:**
+```typescript
+// For tags relation on prompt edit:
+// Config: { through: 'prompt_tags', foreignKey: 'prompt_id', relatedKey: 'tag_id' }
+
+// Generated query using getRelatedServer:
+const { data: tagsData } = await getRelatedServer({
+  data: {
+    junctionTable: 'prompt_tags',
+    fkColumn: 'prompt_id',
+    fkValue: id,
+    select: 'tag_id'
+  }
+})
+
+// Set form value:
+form.setValue('tags', tagsData.map(t => t.tag_id))
+```
+
+### Show View Relation Display
+
+```typescript
+interface ShowConfig {
+  sections: ShowSectionConfig[]
+
+  // Relation display in show view
+  relations?: Record<string, {
+    // Display mode
+    display: 'inline' | 'list' | 'table' | 'cards'
+
+    // Fields to show from related records
+    fields?: string[]
+
+    // For table/cards display
+    columns?: ListColumnConfig[]
+
+    // Link to related resource list
+    linkToList?: boolean
+
+    // Max items to show (for list/inline)
+    limit?: number
+
+    // Show "View all" link
+    showViewAll?: boolean
+  }>
+}
+
+// Example
+show: {
+  relations: {
+    tags: {
+      display: 'inline',           // Show as inline badges
+      fields: ['name']
+    },
+    models: {
+      display: 'list',             // Show as vertical list
+      fields: ['name', 'provider.name'],
+      limit: 5,
+      showViewAll: true,
+      linkToList: true
+    }
+  }
+}
+```
+
+---
+
 ## Complete Configuration Schema
 
 ```typescript
@@ -2725,6 +2986,522 @@ list: {
       { key: 'p', action: 'publish', description: 'Toggle publish' },
       { key: 'f', action: 'toggleFeatured', description: 'Toggle featured' }
     ]
+  }
+}
+```
+
+---
+
+## Clone/Duplicate Action
+
+```typescript
+interface ResourceConfig {
+  // Clone/Duplicate configuration
+  clone?: {
+    enabled: boolean
+
+    // Fields to exclude from clone (auto-generated fields)
+    excludeFields?: string[]     // default: ['id', 'created_at', 'updated_at']
+
+    // Fields to reset to default
+    resetFields?: string[]       // e.g., ['is_published', 'views_count']
+
+    // Transform cloned data
+    transform?: string           // function name
+
+    // Suffix to add to unique fields
+    uniqueSuffix?: {
+      field: string              // e.g., 'title', 'id'
+      suffix: string             // e.g., ' (Copy)', '-copy'
+      pattern?: string           // regex to detect existing suffix
+    }
+
+    // Clone related records too
+    includeRelations?: string[]  // e.g., ['tags', 'models']
+  }
+}
+
+// Example
+clone: {
+  enabled: true,
+  excludeFields: ['id', 'created_at', 'updated_at', 'views_count'],
+  resetFields: ['is_published', 'is_featured'],
+  uniqueSuffix: {
+    field: 'title',
+    suffix: ' (Copy)',
+    pattern: / \(Copy( \d+)?\)$/
+  },
+  includeRelations: ['tags', 'models']
+}
+```
+
+---
+
+## Tree View for Hierarchical Data
+
+For resources like categories with parent-child relationships:
+
+```typescript
+interface ListConfig {
+  // Tree view configuration
+  tree?: {
+    enabled: boolean
+
+    // Parent field
+    parentField: string          // e.g., 'parent_id'
+
+    // Children relation name
+    childrenRelation?: string    // e.g., 'children'
+
+    // Display options
+    indentSize?: number          // pixels per level, default: 24
+    expandable?: boolean         // show expand/collapse
+    defaultExpanded?: boolean    // expand all by default
+
+    // Drag and drop reordering
+    dragDrop?: {
+      enabled: boolean
+      // Field to store order
+      orderField?: string        // e.g., 'sort_order'
+      // Allow moving to different parent
+      allowReparent?: boolean
+    }
+  }
+}
+
+// Example for categories
+list: {
+  tree: {
+    enabled: true,
+    parentField: 'parent_id',
+    childrenRelation: 'children',
+    expandable: true,
+    defaultExpanded: false,
+    dragDrop: {
+      enabled: true,
+      orderField: 'sort_order',
+      allowReparent: true
+    }
+  }
+}
+```
+
+---
+
+## Breadcrumbs Configuration
+
+```typescript
+interface ResourceConfig {
+  // Breadcrumbs configuration
+  breadcrumbs?: {
+    // Show breadcrumbs
+    enabled?: boolean            // default: true
+
+    // Include parent resource
+    parent?: {
+      resource: string
+      labelField: string
+      foreignKey: string
+    }
+
+    // Custom label for list page
+    listLabel?: string           // default: pluralName
+
+    // Show record title in edit/show breadcrumb
+    showRecordLabel?: boolean    // default: true
+    recordLabelField?: string    // default: labelField
+  }
+}
+
+// Example
+breadcrumbs: {
+  enabled: true,
+  parent: {
+    resource: 'ai_providers',
+    labelField: 'name',
+    foreignKey: 'provider_id'
+  },
+  showRecordLabel: true,
+  recordLabelField: 'name'
+}
+
+// Generated breadcrumbs for AI Model edit:
+// Home > AI Providers > OpenAI > AI Models > GPT-4 > Edit
+```
+
+---
+
+## Quick Edit Modal
+
+Edit a record without leaving the list view:
+
+```typescript
+interface ListConfig {
+  // Quick edit configuration
+  quickEdit?: {
+    enabled: boolean
+
+    // Which fields to show in quick edit
+    fields?: string[]            // default: all editable fields
+
+    // Or reference form sections
+    sections?: string[]          // section titles to include
+
+    // Modal size
+    size?: 'sm' | 'md' | 'lg' | 'xl'
+
+    // Save behavior
+    saveOnBlur?: boolean         // auto-save when clicking outside
+    showSaveButton?: boolean     // show explicit save button
+  }
+}
+
+// Example
+list: {
+  quickEdit: {
+    enabled: true,
+    fields: ['title', 'category_id', 'tier', 'is_published'],
+    size: 'md',
+    showSaveButton: true
+  }
+}
+```
+
+---
+
+## Bulk Edit
+
+Edit multiple records at once:
+
+```typescript
+interface ListConfig {
+  // Bulk edit configuration
+  bulkEdit?: {
+    enabled: boolean
+
+    // Fields that can be bulk edited
+    fields: string[]
+
+    // Require confirmation
+    confirm?: boolean
+
+    // Preview changes before applying
+    preview?: boolean
+  }
+}
+
+// Example
+list: {
+  selectable: true,
+  bulkEdit: {
+    enabled: true,
+    fields: ['category_id', 'tier', 'is_published', 'is_featured'],
+    confirm: true,
+    preview: true
+  }
+}
+```
+
+---
+
+## Form Tabs & Wizard
+
+### Tabbed Form Sections
+
+```typescript
+interface FormConfig {
+  // Use tabs instead of stacked sections
+  layout?: 'stacked' | 'tabs' | 'wizard'
+
+  // Tab configuration (when layout: 'tabs')
+  tabs?: {
+    // Position of tabs
+    position?: 'top' | 'left'
+
+    // Persist active tab in URL
+    persistInUrl?: boolean
+
+    // Validate tab before switching
+    validateOnSwitch?: boolean
+  }
+}
+
+// Example
+form: {
+  layout: 'tabs',
+  tabs: {
+    position: 'top',
+    persistInUrl: true
+  },
+  sections: [
+    { title: 'Basic Info', fields: ['title', 'id', 'description'] },
+    { title: 'Content', fields: ['content'] },
+    { title: 'Settings', fields: ['category_id', 'tier'] },
+    { title: 'Media', fields: ['images'] },
+    { title: 'Relationships', fields: ['tags', 'models'] }
+  ]
+}
+```
+
+### Multi-Step Wizard
+
+```typescript
+interface FormConfig {
+  layout: 'wizard'
+
+  wizard?: {
+    // Show progress indicator
+    showProgress?: boolean
+
+    // Allow jumping to any step
+    allowSkip?: boolean
+
+    // Validate step before proceeding
+    validateSteps?: boolean
+
+    // Labels
+    nextLabel?: string
+    prevLabel?: string
+    submitLabel?: string
+
+    // Summary step at end
+    showSummary?: boolean
+  }
+}
+
+// Example
+form: {
+  layout: 'wizard',
+  wizard: {
+    showProgress: true,
+    validateSteps: true,
+    showSummary: true
+  },
+  sections: [
+    { title: 'Step 1: Basic Info', fields: ['title', 'id', 'description'] },
+    { title: 'Step 2: Content', fields: ['content', 'images'] },
+    { title: 'Step 3: Settings', fields: ['category_id', 'tier', 'tags', 'models'] }
+  ]
+}
+```
+
+---
+
+## Field Help Text & Tooltips
+
+```typescript
+interface FieldConfig {
+  // Help text below the field
+  description?: string
+
+  // Tooltip on hover (info icon)
+  tooltip?: string
+
+  // Show character count (for text fields)
+  showCharCount?: boolean
+
+  // Show word count
+  showWordCount?: boolean
+
+  // Help link
+  helpLink?: {
+    label: string
+    url: string
+  }
+}
+
+// Example
+fields: {
+  content: {
+    type: 'richtext',
+    label: 'Prompt Content',
+    description: 'Write the full prompt that will be sent to the AI model.',
+    tooltip: 'Use {placeholders} for dynamic content that users will fill in.',
+    showCharCount: true,
+    helpLink: {
+      label: 'Prompt writing guide',
+      url: '/docs/prompt-writing'
+    }
+  }
+}
+```
+
+---
+
+## Form Field Prefixes & Suffixes
+
+```typescript
+interface FieldConfig {
+  // Input prefix (inside input)
+  prefix?: string               // e.g., '$', 'https://'
+
+  // Input suffix (inside input)
+  suffix?: string               // e.g., 'USD', 'tokens'
+
+  // Addon before input (outside)
+  addonBefore?: string | {
+    type: 'text' | 'icon' | 'select'
+    value: string
+    options?: Array<{ label: string; value: string }>
+  }
+
+  // Addon after input (outside)
+  addonAfter?: string | {
+    type: 'text' | 'icon' | 'button'
+    value: string
+    action?: string
+  }
+}
+
+// Examples
+fields: {
+  cost_input_per_million: {
+    type: 'number',
+    prefix: '$',
+    suffix: '/ 1M tokens'
+  },
+  website_url: {
+    type: 'url',
+    addonBefore: 'https://'
+  },
+  slug: {
+    type: 'slug',
+    addonAfter: {
+      type: 'button',
+      value: 'Generate',
+      action: 'generateSlug'
+    }
+  }
+}
+```
+
+---
+
+## Data Transformation & Formatting
+
+```typescript
+interface FieldConfig {
+  // Transform value for display
+  format?: {
+    type: 'date' | 'datetime' | 'number' | 'currency' | 'bytes' | 'relative' | 'custom'
+
+    // For date/datetime
+    pattern?: string             // e.g., 'DD MMM, YYYY'
+
+    // For number
+    decimals?: number
+    locale?: string
+
+    // For currency
+    currency?: string            // e.g., 'USD'
+
+    // For bytes
+    precision?: number
+
+    // For custom
+    fn?: string                  // function name
+  }
+
+  // Transform value before saving
+  transform?: {
+    onSave?: string              // function name
+    onLoad?: string              // function name
+  }
+}
+
+// Examples
+fields: {
+  created_at: {
+    type: 'datetime',
+    format: { type: 'relative' }  // "2 hours ago"
+  },
+  cost: {
+    type: 'number',
+    format: { type: 'currency', currency: 'USD', decimals: 4 }
+  },
+  file_size: {
+    type: 'number',
+    format: { type: 'bytes', precision: 2 }  // "1.5 MB"
+  }
+}
+```
+
+---
+
+## Import Validation & Mapping
+
+```typescript
+interface ImportConfig {
+  // Column mapping configuration
+  mapping?: {
+    // Strict mode: reject if columns don't match
+    strict?: boolean
+
+    // Allow column name aliases
+    aliases?: Record<string, string[]>
+    // e.g., { 'category_id': ['category', 'cat_id'] }
+
+    // Required columns
+    required?: string[]
+
+    // Ignore extra columns
+    ignoreExtra?: boolean
+  }
+
+  // Row validation
+  validation?: {
+    // Skip invalid rows or fail entire import
+    mode: 'skip' | 'fail'
+
+    // Max errors before stopping
+    maxErrors?: number
+
+    // Custom row validator
+    validateRow?: string         // function name
+  }
+
+  // Duplicate handling
+  duplicates?: {
+    // How to detect duplicates
+    key: string | string[]       // field(s) to check
+
+    // What to do with duplicates
+    action: 'skip' | 'update' | 'fail'
+  }
+
+  // Post-import actions
+  afterImport?: {
+    // Refresh related data
+    invalidateQueries?: string[]
+
+    // Show summary
+    showSummary?: boolean
+
+    // Redirect after import
+    redirect?: 'list' | 'stay'
+  }
+}
+
+// Example
+import: {
+  mapping: {
+    aliases: {
+      category_id: ['category', 'cat_id', 'category_name'],
+      tag_ids: ['tags', 'tag_names']
+    },
+    required: ['id', 'title', 'content']
+  },
+  validation: {
+    mode: 'skip',
+    maxErrors: 100
+  },
+  duplicates: {
+    key: 'id',
+    action: 'update'
+  },
+  afterImport: {
+    invalidateQueries: ['prompts', 'tags'],
+    showSummary: true
   }
 }
 ```
