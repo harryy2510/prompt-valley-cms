@@ -47,6 +47,7 @@ export default defineConfig({
 	resolve: {
 		alias: {
 			'@': resolve(__dirname, './src'),
+			qs: resolve(__dirname, './src/libs/qs-shim.ts'), // Point to shim
 			'react-dom/server': 'react-dom/server.edge'
 		},
 		dedupe: ['react', 'react-dom']
