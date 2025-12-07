@@ -46,7 +46,7 @@ export function TagForm({ mode }: TagFormProps) {
 		defaultValues: getDefaultsForSchema(tagFormSchema),
 		refineCoreProps: {
 			action: mode,
-			redirect: 'list',
+			redirect: false,
 			resource: 'tags'
 		},
 		resolver: zodResolver(tagFormSchema)
@@ -56,9 +56,14 @@ export function TagForm({ mode }: TagFormProps) {
 		formState: form.formState
 	})
 
+	const handleSubmit = async (data: TagFormValues) => {
+		await onFinish(data)
+		back()
+	}
+
 	return (
 		<Form {...form}>
-			<form className="space-y-6 w-full max-w-4xl mx-auto" onSubmit={form.handleSubmit(onFinish)}>
+			<form className="space-y-6 w-full max-w-4xl mx-auto" onSubmit={form.handleSubmit(handleSubmit)}>
 				<LoadingOverlay containerClassName="space-y-6" loading={formLoading}>
 					<Card>
 						<CardHeader>

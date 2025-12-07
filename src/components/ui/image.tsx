@@ -48,7 +48,6 @@ const getBackgroundBrightness = (el: HTMLElement | null): number => {
 export function Image({ alt = '', className, fallback, src, ...props }: ImageProps) {
 	const imageUrl = getImageUrl(src)
 	const [needsLightBg, setNeedsLightBg] = useState(false)
-	const [isLoaded, setIsLoaded] = useState(false)
 	const imgRef = useRef<HTMLImageElement>(null) // 1. Fixed type
 
 	useEffect(() => {
@@ -64,10 +63,7 @@ export function Image({ alt = '', className, fallback, src, ...props }: ImagePro
 
 			const contrast = Math.abs(imgBrightness - bgBrightness)
 			setNeedsLightBg(contrast < 60 && bgBrightness < 128)
-			setIsLoaded(true)
 		}
-
-		img.onerror = () => setIsLoaded(true)
 	}, [imageUrl])
 
 	if (!imageUrl) {
@@ -78,12 +74,7 @@ export function Image({ alt = '', className, fallback, src, ...props }: ImagePro
 		<img
 			{...props}
 			alt={alt}
-			className={cn(
-				'object-contain transition-all',
-				needsLightBg && 'bg-white/90',
-				isLoaded ? 'opacity-100' : 'opacity-0',
-				className
-			)}
+			className={cn('object-contain transition-all', needsLightBg && 'bg-white/90', className)}
 			ref={imgRef}
 			src={imageUrl}
 		/>

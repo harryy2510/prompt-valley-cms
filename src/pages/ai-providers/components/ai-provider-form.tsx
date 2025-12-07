@@ -49,7 +49,7 @@ export function AIProviderForm({ mode }: AIProviderFormProps) {
 		defaultValues: getDefaultsForSchema(providerFormSchema),
 		refineCoreProps: {
 			action: mode,
-			redirect: 'list',
+			redirect: false,
 			resource: 'ai_providers'
 		},
 		resolver: zodResolver(providerFormSchema)
@@ -59,9 +59,14 @@ export function AIProviderForm({ mode }: AIProviderFormProps) {
 		formState: form.formState
 	})
 
+	const handleSubmit = async (data: ProviderFormValues) => {
+		await onFinish(data)
+		back()
+	}
+
 	return (
 		<Form {...form}>
-			<form className="space-y-6 w-full max-w-4xl mx-auto" onSubmit={form.handleSubmit(onFinish)}>
+			<form className="space-y-6 w-full max-w-4xl mx-auto" onSubmit={form.handleSubmit(handleSubmit)}>
 				<LoadingOverlay containerClassName="space-y-6" loading={formLoading}>
 					<Card>
 						<CardHeader>

@@ -80,7 +80,7 @@ export function PromptForm({ mode }: PromptFormProps) {
 		defaultValues: getDefaultsForSchema(promptFormSchema),
 		refineCoreProps: {
 			action: mode,
-			redirect: 'list',
+			redirect: false,
 			resource: 'prompts'
 		},
 		resolver: zodResolver(promptFormSchema)
@@ -227,6 +227,9 @@ export function PromptForm({ mode }: PromptFormProps) {
 				})
 			}
 		}
+
+		// Navigate back preserving query params
+		back()
 	}
 
 	const isLoading = formLoading || isLoadingRelations
