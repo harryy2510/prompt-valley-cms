@@ -2,6 +2,7 @@ import { AlertCircle, ImageIcon, Upload, X } from 'lucide-react'
 import pLimit from 'p-limit'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import { Image } from '@/components/ui/image'
 import { cn } from '@/libs/cn'
 import { deleteImage, getImageUrl, isBucketPath, isFullUrl, uploadImage } from '@/libs/storage'
 
@@ -33,14 +34,6 @@ type ImageUploadProps = {
 	mode?: 'create' | 'edit'
 	onChange: (value: null | string) => void
 	value?: null | string
-}
-
-/**
- * Simple component to render an image from either a URL or bucket path
- */
-type SmartImageProps = Omit<React.ImgHTMLAttributes<HTMLImageElement>, 'src'> & {
-	fallback?: React.ReactNode
-	src: null | string | undefined
 }
 
 type UploadStatus = 'error' | 'success' | 'uploading'
@@ -256,7 +249,7 @@ export function ImageUpload({
 			{imageItem && (
 				<div className={itemClassName}>
 					<div className="relative size-12 rounded border overflow-hidden shrink-0 bg-muted">
-						<img alt="Preview" className="size-full object-contain" src={imageItem.displayUrl} />
+						<Image alt="Preview" className="size-full object-contain" src={imageItem.displayUrl} />
 						{/* Upload overlay */}
 						{imageItem.status === 'uploading' && (
 							<div className="absolute inset-0 bg-background/60 flex items-center justify-center">
@@ -417,16 +410,6 @@ export function ImageUpload({
 			)}
 		</div>
 	)
-}
-
-export function SmartImage({ alt = '', fallback, src, ...props }: SmartImageProps) {
-	const imageUrl = getImageUrl(src)
-
-	if (!imageUrl) {
-		return fallback ? <>{fallback}</> : null
-	}
-
-	return <img alt={alt} src={imageUrl} {...props} />
 }
 
 /**
@@ -818,7 +801,7 @@ export function ImagesUpload({
 									{parsedLinks.map((link, idx) => {
 										const imgUrl = getImageUrl(link) || link
 										return (
-											<img
+											<Image
 												alt={`Preview ${idx + 1}`}
 												className="size-10 rounded border object-contain bg-muted"
 												key={idx}
@@ -863,7 +846,7 @@ export function ImagesUpload({
 					{images.map((item) => (
 						<div className={itemClassName} key={item.id}>
 							<div className="relative size-12 rounded border overflow-hidden shrink-0 bg-muted">
-								<img alt="Preview" className="size-full object-contain" src={item.displayUrl} />
+								<Image alt="Preview" className="size-full object-contain" src={item.displayUrl} />
 								{/* Upload overlay */}
 								{item.status === 'uploading' && (
 									<div className="absolute inset-0 bg-background/60 flex items-center justify-center">

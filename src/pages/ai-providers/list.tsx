@@ -16,6 +16,7 @@ import { DataTableSorter } from '@/components/refine-ui/data-table/data-table-so
 import { ListView, ListViewHeader } from '@/components/refine-ui/views/list-view'
 import { ActionButton } from '@/components/ui/action-button'
 import { Button } from '@/components/ui/button'
+import { Image } from '@/components/ui/image'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { getImageUrl } from '@/libs/storage'
 import type { Tables } from '@/types/database.types'
@@ -46,7 +47,7 @@ export function AiProvidersList() {
 				cell: ({ row }) => {
 					const logoUrl = getImageUrl(row.original.logo_url)
 					return logoUrl ? (
-						<img
+						<Image
 							alt={row.original.name}
 							className="size-8 rounded border object-contain p-1"
 							src={logoUrl}

@@ -8,7 +8,7 @@ import { ShowView, ShowViewHeader } from '@/components/refine-ui/views/show-view
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { getImageUrl } from '@/libs/storage'
+import { Image } from '@/components/ui/image'
 import type { Tables } from '@/types/database.types'
 import { fShortenNumber } from '@/utils/format'
 
@@ -154,13 +154,12 @@ export function PromptsShow() {
 										<p className="text-sm font-medium mb-2">Images</p>
 										<div className="flex flex-wrap gap-2">
 											{prompt.images.map((image: string, index: number) => {
-												const imageUrl = getImageUrl(image)
 												return (
-													<img
+													<Image
 														alt={`Prompt image ${index + 1}`}
 														className="size-24 rounded-md border object-cover"
 														key={index}
-														src={imageUrl || ''}
+														src={image}
 													/>
 												)
 											})}

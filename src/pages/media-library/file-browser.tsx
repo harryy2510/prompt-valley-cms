@@ -78,6 +78,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
+import { Image } from '@/components/ui/image'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -825,7 +826,7 @@ export function FileBrowser({ bucketId: propBucketId }: FileBrowserProps = {}) {
 						<DialogTitle>Preview</DialogTitle>
 					</DialogHeader>
 					{previewFile && (
-						<img
+						<Image
 							alt="Preview"
 							className="w-full h-auto max-h-[70vh] object-contain rounded-md"
 							src={previewFile}
@@ -987,7 +988,7 @@ function FileGridItem({
 					{/* Thumbnail or Icon */}
 					<div className="size-16 flex items-center justify-center mb-2">
 						{isImage && publicUrl ? (
-							<img alt={name} className="size-16 object-cover rounded" src={publicUrl} />
+							<Image alt={name} className="size-16 object-cover rounded" src={publicUrl} />
 						) : isFolder ? (
 							<FolderOpen className="size-12 text-muted-foreground" />
 						) : (
