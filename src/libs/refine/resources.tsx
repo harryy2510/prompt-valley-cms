@@ -10,17 +10,26 @@ export const resources: Array<ResourceProps> = [
 		name: 'content'
 	},
 	{
-		create: '/prompts/create',
-		edit: '/prompts/edit/:id',
-		list: '/prompts',
+		create: '/ai-providers/create',
+		edit: '/ai-providers/edit/:id',
+		list: '/ai-providers',
 		meta: {
-			icon: <FileText />,
-			label: 'Prompts',
-
+			icon: <Bot />,
+			label: 'AI Providers',
 			parent: 'content'
 		},
-		name: 'prompts',
-		show: '/prompts/show/:id'
+		name: 'ai_providers'
+	},
+	{
+		create: '/ai-models/create',
+		edit: '/ai-models/edit/:id',
+		list: '/ai-models',
+		meta: {
+			icon: <Package />,
+			label: 'AI Models',
+			parent: 'content'
+		},
+		name: 'ai_models'
 	},
 	{
 		create: '/categories/create',
@@ -45,26 +54,16 @@ export const resources: Array<ResourceProps> = [
 		name: 'tags'
 	},
 	{
-		create: '/ai-providers/create',
-		edit: '/ai-providers/edit/:id',
-		list: '/ai-providers',
+		create: '/prompts/create',
+		edit: '/prompts/edit/:id',
+		list: '/prompts',
 		meta: {
-			icon: <Bot />,
-			label: 'AI Providers',
+			icon: <FileText />,
+			label: 'Prompts',
 			parent: 'content'
 		},
-		name: 'ai_providers'
-	},
-	{
-		create: '/ai-models/create',
-		edit: '/ai-models/edit/:id',
-		list: '/ai-models',
-		meta: {
-			icon: <Package />,
-			label: 'AI Models',
-			parent: 'content'
-		},
-		name: 'ai_models'
+		name: 'prompts',
+		show: '/prompts/show/:id'
 	},
 	{
 		list: '/media-library',

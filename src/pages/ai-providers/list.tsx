@@ -3,6 +3,7 @@ import { useTable } from '@refinedev/react-table'
 import type { ColumnDef, VisibilityState } from '@tanstack/react-table'
 import dayjs from 'dayjs'
 import { ExternalLink, Pencil, Trash2 } from 'lucide-react'
+import pLimit from 'p-limit'
 import { useMemo } from 'react'
 import { useLocalStorage } from 'usehooks-ts'
 
@@ -253,10 +254,10 @@ export function AiProvidersList() {
 					<div className="flex items-center gap-2">
 						<DataTableImport<AiProvider>
 							columns={EXPORT_COLUMNS}
-							excludeFields={['created_at']}
+							excludeFields={['created_at', 'updated_at']}
 							onSuccess={handleImportSuccess}
 							resource="ai_providers"
-							templateFilename="ai-providers-template"
+							templateFilename="ai-providers"
 						/>
 						<DataTableExport
 							columns={EXPORT_COLUMNS}
@@ -270,11 +271,25 @@ export function AiProvidersList() {
 				table={table}
 			/>
 			<DataTable
+				enableSelection
 				onDelete={async (row) => {
 					await deleteProvider({
 						id: row.id,
 						resource: 'ai_providers'
 					})
+				}}
+				onDeleteMany={async (rows) => {
+					const limit = pLimit(10)
+					await Promise.all(
+						rows.map((row) =>
+							limit(() =>
+								deleteProvider({
+									id: row.id,
+									resource: 'ai_providers'
+								})
+							)
+						)
+					)
 				}}
 				resource="ai_providers"
 				table={table}

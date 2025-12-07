@@ -1,4 +1,5 @@
 import { useCreate, useNotification } from '@refinedev/core'
+import pLimit from 'p-limit'
 import {
 	AlertCircle,
 	Check,
@@ -340,9 +341,11 @@ export function DataTableImport<T extends Record<string, unknown>>({
 		)
 		const fieldsToExclude = new Set([...excludeFields, ...manyToManyFields])
 
-		for (let i = 0; i < previewData.length; i++) {
-			const row = previewData[i]
+		// Track completed count for progress
+		let completedCount = 0
 
+		// Process a single row
+		const processRow = async (row: Record<string, unknown>, i: number) => {
 			try {
 				// Transform row from headers back to keys
 				let transformedRow: Partial<T> = {}
@@ -457,8 +460,16 @@ export function DataTableImport<T extends Record<string, unknown>>({
 				result.rowResults.push({ data: row, error: errorMsg, rowIndex: i, status: 'failed' })
 			}
 
-			setImportProgress(((i + 1) / previewData.length) * 100)
+			completedCount++
+			setImportProgress((completedCount / previewData.length) * 100)
 		}
+
+		// Run imports in parallel with concurrency limit of 10
+		const limit = pLimit(10)
+		await Promise.all(previewData.map((row, i) => limit(() => processRow(row, i))))
+
+		// Sort row results by index for consistent display
+		result.rowResults.sort((a, b) => a.rowIndex - b.rowIndex)
 
 		setIsImporting(false)
 		setImportResult(result)

@@ -3,6 +3,7 @@ import { useTable } from '@refinedev/react-table'
 import type { ColumnDef, VisibilityState } from '@tanstack/react-table'
 import dayjs from 'dayjs'
 import { Pencil, Trash2 } from 'lucide-react'
+import pLimit from 'p-limit'
 import { useMemo } from 'react'
 import { useLocalStorage } from 'usehooks-ts'
 
@@ -193,7 +194,7 @@ export function TagsList() {
 					<div className="flex items-center gap-2">
 						<DataTableImport<Tag>
 							columns={EXPORT_COLUMNS}
-							excludeFields={['created_at']}
+							excludeFields={['created_at', 'updated_at']}
 							onSuccess={handleImportSuccess}
 							resource="tags"
 							templateFilename="tags-template"
@@ -210,11 +211,25 @@ export function TagsList() {
 				table={table}
 			/>
 			<DataTable
+				enableSelection
 				onDelete={async (row) => {
 					await deleteTag({
 						id: row.id,
 						resource: 'tags'
 					})
+				}}
+				onDeleteMany={async (rows) => {
+					const limit = pLimit(10)
+					await Promise.all(
+						rows.map((row) =>
+							limit(() =>
+								deleteTag({
+									id: row.id,
+									resource: 'tags'
+								})
+							)
+						)
+					)
 				}}
 				resource="tags"
 				table={table}

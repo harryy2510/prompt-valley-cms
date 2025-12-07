@@ -1,4 +1,4 @@
-import { AlertCircle, ImageIcon, Upload, X } from 'lucide-react'
+import { AlertCircle, FolderOpen, ImageIcon, Upload, X } from 'lucide-react'
 import pLimit from 'p-limit'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
@@ -7,6 +7,7 @@ import { cn } from '@/libs/cn'
 import { deleteImage, getImageUrl, isBucketPath, isFullUrl, uploadImage } from '@/libs/storage'
 
 import { Button } from './button'
+import { MediaPickerDialog } from './media-picker-dialog'
 import { Textarea } from './textarea'
 
 type ImageItem = {
@@ -27,6 +28,7 @@ type ImageItem = {
 
 type ImageUploadProps = {
 	accept?: string
+	allowBrowseBucket?: boolean
 	allowLinkInput?: boolean
 	folder: string
 	label?: string
@@ -40,6 +42,7 @@ type UploadStatus = 'error' | 'success' | 'uploading'
 
 export function ImageUpload({
 	accept = 'image/*',
+	allowBrowseBucket = true,
 	allowLinkInput = true,
 	folder,
 	label = 'Upload Image',
@@ -344,6 +347,28 @@ export function ImageUpload({
 							</button>
 						</p>
 					</div>
+					{allowBrowseBucket && (
+						<MediaPickerDialog
+							onSelect={(paths) => {
+								if (paths.length > 0) {
+									const path = paths[0]
+									setImageItem({
+										bucketPath: path,
+										displayUrl: getImageUrl(path) || path,
+										id: 'media-picker',
+										progress: 100,
+										status: 'success'
+									})
+									onChange(path)
+								}
+							}}
+						>
+							<Button size="sm" type="button" variant="outline">
+								<FolderOpen className="size-4 mr-2" />
+								Browse from Bucket
+							</Button>
+						</MediaPickerDialog>
+					)}
 					<input
 						accept={accept}
 						className="hidden"
@@ -430,6 +455,7 @@ const uploadLimit = pLimit(5)
  */
 type ImagesUploadProps = {
 	accept?: string
+	allowBrowseBucket?: boolean
 	allowLinkInput?: boolean
 	folder: string
 	label?: string
@@ -441,6 +467,7 @@ type ImagesUploadProps = {
 
 export function ImagesUpload({
 	accept = 'image/*',
+	allowBrowseBucket = true,
 	allowLinkInput = true,
 	folder,
 	label = 'Add Images',
@@ -763,6 +790,29 @@ export function ImagesUpload({
 						</button>
 					</p>
 				</div>
+				{allowBrowseBucket && (
+					<MediaPickerDialog
+						multiple
+						onSelect={(paths) => {
+							if (paths.length > 0) {
+								const newItems: Array<ImageItem> = paths.map((path) => ({
+									bucketPath: path,
+									displayUrl: getImageUrl(path) || path,
+									id: `media-picker-${Math.random().toString(36).substring(2)}`,
+									progress: 100,
+									status: 'success' as const
+								}))
+								setImages((prev) => [...prev, ...newItems])
+								onChange([...valueRef.current, ...paths])
+							}
+						}}
+					>
+						<Button size="sm" type="button" variant="outline">
+							<FolderOpen className="size-4 mr-2" />
+							Browse from Bucket
+						</Button>
+					</MediaPickerDialog>
+				)}
 				<input
 					accept={accept}
 					className="hidden"

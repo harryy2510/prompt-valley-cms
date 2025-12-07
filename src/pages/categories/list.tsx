@@ -3,6 +3,7 @@ import { useTable } from '@refinedev/react-table'
 import type { ColumnDef, VisibilityState } from '@tanstack/react-table'
 import dayjs from 'dayjs'
 import { CornerDownRight, Pencil, Trash2 } from 'lucide-react'
+import pLimit from 'p-limit'
 import { useMemo } from 'react'
 import { useLocalStorage } from 'usehooks-ts'
 
@@ -274,7 +275,7 @@ export function CategoriesList() {
 					<div className="flex items-center gap-2">
 						<DataTableImport<ExportCategory>
 							columns={EXPORT_COLUMNS}
-							excludeFields={['created_at']}
+							excludeFields={['created_at', 'updated_at']}
 							onSuccess={handleImportSuccess}
 							relationships={[
 								{
@@ -283,7 +284,7 @@ export function CategoriesList() {
 								}
 							]}
 							resource="categories"
-							templateFilename="categories-template"
+							templateFilename="categories"
 						/>
 						<DataTableExport
 							columns={EXPORT_COLUMNS}
@@ -298,11 +299,25 @@ export function CategoriesList() {
 				table={table}
 			/>
 			<DataTable
+				enableSelection
 				onDelete={async (row) => {
 					await deleteCategory({
 						id: row.id,
 						resource: 'categories'
 					})
+				}}
+				onDeleteMany={async (rows) => {
+					const limit = pLimit(10)
+					await Promise.all(
+						rows.map((row) =>
+							limit(() =>
+								deleteCategory({
+									id: row.id,
+									resource: 'categories'
+								})
+							)
+						)
+					)
 				}}
 				resource="categories"
 				table={table}

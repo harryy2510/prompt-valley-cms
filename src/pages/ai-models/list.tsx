@@ -4,6 +4,7 @@ import type { ColumnDef, VisibilityState } from '@tanstack/react-table'
 import dayjs from 'dayjs'
 import { startCase } from 'lodash-es'
 import { Pencil, Trash2 } from 'lucide-react'
+import pLimit from 'p-limit'
 import { useMemo } from 'react'
 import { useLocalStorage } from 'usehooks-ts'
 
@@ -330,7 +331,7 @@ export function AiModelsList() {
 					<div className="flex items-center gap-2">
 						<DataTableImport<ExportAiModel>
 							columns={EXPORT_COLUMNS}
-							excludeFields={['provider_name', 'created_at']}
+							excludeFields={['created_at', 'updated_at']}
 							onSuccess={handleImportSuccess}
 							relationships={[
 								{
@@ -339,7 +340,7 @@ export function AiModelsList() {
 								}
 							]}
 							resource="ai_models"
-							templateFilename="ai-models-template"
+							templateFilename="ai-models"
 							transformBeforeInsert={(row) => ({
 								...row,
 								capabilities: row.capabilities
@@ -362,11 +363,25 @@ export function AiModelsList() {
 				table={table}
 			/>
 			<DataTable
+				enableSelection
 				onDelete={async (row) => {
 					await deleteModel({
 						id: row.id,
 						resource: 'ai_models'
 					})
+				}}
+				onDeleteMany={async (rows) => {
+					const limit = pLimit(10)
+					await Promise.all(
+						rows.map((row) =>
+							limit(() =>
+								deleteModel({
+									id: row.id,
+									resource: 'ai_models'
+								})
+							)
+						)
+					)
 				}}
 				resource="ai_models"
 				table={table}

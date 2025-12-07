@@ -103,7 +103,7 @@ type FileGridItemProps = {
 	onDoubleClick: () => void
 	onDownload?: () => void
 	onPreview?: () => void
-	onToggleSelect: () => void
+	onToggleSelect: (shiftKey: boolean) => void
 	publicUrl?: string
 }
 
@@ -119,7 +119,7 @@ type FileListItemProps = {
 	onDoubleClick: () => void
 	onDownload?: () => void
 	onPreview?: () => void
-	onToggleSelect: () => void
+	onToggleSelect: (shiftKey: boolean) => void
 	updatedAt?: null | string
 }
 
@@ -135,6 +135,14 @@ type FileObject = {
 type SelectableItem = {
 	isFolder: boolean
 	name: string
+}
+
+type UploadingFile = {
+	error?: string
+	id: string
+	name: string
+	progress: number
+	status: 'error' | 'success' | 'uploading'
 }
 
 type ViewMode = 'grid' | 'list'
@@ -157,7 +165,9 @@ export function FileBrowser({ bucketId: propBucketId }: FileBrowserProps = {}) {
 	const [isLoading, setIsLoading] = useState(true)
 	const [viewMode, setViewMode] = useState<ViewMode>('grid')
 	const [selectedItems, setSelectedItems] = useState<Set<string>>(() => new Set())
-	const [isUploading, setIsUploading] = useState(false)
+	const [lastSelectedItem, setLastSelectedItem] = useState<null | string>(null)
+	const [uploadingFiles, setUploadingFiles] = useState<Array<UploadingFile>>([])
+	const isUploading = uploadingFiles.some((f) => f.status === 'uploading')
 	const [newFolderDialogOpen, setNewFolderDialogOpen] = useState(false)
 	const [newFolderName, setNewFolderName] = useState('')
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -202,7 +212,8 @@ export function FileBrowser({ bucketId: propBucketId }: FileBrowserProps = {}) {
 				if (item.id === null) {
 					// It's a folder placeholder
 					folderSet.add(item.name)
-				} else {
+				} else if (item.name !== '.keep') {
+					// Hide .keep files used to maintain folder structure
 					fileList.push(item as FileObject)
 				}
 			})
@@ -252,41 +263,83 @@ export function FileBrowser({ bucketId: propBucketId }: FileBrowserProps = {}) {
 		const uploadFiles = e.target.files
 		if (!uploadFiles || uploadFiles.length === 0) return
 
-		setIsUploading(true)
+		const fileArray = Array.from(uploadFiles)
+
+		// Create upload items for all files
+		const newUploadItems: Array<UploadingFile> = fileArray.map((file) => ({
+			id: Math.random().toString(36).substring(2),
+			name: file.name,
+			progress: 0,
+			status: 'uploading' as const
+		}))
+
+		setUploadingFiles((prev) => [...prev, ...newUploadItems])
+		e.target.value = ''
+
 		let successCount = 0
 		let errorCount = 0
 
-		for (const file of Array.from(uploadFiles)) {
-			const filePath = pathString ? `${pathString}/${file.name}` : file.name
+		// Upload files in parallel
+		await Promise.all(
+			fileArray.map(async (file, index) => {
+				const uploadId = newUploadItems[index].id
+				const filePath = pathString ? `${pathString}/${file.name}` : file.name
 
-			try {
-				// Convert file to base64
-				const arrayBuffer = await file.arrayBuffer()
-				const bytes = new Uint8Array(arrayBuffer)
-				let binary = ''
-				for (const byte of bytes) {
-					binary += String.fromCharCode(byte)
-				}
-				const fileBase64 = btoa(binary)
+				// Simulate progress
+				const progressInterval = setInterval(() => {
+					setUploadingFiles((prev) =>
+						prev.map((f) =>
+							f.id === uploadId && f.status === 'uploading'
+								? { ...f, progress: Math.min(f.progress + 15, 90) }
+								: f
+						)
+					)
+				}, 100)
 
-				await uploadFileServer({
-					data: {
-						bucketId,
-						contentType: file.type,
-						fileBase64,
-						filePath,
-						upsert: true
+				try {
+					// Convert file to base64
+					const arrayBuffer = await file.arrayBuffer()
+					const bytes = new Uint8Array(arrayBuffer)
+					let binary = ''
+					for (const byte of bytes) {
+						binary += String.fromCharCode(byte)
 					}
-				})
-				successCount++
-			} catch (error) {
-				console.error('Upload error:', error)
-				errorCount++
-			}
-		}
+					const fileBase64 = btoa(binary)
 
-		setIsUploading(false)
-		e.target.value = ''
+					await uploadFileServer({
+						data: {
+							bucketId,
+							contentType: file.type,
+							fileBase64,
+							filePath,
+							upsert: true
+						}
+					})
+
+					clearInterval(progressInterval)
+					setUploadingFiles((prev) =>
+						prev.map((f) => (f.id === uploadId ? { ...f, progress: 100, status: 'success' } : f))
+					)
+					successCount++
+
+					// Remove successful upload after a delay
+					setTimeout(() => {
+						setUploadingFiles((prev) => prev.filter((f) => f.id !== uploadId))
+					}, 1500)
+				} catch (error) {
+					console.error('Upload error:', error)
+					clearInterval(progressInterval)
+					setUploadingFiles((prev) =>
+						prev.map((f) =>
+							f.id === uploadId
+								? { ...f, error: 'Upload failed', progress: 0, status: 'error' }
+								: f
+						)
+					)
+					errorCount++
+				}
+			})
+		)
 
 		if (successCount > 0) {
 			notify?.({
@@ -476,14 +529,34 @@ export function FileBrowser({ bucketId: propBucketId }: FileBrowserProps = {}) {
 		setDeleteDialogOpen(true)
 	}
 
-	const toggleSelection = (name: string) => {
+	const toggleSelection = (name: string, shiftKey = false) => {
 		const newSelected = new Set(selectedItems)
-		if (newSelected.has(name)) {
-			newSelected.delete(name)
+
+		if (shiftKey && lastSelectedItem && lastSelectedItem !== name) {
+			// Shift-select: select range between last selected and current
+			const allNames = allItems.map((i) => i.name)
+			const lastIndex = allNames.indexOf(lastSelectedItem)
+			const currentIndex = allNames.indexOf(name)
+
+			if (lastIndex !== -1 && currentIndex !== -1) {
+				const start = Math.min(lastIndex, currentIndex)
+				const end = Math.max(lastIndex, currentIndex)
+
+				for (let i = start; i <= end; i++) {
+					newSelected.add(allNames[i])
+				}
+			}
 		} else {
-			newSelected.add(name)
+			// Normal toggle
+			if (newSelected.has(name)) {
+				newSelected.delete(name)
+			} else {
+				newSelected.add(name)
+			}
 		}
+
 		setSelectedItems(newSelected)
+		setLastSelectedItem(name)
 	}
 
 	const clearSelection = () => {
@@ -612,6 +685,61 @@ export function FileBrowser({ bucketId: propBucketId }: FileBrowserProps = {}) {
 
 			<Separator className="mb-4" />
 
+			{/* Uploading Files Progress */}
+			{uploadingFiles.length > 0 && (
+				<div className="mb-4 space-y-2">
+					{uploadingFiles.map((file) => (
+						<div
+							className="flex items-center gap-3 rounded-md border p-3"
+							key={file.id}
+						>
+							<div className="relative size-10 rounded border overflow-hidden shrink-0 bg-muted flex items-center justify-center">
+								{file.status === 'uploading' ? (
+									<div className="size-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+								) : file.status === 'success' ? (
+									<CheckCheck className="size-5 text-primary" />
+								) : (
+									<X className="size-5 text-destructive" />
+								)}
+							</div>
+							<div className="flex-1 min-w-0">
+								<p className="text-sm font-medium truncate">{file.name}</p>
+								{file.status === 'uploading' && (
+									<>
+										<div className="flex items-center gap-2">
+											<span className="text-xs text-muted-foreground">Uploading...</span>
+											<span className="text-xs text-muted-foreground">{file.progress}%</span>
+										</div>
+										<div className="mt-1.5 h-1.5 rounded-full bg-muted overflow-hidden">
+											<div
+												className="h-full bg-primary transition-all duration-200"
+												style={{ width: `${file.progress}%` }}
+											/>
+										</div>
+									</>
+								)}
+								{file.status === 'success' && (
+									<p className="text-xs text-primary">Upload complete</p>
+								)}
+								{file.status === 'error' && (
+									<p className="text-xs text-destructive">{file.error}</p>
+								)}
+							</div>
+							{file.status === 'error' && (
+								<Button
+									className="shrink-0 size-8"
+									onClick={() => setUploadingFiles((prev) => prev.filter((f) => f.id !== file.id))}
+									size="icon"
+									variant="ghost"
+								>
+									<X className="size-4" />
+								</Button>
+							)}
+						</div>
+					))}
+				</div>
+			)}
+
 			{/* File Grid/List */}
 			<div className="relative flex-1" ref={containerRef}>
 				{isLoading ? (
@@ -645,7 +773,7 @@ export function FileBrowser({ bucketId: propBucketId }: FileBrowserProps = {}) {
 								onCopyUrl={() => {}}
 								onDelete={() => confirmDelete(folder, true)}
 								onDoubleClick={() => navigateToFolder(folder)}
-								onToggleSelect={() => toggleSelection(folder)}
+								onToggleSelect={(shiftKey) => toggleSelection(folder, shiftKey)}
 							/>
 						))}
 						{files.map((file) => (
@@ -668,7 +796,7 @@ export function FileBrowser({ bucketId: propBucketId }: FileBrowserProps = {}) {
 								onPreview={
 									isImageFile(file.name) ? () => setPreviewFile(getPublicUrl(file.name)) : undefined
 								}
-								onToggleSelect={() => toggleSelection(file.name)}
+								onToggleSelect={(shiftKey) => toggleSelection(file.name, shiftKey)}
 								publicUrl={getPublicUrl(file.name)}
 							/>
 						))}
@@ -686,7 +814,7 @@ export function FileBrowser({ bucketId: propBucketId }: FileBrowserProps = {}) {
 								onCopyUrl={() => {}}
 								onDelete={() => confirmDelete(folder, true)}
 								onDoubleClick={() => navigateToFolder(folder)}
-								onToggleSelect={() => toggleSelection(folder)}
+								onToggleSelect={(shiftKey) => toggleSelection(folder, shiftKey)}
 							/>
 						))}
 						{files.map((file) => (
@@ -709,7 +837,7 @@ export function FileBrowser({ bucketId: propBucketId }: FileBrowserProps = {}) {
 								onPreview={
 									isImageFile(file.name) ? () => setPreviewFile(getPublicUrl(file.name)) : undefined
 								}
-								onToggleSelect={() => toggleSelection(file.name)}
+								onToggleSelect={(shiftKey) => toggleSelection(file.name, shiftKey)}
 								updatedAt={file.updated_at}
 							/>
 						))}
@@ -857,10 +985,10 @@ function FileGridItem({
 	const isImage = !isFolder && isImageFile(name)
 	const size = metadata?.size as number | undefined
 
-	const handleClick = () => {
+	const handleClick = (e: React.MouseEvent) => {
 		// Only toggle selection on click if we're already in selection mode
 		if (isSelectionMode) {
-			onToggleSelect()
+			onToggleSelect(e.shiftKey)
 		}
 	}
 
@@ -924,7 +1052,7 @@ function FileGridItem({
 						)}
 						onClick={(e) => {
 							e.stopPropagation()
-							onToggleSelect()
+							onToggleSelect(e.shiftKey)
 						}}
 						size="icon"
 						variant="ghost"
@@ -1028,10 +1156,10 @@ function FileListItem({
 	const Icon = getFileIcon(name, isFolder)
 	const size = metadata?.size as number | undefined
 
-	const handleClick = () => {
+	const handleClick = (e: React.MouseEvent) => {
 		// Only toggle selection on click if we're already in selection mode
 		if (isSelectionMode) {
-			onToggleSelect()
+			onToggleSelect(e.shiftKey)
 		}
 	}
 
@@ -1094,7 +1222,7 @@ function FileListItem({
 						)}
 						onClick={(e) => {
 							e.stopPropagation()
-							onToggleSelect()
+							onToggleSelect(e.shiftKey)
 						}}
 						size="icon"
 						variant="ghost"

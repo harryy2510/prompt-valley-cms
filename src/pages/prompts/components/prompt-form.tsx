@@ -448,7 +448,7 @@ export function PromptForm({ mode }: PromptFormProps) {
 									<FormItem>
 										<FormControl>
 											<ImagesUpload
-												folder="images/prompts"
+												folder="prompts"
 												label="Add Images"
 												mode={isCreate ? 'create' : 'edit'}
 												onChange={field.onChange}

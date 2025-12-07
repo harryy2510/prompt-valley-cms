@@ -3,6 +3,7 @@ import { useTable } from '@refinedev/react-table'
 import type { ColumnDef, VisibilityState } from '@tanstack/react-table'
 import dayjs from 'dayjs'
 import { Eye, Pencil, Trash2 } from 'lucide-react'
+import pLimit from 'p-limit'
 import { useMemo } from 'react'
 import { useLocalStorage } from 'usehooks-ts'
 
@@ -502,7 +503,7 @@ export function PromptsList() {
 					<div className="flex items-center gap-2">
 						<DataTableImport<ExportPrompt>
 							columns={EXPORT_COLUMNS}
-							excludeFields={['created_at']}
+							excludeFields={['created_at', 'updated_at']}
 							onSuccess={handleImportSuccess}
 							relationships={[
 								{
@@ -527,7 +528,7 @@ export function PromptsList() {
 								}
 							]}
 							resource="prompts"
-							templateFilename="prompts-template"
+							templateFilename="prompts"
 						/>
 						<DataTableExport
 							columns={EXPORT_COLUMNS}
@@ -542,11 +543,25 @@ export function PromptsList() {
 				table={table}
 			/>
 			<DataTable
+				enableSelection
 				onDelete={async (row) => {
 					await deletePrompt({
 						id: row.id,
 						resource: 'prompts'
 					})
+				}}
+				onDeleteMany={async (rows) => {
+					const limit = pLimit(10)
+					await Promise.all(
+						rows.map((row) =>
+							limit(() =>
+								deletePrompt({
+									id: row.id,
+									resource: 'prompts'
+								})
+							)
+						)
+					)
 				}}
 				resource="prompts"
 				table={table}
