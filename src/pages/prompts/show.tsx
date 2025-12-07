@@ -43,7 +43,7 @@ export function PromptsShow() {
 					select: 'tags(*)'
 				}
 			})
-			return data.map((pt: { tags: Tag }) => pt.tags)
+			return (data as unknown as Array<{ tags: Tag }>).map((pt: { tags: Tag }) => pt.tags)
 		},
 		queryKey: ['prompt-tags', id]
 	})
@@ -60,7 +60,9 @@ export function PromptsShow() {
 					select: 'ai_models(*)'
 				}
 			})
-			return data.map((pm: { ai_models: AIModel }) => pm.ai_models)
+			return (data as unknown as Array<{ ai_models: AIModel }>).map(
+				(pm: { ai_models: AIModel }) => pm.ai_models
+			)
 		},
 		queryKey: ['prompt-models', id]
 	})

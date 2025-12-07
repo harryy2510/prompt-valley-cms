@@ -124,7 +124,7 @@ export function PromptForm({ mode }: PromptFormProps) {
 			if (tagsData && tagsData.length > 0) {
 				form.setValue(
 					'tags',
-					tagsData.map((t: { tag_id: string }) => t.tag_id)
+					(tagsData as unknown as Array<{ tag_id: string }>).map((t) => t.tag_id)
 				)
 			}
 
@@ -141,7 +141,7 @@ export function PromptForm({ mode }: PromptFormProps) {
 			if (modelsData && modelsData.length > 0) {
 				form.setValue(
 					'models',
-					modelsData.map((m: { model_id: string }) => m.model_id)
+					(modelsData as unknown as Array<{ model_id: string }>).map((m) => m.model_id)
 				)
 			}
 
@@ -158,7 +158,7 @@ export function PromptForm({ mode }: PromptFormProps) {
 		const { models, tags, ...promptData } = data
 
 		// Submit the main prompt data
-		await onFinish(promptData as unknown as Prompt)
+		await onFinish(promptData as unknown as PromptFormValues)
 
 		// Handle junction tables after main record is saved
 		const promptId = data.id
