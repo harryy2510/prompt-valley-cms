@@ -1,6 +1,5 @@
-import { deleteFilesServer, getPublicUrlServer, uploadFileServer } from '@/actions/storage'
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+import { deleteFilesServer, uploadFileServer } from '@/actions/storage'
+import { getSupabaseBrowserClient } from '@/libs/supabase/client'
 
 /**
  * Delete an image from the content-bucket
@@ -32,27 +31,10 @@ export function getImageUrl(value: null | string | undefined): null | string {
 		return value
 	}
 
-	// Otherwise, construct the public URL directly
-	return `${SUPABASE_URL}/storage/v1/object/public/content-bucket/${value}`
-}
-
-/**
- * Get the display URL for an image asynchronously (uses server function)
- * Use this when you need the exact URL from the server
- */
-export async function getImageUrlAsync(value: null | string | undefined): Promise<null | string> {
-	if (!value) return null
-
-	// If it's already a full URL, return as-is
-	if (isFullUrl(value)) {
-		return value
-	}
-
-	// Get public URL from server
-	const { publicUrl } = await getPublicUrlServer({
-		data: { bucketId: 'content-bucket', path: value }
-	})
-	return publicUrl
+	// Use Supabase browser client to get public URL
+	const supabase = getSupabaseBrowserClient()
+	const { data } = supabase.storage.from('content-bucket').getPublicUrl(value)
+	return data.publicUrl
 }
 
 /**
