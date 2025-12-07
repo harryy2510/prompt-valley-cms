@@ -79,10 +79,27 @@ export function DataTable<TData extends BaseRecord>({
 	const tableContainerRef = useRef<HTMLDivElement>(null)
 	const tableRef = useRef<HTMLTableElement>(null)
 	const selectoRef = useRef<Selecto>(null)
+	const shiftKeyRef = useRef(false)
 	const [isOverflowing, setIsOverflowing] = useState({
 		horizontal: false,
 		vertical: false
 	})
+
+	// Track shift key state globally for checkbox click handlers
+	useEffect(() => {
+		const handleKeyDown = (e: KeyboardEvent) => {
+			if (e.key === 'Shift') shiftKeyRef.current = true
+		}
+		const handleKeyUp = (e: KeyboardEvent) => {
+			if (e.key === 'Shift') shiftKeyRef.current = false
+		}
+		window.addEventListener('keydown', handleKeyDown)
+		window.addEventListener('keyup', handleKeyUp)
+		return () => {
+			window.removeEventListener('keydown', handleKeyDown)
+			window.removeEventListener('keyup', handleKeyUp)
+		}
+	}, [])
 
 	// Row selection state
 	const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
@@ -101,10 +118,14 @@ export function DataTable<TData extends BaseRecord>({
 	const someRowsSelected = selectedRowIds.length > 0 && !allRowsSelected
 
 	// Toggle all rows selection
+	// Standard behavior: unchecked/indeterminate → select all, checked → clear all
 	const toggleAllRows = () => {
 		if (allRowsSelected) {
+			// All selected → clear all
 			setRowSelection({})
+			setLastSelectedRowId(null)
 		} else {
+			// None or some selected → select all
 			const newSelection: RowSelectionState = {}
 			getRowModel().rows.forEach((row) => {
 				newSelection[row.id] = true
@@ -308,11 +329,21 @@ export function DataTable<TData extends BaseRecord>({
 										className={cn(
 											!disableContextMenu && 'cursor-context-menu',
 											isSelected && 'bg-muted/50',
-											enableSelection && 'selectable-row'
+											enableSelection && 'selectable-row',
+											enableSelection && selectedRowIds.length > 0 && 'cursor-pointer'
 										)}
 										data-row-id={row.id}
 										data-state={isSelected ? 'selected' : undefined}
 										key={row.original?.id ?? row.id}
+										onClick={(e) => {
+											// Only toggle on row click if selection mode is active (at least one row selected)
+											if (enableSelection && selectedRowIds.length > 0) {
+												// Don't toggle if clicking on a button, link, or checkbox
+												const target = e.target as HTMLElement
+												if (target.closest('button, a, [role="checkbox"], input')) return
+												toggleRow(row.id, shiftKeyRef.current)
+											}
+										}}
 									>
 										{enableSelection && (
 											<TableCell
@@ -322,16 +353,13 @@ export function DataTable<TData extends BaseRecord>({
 													maxWidth: CHECKBOX_COLUMN_WIDTH
 												}}
 											>
-												<div
-													className="flex items-center justify-center"
-													onClick={(e) => {
-														e.stopPropagation()
-														toggleRow(row.id, e.shiftKey)
-													}}
-												>
+												<div className="flex items-center justify-center">
 													<Checkbox
 														aria-label={`Select row ${row.id}`}
-														checked={isSelected}
+														checked={isSelected ? true : false}
+														onCheckedChange={() => {
+															toggleRow(row.id, shiftKeyRef.current)
+														}}
 													/>
 												</div>
 											</TableCell>
