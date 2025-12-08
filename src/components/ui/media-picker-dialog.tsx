@@ -302,17 +302,17 @@ export function MediaPickerDialog({
 					<Separator />
 
 					{/* Content */}
-					<ScrollArea className="flex-1 py-4">
+					<ScrollArea className="flex-1 min-h-0 -mx-6 px-6">
 						{!selectedBucket ? (
 							// Bucket list
 							isBucketsLoading ? (
-								<div className="grid grid-cols-3 gap-3">
+								<div className="grid grid-cols-4 gap-3 py-4">
 									{Array.from({ length: 6 }).map((_, i) => (
 										<Skeleton className="h-20" key={i} />
 									))}
 								</div>
 							) : (
-								<div className="grid grid-cols-3 gap-3">
+								<div className="grid grid-cols-4 gap-3 py-4">
 									{buckets.map((bucket) => (
 										<button
 											className={cn(
@@ -335,7 +335,7 @@ export function MediaPickerDialog({
 								</div>
 							)
 						) : isFilesLoading ? (
-							<div className="grid grid-cols-4 gap-3">
+							<div className="grid grid-cols-4 gap-3 py-4">
 								{Array.from({ length: 8 }).map((_, i) => (
 									<Skeleton className="h-24" key={i} />
 								))}
@@ -346,7 +346,7 @@ export function MediaPickerDialog({
 								<p className="text-sm">No files found</p>
 							</div>
 						) : (
-							<div className="grid grid-cols-4 gap-3">
+							<div className="grid grid-cols-4 gap-3 py-4">
 								{/* Folders */}
 								{folders.map((folder) => (
 									<button

@@ -10,7 +10,7 @@ const guestSearchSchema = z.object({
 })
 
 // ============================================
-// Protected Layout Route
+// Guest Layout Route
 // ============================================
 
 export const Route = createFileRoute('/__guest')({
