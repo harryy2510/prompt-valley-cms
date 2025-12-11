@@ -1,11 +1,11 @@
 import { useEditButton } from '@refinedev/core'
 import type { BaseKey } from '@refinedev/core'
 import { Pencil } from 'lucide-react'
-import React from 'react'
+import type { ComponentProps, PointerEvent, RefObject } from 'react'
 
 import { Button } from '@/components/ui/button'
 
-type EditButtonProps = React.ComponentProps<typeof Button> & {
+type EditButtonProps = ComponentProps<typeof Button> & {
 	/**
 	 * Access Control configuration for the button
 	 * @default `{ enabled: true, hideIfUnauthorized: false }`
@@ -39,7 +39,7 @@ export const EditButton = ({
 	ref,
 	resource,
 	...rest
-}: EditButtonProps & { ref?: React.RefObject<null | React.ComponentRef<typeof Button>> }) => {
+}: EditButtonProps & { ref?: RefObject<null | ComponentProps<typeof Button>['ref']> }) => {
 	const { disabled, hidden, label, LinkComponent, to } = useEditButton({
 		accessControl,
 		id: recordItemId,
@@ -55,7 +55,7 @@ export const EditButton = ({
 	return (
 		<Button {...rest} asChild disabled={isDisabled} ref={ref}>
 			<LinkComponent
-				onClick={(e: React.PointerEvent<HTMLButtonElement>) => {
+				onClick={(e: PointerEvent<HTMLButtonElement>) => {
 					if (isDisabled) {
 						e.preventDefault()
 						return

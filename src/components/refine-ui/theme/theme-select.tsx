@@ -1,5 +1,5 @@
 import { Check, ChevronDown, Monitor, Moon, Sun } from 'lucide-react'
-import React from 'react'
+import type { ReactNode } from 'react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -13,7 +13,7 @@ import { cn } from '@/libs/cn'
 import { useTheme } from './theme-provider'
 
 type ThemeOption = {
-	icon: React.ReactNode
+	icon: ReactNode
 	label: string
 	value: 'dark' | 'light' | 'system'
 }

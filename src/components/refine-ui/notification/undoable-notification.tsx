@@ -1,5 +1,5 @@
 import { useTranslate } from '@refinedev/core'
-import React from 'react'
+import { useEffect } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { cn } from '@/libs/cn'
@@ -21,7 +21,7 @@ export function UndoableNotification({
 }: UndoableNotificationProps) {
 	const t = useTranslate()
 
-	React.useEffect(() => {
+	useEffect(() => {
 		const timer = setTimeout(() => {
 			onClose?.()
 		}, undoableTimeout * 1000)

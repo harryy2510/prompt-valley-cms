@@ -1,11 +1,11 @@
 import { useShowButton } from '@refinedev/core'
 import type { BaseKey } from '@refinedev/core'
 import { Eye } from 'lucide-react'
-import React from 'react'
+import type { ComponentProps, PointerEvent, RefObject } from 'react'
 
 import { Button } from '@/components/ui/button'
 
-type ShowButtonProps = React.ComponentProps<typeof Button> & {
+type ShowButtonProps = ComponentProps<typeof Button> & {
 	/**
 	 * Access Control configuration for the button
 	 * @default `{ enabled: true, hideIfUnauthorized: false }`
@@ -39,7 +39,7 @@ export const ShowButton = ({
 	ref,
 	resource,
 	...rest
-}: ShowButtonProps & { ref?: React.RefObject<null | React.ComponentRef<typeof Button>> }) => {
+}: ShowButtonProps & { ref?: RefObject<null | ComponentProps<typeof Button>['ref']> }) => {
 	const { disabled, hidden, label, LinkComponent, to } = useShowButton({
 		accessControl,
 		id: recordItemId,
@@ -55,7 +55,7 @@ export const ShowButton = ({
 	return (
 		<Button {...rest} asChild disabled={isDisabled} ref={ref}>
 			<LinkComponent
-				onClick={(e: React.PointerEvent<HTMLButtonElement>) => {
+				onClick={(e: PointerEvent<HTMLButtonElement>) => {
 					if (isDisabled) {
 						e.preventDefault()
 						return

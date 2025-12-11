@@ -3,7 +3,7 @@ import { useLink, useMenu, useParsed, useRefineOptions } from '@refinedev/core'
 import type { TreeMenuItem } from '@refinedev/core'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronRight, FolderOpen, ListIcon } from 'lucide-react'
-import React from 'react'
+import type { ComponentProps, ReactNode } from 'react'
 
 import { listBucketsServer } from '@/actions/storage'
 import { Button } from '@/components/ui/button'
@@ -25,7 +25,7 @@ import {
 import { cn } from '@/libs/cn'
 
 type IconProps = {
-	icon: React.ReactNode
+	icon: ReactNode
 	isSelected?: boolean
 }
 
@@ -34,12 +34,12 @@ type MenuItemProps = {
 	selectedKey?: string
 }
 
-type SidebarButtonProps = React.ComponentProps<typeof Button> & {
+type SidebarButtonProps = ComponentProps<typeof Button> & {
 	asLink?: boolean
 	isSelected?: boolean
 	item: TreeMenuItem
 	onClick?: () => void
-	rightIcon?: React.ReactNode
+	rightIcon?: ReactNode
 }
 
 export function Sidebar() {

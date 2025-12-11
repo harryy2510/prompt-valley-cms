@@ -10,8 +10,8 @@ import {
 	useSearch
 } from '@tanstack/react-router'
 import qs from 'qs'
-import type { ComponentProps } from 'react'
-import React, { use, useCallback } from 'react'
+import type { ComponentProps, RefObject } from 'react'
+import { use, useCallback } from 'react'
 import { parseQuery, parseURL } from 'ufo'
 
 /**
@@ -97,7 +97,7 @@ export const routerProvider: RouterProvider = {
 		to,
 		...props
 	}: ComponentProps<NonNullable<RouterProvider['Link']>> & {
-		ref?: React.RefObject<HTMLAnchorElement | null>
+		ref?: RefObject<HTMLAnchorElement | null>
 	}) {
 		const parsed = parseURL(to)
 		if (parsed.host) {

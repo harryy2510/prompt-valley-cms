@@ -1,11 +1,11 @@
 import { useListButton } from '@refinedev/core'
 import type { BaseKey } from '@refinedev/core'
 import { List } from 'lucide-react'
-import React from 'react'
+import type { ComponentProps, PointerEvent, RefObject } from 'react'
 
 import { Button } from '@/components/ui/button'
 
-type ListButtonProps = React.ComponentProps<typeof Button> & {
+type ListButtonProps = ComponentProps<typeof Button> & {
 	/**
 	 * Access Control configuration for the button
 	 * @default `{ enabled: true, hideIfUnauthorized: false }`
@@ -33,7 +33,7 @@ export const ListButton = ({
 	ref,
 	resource,
 	...rest
-}: ListButtonProps & { ref?: React.RefObject<null | React.ComponentRef<typeof Button>> }) => {
+}: ListButtonProps & { ref?: RefObject<null | ComponentProps<typeof Button>['ref']> }) => {
 	const { disabled, hidden, label, LinkComponent, to } = useListButton({
 		accessControl,
 		meta,
@@ -48,7 +48,7 @@ export const ListButton = ({
 	return (
 		<Button {...rest} asChild disabled={isDisabled} ref={ref}>
 			<LinkComponent
-				onClick={(e: React.PointerEvent<HTMLButtonElement>) => {
+				onClick={(e: PointerEvent<HTMLButtonElement>) => {
 					if (isDisabled) {
 						e.preventDefault()
 						return

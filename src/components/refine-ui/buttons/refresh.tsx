@@ -1,12 +1,12 @@
 import { useRefreshButton } from '@refinedev/core'
 import type { BaseKey } from '@refinedev/core'
 import { RefreshCcw } from 'lucide-react'
-import React from 'react'
+import type { ComponentProps, PointerEvent, RefObject } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { cn } from '@/libs/cn'
 
-type RefreshButtonProps = React.ComponentProps<typeof Button> & {
+type RefreshButtonProps = ComponentProps<typeof Button> & {
 	/**
 	 * Target data provider name for API call to be made
 	 * @default `"default"`
@@ -36,7 +36,7 @@ export const RefreshButton = ({
 	ref,
 	resource,
 	...rest
-}: RefreshButtonProps & { ref?: React.RefObject<null | React.ComponentRef<typeof Button>> }) => {
+}: RefreshButtonProps & { ref?: RefObject<null | ComponentProps<typeof Button>['ref']> }) => {
 	const {
 		label,
 		loading,
@@ -52,7 +52,7 @@ export const RefreshButton = ({
 
 	return (
 		<Button
-			onClick={(e: React.PointerEvent<HTMLButtonElement>) => {
+			onClick={(e: PointerEvent<HTMLButtonElement>) => {
 				if (isDisabled) {
 					e.preventDefault()
 					return

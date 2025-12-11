@@ -1,11 +1,11 @@
 import { useCreateButton } from '@refinedev/core'
 import type { BaseKey } from '@refinedev/core'
 import { Plus } from 'lucide-react'
-import React from 'react'
+import type { ComponentProps, PointerEvent, RefObject } from 'react'
 
 import { Button } from '@/components/ui/button'
 
-type CreateButtonProps = React.ComponentProps<typeof Button> & {
+type CreateButtonProps = ComponentProps<typeof Button> & {
 	/**
 	 * Access Control configuration for the button
 	 * @default `{ enabled: true, hideIfUnauthorized: false }`
@@ -33,7 +33,7 @@ export const CreateButton = ({
 	ref,
 	resource,
 	...rest
-}: CreateButtonProps & { ref?: React.RefObject<null | React.ComponentRef<typeof Button>> }) => {
+}: CreateButtonProps & { ref?: RefObject<null | ComponentProps<typeof Button>['ref']> }) => {
 	const { disabled, hidden, label, LinkComponent, to } = useCreateButton({
 		accessControl,
 		meta,
@@ -48,7 +48,7 @@ export const CreateButton = ({
 	return (
 		<Button {...rest} asChild disabled={isDisabled} ref={ref}>
 			<LinkComponent
-				onClick={(e: React.PointerEvent<HTMLButtonElement>) => {
+				onClick={(e: PointerEvent<HTMLButtonElement>) => {
 					if (isDisabled) {
 						e.preventDefault()
 						return

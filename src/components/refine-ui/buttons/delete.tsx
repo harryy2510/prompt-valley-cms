@@ -1,12 +1,13 @@
 import { useDeleteButton } from '@refinedev/core'
 import type { BaseKey } from '@refinedev/core'
 import { Loader2, Trash } from 'lucide-react'
-import React from 'react'
+import type { ComponentProps, RefObject } from 'react'
+import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 
-type DeleteButtonProps = React.ComponentProps<typeof Button> & {
+type DeleteButtonProps = ComponentProps<typeof Button> & {
 	/**
 	 * Access Control configuration for the button
 	 * @default `{ enabled: true, hideIfUnauthorized: false }`
@@ -39,7 +40,7 @@ export const DeleteButton = ({
 	ref,
 	resource,
 	...rest
-}: DeleteButtonProps & { ref?: React.RefObject<null | React.ComponentRef<typeof Button>> }) => {
+}: DeleteButtonProps & { ref?: RefObject<null | ComponentProps<typeof Button>['ref']> }) => {
 	const {
 		cancelLabel: defaultCancelLabel,
 		confirmOkLabel: defaultConfirmOkLabel,
@@ -55,7 +56,7 @@ export const DeleteButton = ({
 		meta,
 		resource
 	})
-	const [open, setOpen] = React.useState(false)
+	const [open, setOpen] = useState(false)
 
 	const isDisabled = disabled || rest.disabled || loading
 	const isHidden = hidden || rest.hidden
